@@ -6,6 +6,7 @@ inThisBuild(
     },
     onLoadMessage := s"Welcome to sbt-scalafix ${version.value}",
     scalaVersion := "2.12.6",
+    resolvers += Resolver.sonatypeRepo("releases"),
     organization := "ch.epfl.scala",
     homepage := Some(url("https://github.com/scalacenter/sbt-scalafix")),
     licenses := List(
@@ -42,7 +43,7 @@ lazy val plugin = project
           )
           buildVersion
         } else {
-          "0.6.0-M9"
+          "0.6.0-M11"
         }
       } cross CrossVersion.full,
       "org.scalatest" %% "scalatest" % "3.0.5" % Test
