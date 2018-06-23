@@ -34,7 +34,17 @@ lazy val plugin = project
       s"-Dplugin.version=${version.value}"
     ),
     libraryDependencies ++= List(
-      "ch.epfl.scala" % "scalafix-cli" % "0.6.0-M9" cross CrossVersion.full,
+      "ch.epfl.scala" % "scalafix-cli" % {
+        val buildVersion = version.in(ThisBuild).value
+        if (CiReleasePlugin.isTravisTag) {
+          println(
+            s"Automatically picking scalafmt version $buildVersion. TRAVIS_TAG=${System.getenv("TRAVIS_TAG")}"
+          )
+          buildVersion
+        } else {
+          "0.6.0-M9"
+        }
+      } cross CrossVersion.full,
       "org.scalatest" %% "scalatest" % "3.0.5" % Test
     )
   )
