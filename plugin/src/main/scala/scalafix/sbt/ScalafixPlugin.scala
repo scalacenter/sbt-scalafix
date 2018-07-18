@@ -16,12 +16,21 @@ object ScalafixPlugin extends AutoPlugin {
     val Scalafix = Tags.Tag("scalafix")
 
     val scalafix: InputKey[Unit] =
-      inputKey[Unit]("Run scalafix rule.")
+      inputKey[Unit](
+        "Run scalafix rule in this project and configuration. " +
+          "For example: scalafix RemoveUnusedImports. " +
+          "To run on test sources use test:scalafix."
+      )
     val scalafixCli: InputKey[Unit] =
-      inputKey[Unit]("Run scalafix rule.")
+      inputKey[Unit](
+        "Run the scalafix cli in this project and configuration. " +
+          "For example: scalafix -r RemoveUnusedImports. " +
+          "To run on test sources use test:scalafixCli."
+      )
     val scalafixTest: InputKey[Unit] =
       inputKey[Unit](
-        "Runs scalafix failing the build if sources would change. Does not modify files."
+        "The same as scalafix except report an error for unfixed files without modifying files. " +
+          "Useful to enforce scalafix in CI."
       )
     val scalafixAutoSuppressLinterErrors: InputKey[Unit] =
       inputKey[Unit](
@@ -31,38 +40,26 @@ object ScalafixPlugin extends AutoPlugin {
       )
     val sbtfix: InputKey[Unit] =
       inputKey[Unit](
-        "Run syntactic scalafix rule on build sources. Note, semantic rewrites are not supported."
+        "The same as scalafix except it runs on *.sbt and project/*.scala files. " +
+          "Note, semantic rewrites such as ExplicitResultTypes and RemoveUnusedImports are not supported."
       )
     val sbtfixTest: InputKey[Unit] =
       inputKey[Unit](
-        "Run scalafix on build sources failing the build if source would change. Does not modify files."
+        "Same as scalafixTest except for *.sbt and project/*.scala files. " +
+          "Useful to enforce scalafix in CI."
       )
     val scalafixConfig: SettingKey[Option[File]] =
       settingKey[Option[File]](
-        ".scalafix.conf file to specify which scalafix rules should run."
+        "Optional location to .scalafix.conf file to specify which scalafix rules should run. " +
+          "Defaults to the build base directory if a .scalafix.conf file exists."
       )
-    val scalafixVersion: SettingKey[String] = settingKey[String](
-      s"Which scalafix version to run. Default is ${Versions.version}."
-    )
-    val scalafixScalaVersion: SettingKey[String] = settingKey[String](
-      s"Which scala version to run scalafix from. Default is ${Versions.scala212}."
-    )
     val scalafixSemanticdbVersion: SettingKey[String] = settingKey[String](
       s"Which version of semanticdb to use. Default is ${Versions.scalameta}."
     )
-    val scalafixMetacpCacheDirectory: SettingKey[Option[File]] = settingKey(
-      "Global cache location to persist metacp artifacts produced by analyzing --dependency-classpath. " +
-        "The default location depends on the OS and is computed with https://github.com/soc/directories-jvm " +
-        "using the project name 'semanticdb'. " +
-        "On macOS the default cache directory is ~/Library/Caches/semanticdb. "
-    )
-    val scalafixParallel: SettingKey[Boolean] = settingKey(
-      "If false (default), run scalafix in single-threaded mode. " +
-        "If true, allow scalafix to utilize available CPUs. " +
-        "Default is false because sbt automatically parallelizes across projects and configurations."
-    )
-    val scalafixSemanticdb =
-      "org.scalameta" % "semanticdb-scalac" % Versions.scalameta cross CrossVersion.full
+    val scalafixSemanticdb: ModuleID =
+      scalafixSemanticdb(Versions.scalameta)
+    def scalafixSemanticdb(scalametaVersion: String): ModuleID =
+      "org.scalameta" % "semanticdb-scalac" % scalametaVersion cross CrossVersion.full
     val scalafixVerbose: SettingKey[Boolean] =
       settingKey[Boolean]("pass --verbose to scalafix")
 
@@ -90,23 +87,23 @@ object ScalafixPlugin extends AutoPlugin {
     )
 
     @deprecated("This setting is no longer used", "0.6.0")
-    val scalafixSourceroot: SettingKey[File] = settingKey[File]("Unused")
+    val scalafixSourceroot: SettingKey[File] =
+      settingKey[File]("Unused")
     @deprecated("Use scalacOptions += -Yrangepos instead", "0.6.0")
     def scalafixScalacOptions: Def.Initialize[Seq[String]] =
-      ScalafixPlugin.scalafixScalacOptions
+      Def.setting(Nil)
     @deprecated("Use addCompilerPlugin(semanticdb-scalac) instead", "0.6.0")
     def scalafixLibraryDependencies: Def.Initialize[List[ModuleID]] =
-      ScalafixPlugin.scalafixLibraryDependencies
+      Def.setting(Nil)
     @deprecated("This setting is no longer used", "0.6.0")
-    def sbtfixSettings: Seq[Def.Setting[_]] = Nil
+    def sbtfixSettings: Seq[Def.Setting[_]] =
+      Nil
     @deprecated(
       "Use addCompilerPlugin(scalafixSemanticdb) and scalacOptions += \"-Yrangepos\" instead",
       "0.6.0"
     )
-    def scalafixSettings: Seq[Def.Setting[_]] = List(
-      scalacOptions ++= scalafixScalacOptions.value,
-      libraryDependencies ++= scalafixLibraryDependencies.value
-    )
+    def scalafixSettings: Seq[Def.Setting[_]] =
+      Nil
   }
   import autoImport._
 
@@ -121,11 +118,7 @@ object ScalafixPlugin extends AutoPlugin {
     sbtfixTest := sbtfixImpl(compat = true, extraOptions = Seq("--test")).evaluated,
     aggregate.in(sbtfix) := false,
     aggregate.in(sbtfixTest) := false,
-    scalafixVersion := Versions.version,
-    scalafixSemanticdbVersion := Versions.scalameta,
-    scalafixScalaVersion := Versions.scala212,
-    scalafixMetacpCacheDirectory := None,
-    scalafixParallel := false
+    scalafixSemanticdbVersion := Versions.scalameta
   )
 
   private def sbtfixImpl(compat: Boolean, extraOptions: Seq[String] = Seq()) = {
@@ -152,30 +145,6 @@ object ScalafixPlugin extends AutoPlugin {
     ScalafixCompletions.parser(workingDirectory.toPath, compat = false)
   private val scalafixParserCompat =
     ScalafixCompletions.parser(workingDirectory.toPath, compat = true)
-
-  private val isSupportedScalaVersion = Def.setting {
-    CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((2, 11 | 12)) => true
-      case _ => false
-    }
-  }
-
-  lazy val scalafixLibraryDependencies: Def.Initialize[List[ModuleID]] =
-    Def.setting {
-      if (isSupportedScalaVersion.value) {
-        compilerPlugin(
-          "org.scalameta" % "semanticdb-scalac" % scalafixSemanticdbVersion.value cross CrossVersion.full
-        ) :: Nil
-      } else Nil
-    }
-  lazy val scalafixScalacOptions: Def.Initialize[Seq[String]] = Def.setting {
-    if (isSupportedScalaVersion.value) {
-      Seq(
-        "-Yrangepos",
-        s"-Xplugin-require:semanticdb"
-      )
-    } else Nil
-  }
 
   def scalafixTaskImpl(
       parser: Parser[Seq[String]],
@@ -230,15 +199,6 @@ object ScalafixPlugin extends AutoPlugin {
 
         if (scalafixVerbose.value) {
           args += "--verbose"
-        }
-
-        scalafixMetacpCacheDirectory.value match {
-          case Some(dir) =>
-            args += (
-              "--metacp-cache-dir",
-              dir.absolutePath
-            )
-          case _ =>
         }
 
         scalafixConfig.value match {

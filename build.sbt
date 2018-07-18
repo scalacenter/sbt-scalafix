@@ -43,7 +43,7 @@ lazy val plugin = project
           )
           buildVersion
         } else {
-          "0.6.0-M11"
+          "0.6.0-M12"
         }
       } cross CrossVersion.full,
       "org.scalatest" %% "scalatest" % "3.0.5" % Test
