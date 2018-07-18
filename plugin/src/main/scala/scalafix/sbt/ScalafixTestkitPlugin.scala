@@ -23,6 +23,8 @@ object ScalafixTestkitPlugin extends AutoPlugin {
     resourceGenerators.in(Test) += Def.task {
       val props = new java.util.Properties()
       val values = Map[String, Seq[File]](
+        "sourceroot" ->
+          List(baseDirectory.in(ThisBuild).value),
         "inputClasspath" ->
           scalafixTestkitInputClasspath.value.map(_.data),
         "inputSourceDirectories" ->
