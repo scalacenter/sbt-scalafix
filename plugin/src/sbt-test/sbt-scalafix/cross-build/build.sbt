@@ -1,4 +1,4 @@
-import _root_.scalafix.Versions
+import _root_.scalafix.sbt.{BuildInfo => Versions}
 inThisBuild(
   List(
     updateOptions := updateOptions.value.withLatestSnapshots(false),

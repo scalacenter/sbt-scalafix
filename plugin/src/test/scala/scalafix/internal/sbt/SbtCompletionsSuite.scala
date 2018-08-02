@@ -3,7 +3,7 @@ package scalafix.internal.sbt
 import org.scalatest.FunSuite
 import sbt.complete.Parser
 import sbt.complete.Completion
-import sbt.scalafixsbt.JLineAccess
+import sbt.internal.sbtscalafix.JLineAccess
 
 import org.eclipse.jgit.lib.AbbreviatedObjectId
 import org.scalatest.Tag

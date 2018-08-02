@@ -12,9 +12,12 @@ jobs:
     - env: TEST="scalafmt"
       script: ./bin/scalafmt --test
     - env: TEST="compile"
-      script: sbt plugin/test plugin/scripted
+      script: sbt test-all
     - stage: release
-      script: travis_wait 60 sbt ci-release
+      env:
+        - CI_RELEASE="release-all"
+        - CI_SONATYPE_RELEASE="release-snapshot-all"
+      script: sbt ci-release
 
 cache:
   directories:

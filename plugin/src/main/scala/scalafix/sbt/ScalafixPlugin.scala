@@ -1,6 +1,5 @@
 package scalafix.sbt
 
-import scalafix.Versions
 import sbt.File
 import sbt.Keys._
 import sbt._
@@ -8,6 +7,7 @@ import sbt.complete.Parser
 import sbt.plugins.JvmPlugin
 import scalafix.internal.sbt.ScalafixCompletions
 import sbt.Def
+import scala.util.control.NonFatal
 
 object ScalafixPlugin extends AutoPlugin {
   override def trigger: PluginTrigger = allRequirements
@@ -54,10 +54,10 @@ object ScalafixPlugin extends AutoPlugin {
           "Defaults to the build base directory if a .scalafix.conf file exists."
       )
     val scalafixSemanticdbVersion: SettingKey[String] = settingKey[String](
-      s"Which version of semanticdb to use. Default is ${Versions.scalameta}."
+      s"Which version of semanticdb to use. Default is ${BuildInfo.scalameta}."
     )
     val scalafixSemanticdb: ModuleID =
-      scalafixSemanticdb(Versions.scalameta)
+      scalafixSemanticdb(BuildInfo.scalameta)
     def scalafixSemanticdb(scalametaVersion: String): ModuleID =
       "org.scalameta" % "semanticdb-scalac" % scalametaVersion cross CrossVersion.full
     val scalafixVerbose: SettingKey[Boolean] =
@@ -67,22 +67,22 @@ object ScalafixPlugin extends AutoPlugin {
       scalafix := scalafixTaskImpl(
         scalafixParserCompat,
         compat = true,
-        Seq("--format", "sbt")
+        Seq()
       ).tag(Scalafix).evaluated,
       scalafixTest := scalafixTaskImpl(
         scalafixParserCompat,
         compat = true,
-        Seq("--test", "--format", "sbt")
+        Seq("--test")
       ).tag(Scalafix).evaluated,
       scalafixCli := scalafixTaskImpl(
         scalafixParser,
         compat = false,
-        Seq("--format", "sbt")
+        Seq()
       ).tag(Scalafix).evaluated,
       scalafixAutoSuppressLinterErrors := scalafixTaskImpl(
         scalafixParser,
         compat = true,
-        Seq("--auto-suppress-linter-errors", "--format", "sbt")
+        Seq("--auto-suppress-linter-errors")
       ).tag(Scalafix).evaluated
     )
 
@@ -107,6 +107,15 @@ object ScalafixPlugin extends AutoPlugin {
   }
   import autoImport._
 
+  lazy val cli: Either[Throwable, ScalafixInterface] = {
+    try {
+      Right(ScalafixInterface.classloadInstance())
+    } catch {
+      case NonFatal(e) =>
+        Left(e)
+    }
+  }
+
   override def projectSettings: Seq[Def.Setting[_]] =
     Seq(Compile, Test).flatMap(inConfig(_)(scalafixConfigSettings))
 
@@ -118,7 +127,7 @@ object ScalafixPlugin extends AutoPlugin {
     sbtfixTest := sbtfixImpl(compat = true, extraOptions = Seq("--test")).evaluated,
     aggregate.in(sbtfix) := false,
     aggregate.in(sbtfixTest) := false,
-    scalafixSemanticdbVersion := Versions.scalameta
+    scalafixSemanticdbVersion := BuildInfo.scalameta
   )
 
   private def sbtfixImpl(compat: Boolean, extraOptions: Seq[String] = Seq()) = {
@@ -193,7 +202,11 @@ object ScalafixPlugin extends AutoPlugin {
       streams: TaskStreams
   ): Def.Initialize[Task[Unit]] = {
     if (files.isEmpty) Def.task(())
-    else {
+    else if (cli.isLeft) {
+      Def.task {
+        throw cli.left.get
+      }
+    } else {
       Def.task {
         val args = Array.newBuilder[String]
 
@@ -224,10 +237,12 @@ object ScalafixPlugin extends AutoPlugin {
         }
 
         args += "--no-sys-exit"
+        args += "--format"
+        args += "sbt"
 
         args ++= files.iterator.map(_.getAbsolutePath)
 
-        _root_.scalafix.v1.Main.main(args.result())
+        cli.right.get.main(args.result())
       }
     }
   }

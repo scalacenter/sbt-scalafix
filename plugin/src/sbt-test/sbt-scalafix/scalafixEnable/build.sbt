@@ -1,4 +1,4 @@
-val V = _root_.scalafix.Versions
+val V = _root_.scalafix.sbt.BuildInfo
 
 // 2.10 is not supported, scalafix is not enabled
 lazy val scala210 = project.settings(

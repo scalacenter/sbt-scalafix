@@ -1,1 +1,1 @@
-addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % sys.props("plugin.version"))
+addSbtPlugin("io.get-coursier" % "sbt-coursier" % "1.1.0-M6")

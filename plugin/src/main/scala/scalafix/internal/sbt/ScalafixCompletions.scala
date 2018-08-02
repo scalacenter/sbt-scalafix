@@ -9,7 +9,7 @@ import scala.util.control.NonFatal
 
 import sbt.complete._
 import sbt.complete.DefaultParsers._
-import sbt.scalafixsbt.JLineAccess
+import sbt.internal.sbtscalafix.JLineAccess
 
 object ScalafixCompletions extends ScalafixCompletionsComponent with JLineAccess
 

@@ -1,7 +1,7 @@
 package scalafix.sbt
 
-import org.scalameta.BuildInfo
-import sbt._, Keys._
+import sbt._
+import sbt.Keys._
 
 /** Command to automatically enable semanticdb-scalac for shell session */
 object ScalafixEnable {
