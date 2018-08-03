@@ -11,12 +11,11 @@ jobs:
   include:
     - env: TEST="scalafmt"
       script: ./bin/scalafmt --test
-    - env: TEST="compile"
-      script: sbt test-all
+    - env: TEST="sbt 1.2"
+      script: sbt ++2.12.6 test scripted
+    - env: TEST="sbt 0.13"
+      script: sbt ++2.10.7 test scripted
     - stage: release
-      env:
-        - CI_RELEASE="release-all"
-        - CI_SONATYPE_RELEASE="release-snapshot-all"
       script: sbt ci-release
 
 cache:

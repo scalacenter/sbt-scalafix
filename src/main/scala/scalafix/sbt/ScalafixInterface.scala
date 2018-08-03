@@ -21,7 +21,8 @@ object ScalafixInterface {
       .withRepositories(
         List(
           Repository.MavenCentral,
-          Repository.SonatypeSnapshots
+          Repository.SonatypeSnapshots,
+          Repository.Ivy2Local
         )
       )
     val jars = CoursierSmall.fetch(settings)
