@@ -1,1 +1,0 @@
-resolvers += Resolver.sonatypeRepo("releases")
