@@ -1,7 +1,7 @@
 package scalafix.sbt
 
-import com.geirsson.coursiersmall._
 import java.net.URLClassLoader
+import java.nio.file.Path
 import scala.language.reflectiveCalls
 
 trait ScalafixInterface {
@@ -10,22 +10,7 @@ trait ScalafixInterface {
 
 object ScalafixInterface {
 
-  def classloadInstance(): ScalafixInterface = {
-    val dep = new Dependency(
-      "ch.epfl.scala",
-      s"scalafix-cli_${BuildInfo.scala212}",
-      BuildInfo.scalafix
-    )
-    val settings = new Settings()
-      .withDependencies(List(dep))
-      .withRepositories(
-        List(
-          Repository.MavenCentral,
-          Repository.SonatypeSnapshots,
-          Repository.Ivy2Local
-        )
-      )
-    val jars = CoursierSmall.fetch(settings)
+  def classloadInstance(jars: List[Path]): ScalafixInterface = {
     type Main = {
       def main(args: Array[String]): Unit
     }

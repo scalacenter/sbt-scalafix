@@ -1,13 +1,19 @@
 package scalafix.sbt
 
-import sbt.File
+import com.geirsson.coursiersmall
+import com.geirsson.coursiersmall.CoursierSmall
+import com.geirsson.coursiersmall.Dependency
+import com.geirsson.coursiersmall.Repository
+import java.io.OutputStreamWriter
+import java.nio.file.Path
+import java.util.function
+import java.{util => jutil}
 import sbt.Keys._
 import sbt._
 import sbt.complete.Parser
 import sbt.plugins.JvmPlugin
-import scalafix.internal.sbt.ScalafixCompletions
-import sbt.Def
 import scala.util.control.NonFatal
+import scalafix.internal.sbt.ScalafixCompletions
 
 object ScalafixPlugin extends AutoPlugin {
   override def trigger: PluginTrigger = allRequirements
@@ -47,6 +53,11 @@ object ScalafixPlugin extends AutoPlugin {
       inputKey[Unit](
         "Same as scalafixTest except for *.sbt and project/*.scala files. " +
           "Useful to enforce scalafix in CI."
+      )
+    val scalafixDependencies: SettingKey[Seq[ModuleID]] =
+      settingKey[Seq[ModuleID]](
+        "Optional list of custom rules to install from Maven Central. " +
+          "This setting is read from the global scope so it only needs to be defined once in the build."
       )
     val scalafixConfig: SettingKey[Option[File]] =
       settingKey[Option[File]](
@@ -109,7 +120,13 @@ object ScalafixPlugin extends AutoPlugin {
 
   lazy val cli: Either[Throwable, ScalafixInterface] = {
     try {
-      Right(ScalafixInterface.classloadInstance())
+      val dep = new Dependency(
+        "ch.epfl.scala",
+        s"scalafix-cli_${BuildInfo.scala212}",
+        BuildInfo.scalafix
+      )
+      val jars = CoursierSmall.fetch(fetchSettings.withDependencies(List(dep)))
+      Right(ScalafixInterface.classloadInstance(jars))
     } catch {
       case NonFatal(e) =>
         Left(e)
@@ -127,10 +144,14 @@ object ScalafixPlugin extends AutoPlugin {
     sbtfixTest := sbtfixImpl(compat = true, extraOptions = Seq("--test")).evaluated,
     aggregate.in(sbtfix) := false,
     aggregate.in(sbtfixTest) := false,
-    scalafixSemanticdbVersion := BuildInfo.scalameta
+    scalafixSemanticdbVersion := BuildInfo.scalameta,
+    scalafixDependencies := Nil
   )
 
-  private def sbtfixImpl(compat: Boolean, extraOptions: Seq[String] = Seq()) = {
+  private def sbtfixImpl(
+      compat: Boolean,
+      extraOptions: Seq[String] = Seq()
+  ): Def.Initialize[InputTask[Unit]] = {
     Def.inputTaskDyn {
       val baseDir = baseDirectory.in(ThisBuild).value
       val sbtDir: File = baseDir./("project")
@@ -148,7 +169,7 @@ object ScalafixPlugin extends AutoPlugin {
 
   // hack to avoid illegal dynamic reference, can't figure out how to do
   // scalafixParser(baseDirectory.in(ThisBuild).value).parsed
-  private def workingDirectory = file(sys.props("user.dir"))
+  private def workingDirectory: File = file(sys.props("user.dir"))
 
   private val scalafixParser =
     ScalafixCompletions.parser(workingDirectory.toPath, compat = false)
@@ -236,6 +257,14 @@ object ScalafixPlugin extends AutoPlugin {
           streams.log.info(s"Running scalafix on ${files.size} Scala sources")
         }
 
+        val deps = scalafixDependencies.value
+        if (deps.nonEmpty) {
+          val toolClasspath =
+            dependencyCache.computeIfAbsent(deps, fetchScalafixDependencies)
+          args += "--tool-classpath"
+          args += toolClasspath.mkString(java.io.File.pathSeparator)
+        }
+
         args += "--no-sys-exit"
         args += "--format"
         args += "sbt"
@@ -252,4 +281,40 @@ object ScalafixPlugin extends AutoPlugin {
     path.endsWith(".scala") ||
     path.endsWith(".sbt")
   }
+
+  private val dependencyCache: jutil.Map[Seq[ModuleID], List[Path]] = {
+    jutil.Collections.synchronizedMap(new jutil.HashMap())
+  }
+
+  private val fetchScalafixDependencies =
+    new function.Function[Seq[ModuleID], List[Path]] {
+      override def apply(t: Seq[ModuleID]): List[Path] = {
+        val dependencies = t.map { module =>
+          new Dependency(module.organization, module.name, module.revision)
+        }
+        CoursierSmall.fetch(fetchSettings.withDependencies(dependencies.toList))
+      }
+    }
+
+  private val silentCoursierWriter = new OutputStreamWriter(System.out) {
+    override def write(str: String): Unit = {
+      if (str.endsWith(".pom\n") || str.endsWith(".pom.sha1\n")) {
+        () // Ignore noisy "Downloading $URL.pom" logs that appear even for cached artifacts
+      } else {
+        super.write(str)
+      }
+    }
+  }
+
+  private val fetchSettings = new coursiersmall.Settings()
+    .withRepositories(
+      List(
+        Repository.MavenCentral,
+        Repository.SonatypeReleases,
+        Repository.SonatypeSnapshots,
+        Repository.Ivy2Local
+      )
+    )
+    .withWriter(silentCoursierWriter)
+
 }

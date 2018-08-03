@@ -17,6 +17,7 @@ class CheckSuite extends FunSuite with DiffAssertions {
         |object Example {
         |  implicit val str: _root_.java.util.Map.Entry[_root_.scala.Int, _root_.scala.Predef.String] = null.asInstanceOf[java.util.Map.Entry[Int, String]]
         |}
+        |// Hello world!
         |""".stripMargin
     assertNoDiff(obtained, expected)
   }
