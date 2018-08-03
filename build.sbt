@@ -16,6 +16,12 @@ developers := List(
   )
 )
 
+commands += Command.command("ci-windows") { s =>
+  "testOnly -- -l SkipWindows" ::
+    "scripted" ::
+    s
+}
+
 // Dependencies
 resolvers += Resolver.sonatypeRepo("releases")
 libraryDependencies ++= List(

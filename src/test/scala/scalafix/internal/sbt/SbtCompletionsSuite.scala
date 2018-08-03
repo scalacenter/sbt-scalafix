@@ -99,6 +99,7 @@ class SbtCompletionsSuite extends FunSuite {
     )
     assert((expected -- obtained).isEmpty)
   }
+
   check("all", SkipWindows) { completions =>
     val obtained = completions.map(_.display).toSet
     val expected = Set(
