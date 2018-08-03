@@ -1,11 +1,11 @@
 package scalafix.internal.sbt
 
 import org.scalatest.FunSuite
-import scalafix.sbt.ScalafixInterface
+import scalafix.sbt.ScalafixPlugin
 
 class ScalafixInterfaceSuite extends FunSuite {
-  test("classloadInstance") {
-    val cli = ScalafixInterface.classloadInstance()
+  test("ScalafixPlugin.cli") {
+    val Right(cli) = ScalafixPlugin.cli
     val e = intercept[Exception] {
       cli.main(Array("--foobar", "--no-sys-exit"))
     }
