@@ -336,7 +336,7 @@ object ScalafixPlugin extends AutoPlugin {
 
         val errors = api.runMain(mainArgs)
         if (errors.nonEmpty) {
-          throw new MessageOnlyException(errors.mkString(", "))
+          throw new ScalafixFailed(errors.toList)
         }
       }
     }
