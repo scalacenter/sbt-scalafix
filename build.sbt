@@ -36,6 +36,7 @@ libraryDependencies ++= List(
   // sbt-scalafix doesn't conflict with the user's installed version of sbt-coursier.
   // Details: https://github.com/olafurpg/coursier-small
   "com.geirsson" %% "coursier-small" % "1.0.0-M4",
+  "com.lihaoyi" %% "fansi" % "0.2.5" % Test,
   "org.scalatest" %% "scalatest" % "3.0.5" % Test
 )
 

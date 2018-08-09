@@ -18,8 +18,11 @@ import sbt.plugins.JvmPlugin
 import scalafix.internal.sbt.ScalafixCompletions
 import scalafix.interfaces.{Scalafix => ScalafixAPI}
 import scala.collection.JavaConverters._
+import scalafix.interfaces.ScalafixDiagnostic
 import scalafix.interfaces.ScalafixMainArgs
+import scalafix.interfaces.ScalafixMainCallback
 import scalafix.interfaces.ScalafixMainMode
+import scalafix.interfaces.ScalafixSeverity
 
 object ScalafixPlugin extends AutoPlugin {
   override def trigger: PluginTrigger = allRequirements
@@ -135,7 +138,31 @@ object ScalafixPlugin extends AutoPlugin {
     props
   }
 
+  def scalafixMainCallback(logger: Logger): ScalafixMainCallback =
+    new ScalafixMainCallback {
+      override def reportDiagnostic(diagnostic: ScalafixDiagnostic): Unit = {
+        def formatMessage: String =
+          if (diagnostic.position().isPresent) {
+            diagnostic
+              .position()
+              .get()
+              .formatMessage(
+                diagnostic.severity().toString.toLowerCase(),
+                diagnostic.message()
+              )
+          } else {
+            diagnostic.message()
+          }
+        diagnostic.severity() match {
+          case ScalafixSeverity.INFO => logger.info(formatMessage)
+          case ScalafixSeverity.WARNING => logger.warn(formatMessage)
+          case ScalafixSeverity.ERROR => logger.error(formatMessage)
+        }
+      }
+    }
+
   def classloadScalafixAPI(
+      logger: Logger,
       toolClasspathDeps: Seq[ModuleID]): (ScalafixAPI, ScalafixMainArgs) = {
     val dep = new Dependency(
       "ch.epfl.scala",
@@ -147,9 +174,11 @@ object ScalafixPlugin extends AutoPlugin {
     val classloader = new URLClassLoader(urls, this.getClass.getClassLoader)
     val api = ScalafixAPI.classloadInstance(classloader)
     val toolClasspath = scalafixToolClasspath(toolClasspathDeps, classloader)
+    val callback = scalafixMainCallback(logger)
     val args = api
       .newMainArgs()
       .withToolClasspath(toolClasspath)
+      .withMainCallback(callback)
     (api, args)
   }
 
@@ -183,7 +212,8 @@ object ScalafixPlugin extends AutoPlugin {
   }
 
   val scalafixAPI = Def.setting {
-    classloadScalafixAPI(scalafixDependencies.value)
+    val logger = sbt.internal.util.ConsoleLogger(System.out)
+    classloadScalafixAPI(logger, scalafixDependencies.value)
   }
 
   private def sbtfixImpl(
