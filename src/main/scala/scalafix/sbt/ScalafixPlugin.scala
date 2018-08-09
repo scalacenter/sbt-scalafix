@@ -5,15 +5,21 @@ import com.geirsson.coursiersmall.CoursierSmall
 import com.geirsson.coursiersmall.Dependency
 import com.geirsson.coursiersmall.Repository
 import java.io.OutputStreamWriter
+import java.net.URLClassLoader
 import java.nio.file.Path
+import java.util.Properties
 import java.util.function
 import java.{util => jutil}
+import sbt.Def
 import sbt.Keys._
 import sbt._
 import sbt.complete.Parser
 import sbt.plugins.JvmPlugin
-import scala.util.control.NonFatal
 import scalafix.internal.sbt.ScalafixCompletions
+import scalafix.interfaces.{Scalafix => ScalafixAPI}
+import scala.collection.JavaConverters._
+import scalafix.interfaces.ScalafixMainArgs
+import scalafix.interfaces.ScalafixMainMode
 
 object ScalafixPlugin extends AutoPlugin {
   override def trigger: PluginTrigger = allRequirements
@@ -75,25 +81,25 @@ object ScalafixPlugin extends AutoPlugin {
       settingKey[Boolean]("pass --verbose to scalafix")
 
     lazy val scalafixConfigSettings: Seq[Def.Setting[_]] = Seq(
-      scalafix := scalafixTaskImpl(
+      scalafix := scalafixInputTask(
         scalafixParserCompat,
         compat = true,
-        Seq()
+        ScalafixMainMode.IN_PLACE
       ).tag(Scalafix).evaluated,
-      scalafixTest := scalafixTaskImpl(
+      scalafixTest := scalafixInputTask(
         scalafixParserCompat,
         compat = true,
-        Seq("--test")
+        ScalafixMainMode.TEST
       ).tag(Scalafix).evaluated,
-      scalafixCli := scalafixTaskImpl(
+      scalafixCli := scalafixInputTask(
         scalafixParser,
         compat = false,
-        Seq()
+        ScalafixMainMode.IN_PLACE
       ).tag(Scalafix).evaluated,
-      scalafixAutoSuppressLinterErrors := scalafixTaskImpl(
+      scalafixAutoSuppressLinterErrors := scalafixInputTask(
         scalafixParser,
         compat = true,
-        Seq("--auto-suppress-linter-errors")
+        ScalafixMainMode.AUTO_SUPPRESS_LINTER_ERRORS
       ).tag(Scalafix).evaluated
     )
 
@@ -118,19 +124,33 @@ object ScalafixPlugin extends AutoPlugin {
   }
   import autoImport._
 
-  lazy val cli: Either[Throwable, ScalafixInterface] = {
-    try {
-      val dep = new Dependency(
-        "ch.epfl.scala",
-        s"scalafix-cli_${BuildInfo.scala212}",
-        BuildInfo.scalafix
-      )
-      val jars = CoursierSmall.fetch(fetchSettings.withDependencies(List(dep)))
-      Right(ScalafixInterface.classloadInstance(jars))
-    } catch {
-      case NonFatal(e) =>
-        Left(e)
+  lazy val props: Properties = {
+    val props = new Properties()
+    Option(this.getClass.getResourceAsStream("sbt-scalafix.properties")) match {
+      case Some(stream) =>
+        props.load(stream)
+      case None =>
+        println("error: failed to load sbt-scalafix-properties")
     }
+    props
+  }
+
+  def classloadScalafixAPI(
+      toolClasspathDeps: Seq[ModuleID]): (ScalafixAPI, ScalafixMainArgs) = {
+    val dep = new Dependency(
+      "ch.epfl.scala",
+      s"scalafix-cli_${BuildInfo.scala212}",
+      BuildInfo.scalafix
+    )
+    val jars = CoursierSmall.fetch(fetchSettings.withDependencies(List(dep)))
+    val urls = jars.map(_.toUri.toURL).toArray
+    val classloader = new URLClassLoader(urls, this.getClass.getClassLoader)
+    val api = ScalafixAPI.classloadInstance(classloader)
+    val toolClasspath = scalafixToolClasspath(toolClasspathDeps, classloader)
+    val args = api
+      .newMainArgs()
+      .withToolClasspath(toolClasspath)
+    (api, args)
   }
 
   override def projectSettings: Seq[Def.Setting[_]] =
@@ -140,29 +160,47 @@ object ScalafixPlugin extends AutoPlugin {
     scalafixConfig := Option(file(".scalafix.conf")).filter(_.isFile),
     scalafixVerbose := false,
     commands += ScalafixEnable.command,
-    sbtfix := sbtfixImpl(compat = true).evaluated,
-    sbtfixTest := sbtfixImpl(compat = true, extraOptions = Seq("--test")).evaluated,
+    sbtfix := sbtfixImpl(compat = true, ScalafixMainMode.IN_PLACE).evaluated,
+    sbtfixTest := sbtfixImpl(compat = true, ScalafixMainMode.TEST).evaluated,
     aggregate.in(sbtfix) := false,
     aggregate.in(sbtfixTest) := false,
     scalafixSemanticdbVersion := BuildInfo.scalameta,
     scalafixDependencies := Nil
   )
 
+  def scalafixToolClasspath(
+      deps: Seq[ModuleID],
+      parent: ClassLoader): URLClassLoader = {
+    if (deps.isEmpty) {
+      new URLClassLoader(Array(), parent)
+    } else {
+      val jars =
+        dependencyCache.computeIfAbsent(deps, fetchScalafixDependencies)
+      val urls = jars.map(_.toUri.toURL).toArray
+      val classloader = new URLClassLoader(urls, parent)
+      classloader
+    }
+  }
+
+  val scalafixAPI = Def.setting {
+    classloadScalafixAPI(scalafixDependencies.value)
+  }
+
   private def sbtfixImpl(
       compat: Boolean,
-      extraOptions: Seq[String] = Seq()
+      mode: ScalafixMainMode
   ): Def.Initialize[InputTask[Unit]] = {
     Def.inputTaskDyn {
       val baseDir = baseDirectory.in(ThisBuild).value
-      val sbtDir: File = baseDir./("project")
-      val sbtFiles = baseDir.*("*.sbt").get
-      scalafixTaskImpl(
-        scalafixParserCompat.parsed,
-        compat,
-        extraOptions,
-        sbtDir +: sbtFiles,
-        "sbt-build",
-        streams.value
+      val sbtDir = baseDir./("project").toPath
+      val sbtFiles = baseDir.*("*.sbt").get.map(_.toPath)
+      scalafixMainTask(
+        inputArgs = scalafixParserCompat.parsed,
+        compat = compat,
+        mode = mode,
+        files = sbtDir +: sbtFiles,
+        projectId = "sbt-build",
+        streams = streams.value
       )
     }
   }
@@ -176,102 +214,81 @@ object ScalafixPlugin extends AutoPlugin {
   private val scalafixParserCompat =
     ScalafixCompletions.parser(workingDirectory.toPath, compat = true)
 
-  def scalafixTaskImpl(
+  def scalafixInputTask(
       parser: Parser[Seq[String]],
       compat: Boolean,
-      extraOptions: Seq[String] = Seq()
+      mode: ScalafixMainMode
   ): Def.Initialize[InputTask[Unit]] =
     Def.inputTaskDyn {
-      scalafixTaskImpl(parser.parsed, compat, extraOptions)
+      scalafixCompileTask(parser.parsed, compat, mode)
     }
 
-  def scalafixTaskImpl(
+  def scalafixCompileTask(
       inputArgs: Seq[String],
       compat: Boolean,
-      extraOptions: Seq[String]
+      mode: ScalafixMainMode
   ): Def.Initialize[Task[Unit]] =
     Def.taskDyn {
       compile.value // trigger compilation
       val scalafixClasspath =
-        classDirectory.value +:
-          dependencyClasspath.value.map(_.data)
+        classDirectory.value.toPath +:
+          dependencyClasspath.value.map(_.data.toPath)
       val sourcesToFix = for {
         source <- unmanagedSources.in(scalafix).value
         if source.exists()
         if canFix(source)
-      } yield source
-      val options: Seq[String] = List(
-        "--classpath",
-        scalafixClasspath.mkString(java.io.File.pathSeparator)
-      ) ++ extraOptions
-      scalafixTaskImpl(
+      } yield source.toPath
+      scalafixMainTask(
         inputArgs,
         compat,
-        options,
+        mode,
         sourcesToFix,
         thisProject.value.id,
-        streams.value
+        streams.value,
+        scalafixClasspath
       )
     }
 
-  def scalafixTaskImpl(
+  def scalafixMainTask(
       inputArgs: Seq[String],
       compat: Boolean,
-      options: Seq[String],
-      files: Seq[File],
+      mode: ScalafixMainMode,
+      files: Seq[Path],
       projectId: String,
-      streams: TaskStreams
+      streams: TaskStreams,
+      classpath: Seq[Path] = Nil
   ): Def.Initialize[Task[Unit]] = {
     if (files.isEmpty) Def.task(())
-    else if (cli.isLeft) {
+    else {
       Def.task {
-        throw cli.left.get
-      }
-    } else {
-      Def.task {
-        val args = Array.newBuilder[String]
+        val (api, baseArgs) = scalafixAPI.value
+        var mainArgs = baseArgs
+          .withMode(mode)
+          .withPaths(files.asJava)
+          .withClasspath(classpath.asJava)
 
         if (scalafixVerbose.value) {
-          args += "--verbose"
+          mainArgs = mainArgs.withArgs(List("--verbose").asJava)
         }
 
         scalafixConfig.value match {
           case Some(x) =>
-            args += (
-              "--config",
-              x.getAbsolutePath
-            )
+            mainArgs = mainArgs.withConfig(x.toPath)
           case _ =>
         }
 
         if (compat && inputArgs.nonEmpty) {
-          args += "--rules"
+          mainArgs = mainArgs.withRules(inputArgs.asJava)
         }
-        args ++= inputArgs
-        args ++= options
 
-        val nonBaseArgs = args.result().mkString(" ")
-        if (scalafixVerbose.value) {
-          streams.log.info(s"Running scalafix $nonBaseArgs")
-        } else if (files.lengthCompare(1) > 0) {
+        if (files.lengthCompare(1) > 0) {
           streams.log.info(s"Running scalafix on ${files.size} Scala sources")
         }
 
-        val deps = scalafixDependencies.value
-        if (deps.nonEmpty) {
-          val toolClasspath =
-            dependencyCache.computeIfAbsent(deps, fetchScalafixDependencies)
-          args += "--tool-classpath"
-          args += toolClasspath.mkString(java.io.File.pathSeparator)
+        val errors = api.runMain(mainArgs)
+        if (errors.nonEmpty) {
+          throw new MessageOnlyException(errors.mkString(", "))
         }
-
-        args += "--no-sys-exit"
-        args += "--format"
-        args += "sbt"
-
-        args ++= files.iterator.map(_.getAbsolutePath)
-
-        cli.right.get.main(args.result())
       }
     }
   }
@@ -286,7 +303,7 @@ object ScalafixPlugin extends AutoPlugin {
     jutil.Collections.synchronizedMap(new jutil.HashMap())
   }
 
-  private val fetchScalafixDependencies =
+  private[scalafix] val fetchScalafixDependencies =
     new function.Function[Seq[ModuleID], List[Path]] {
       override def apply(t: Seq[ModuleID]): List[Path] = {
         val dependencies = t.map { module =>
