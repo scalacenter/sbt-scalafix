@@ -22,14 +22,21 @@ commands += Command.command("ci-windows") { s =>
     s
 }
 
+def scalafixVersion: String = sys.env.get("TRAVIS_TAG") match {
+  case Some(v) if v.nonEmpty => v.stripSuffix("v")
+  case _ => "0.6.0-M14"
+}
+
 // Dependencies
 resolvers += Resolver.sonatypeRepo("releases")
 libraryDependencies ++= List(
   "org.eclipse.jgit" % "org.eclipse.jgit" % "4.5.4.201711221230-r",
+  "ch.epfl.scala" % "scalafix-interfaces" % scalafixVersion,
   // coursier-small provides a binary stable API around Coursier making sure that
   // sbt-scalafix doesn't conflict with the user's installed version of sbt-coursier.
   // Details: https://github.com/olafurpg/coursier-small
   "com.geirsson" %% "coursier-small" % "1.0.0-M4",
+  "com.lihaoyi" %% "fansi" % "0.2.5" % Test,
   "org.scalatest" %% "scalatest" % "3.0.5" % Test
 )
 
@@ -41,6 +48,19 @@ sbtVersion in pluginCrossBuild := {
     case "2.12" => "1.2.0"
   }
 }
+scalacOptions ++= List(
+  "-target:jvm-1.8"
+)
+
+// Build info
+enablePlugins(BuildInfoPlugin)
+buildInfoKeys := Seq[BuildInfoKey](
+  "scala212" -> "2.12.6",
+  "scala211" -> "2.11.12",
+  "scalafixVersion" -> scalafixVersion,
+  "scalametaVersion" -> "4.0.0-M8"
+)
+buildInfoPackage := "scalafix.internal.sbtscalafix"
 
 // Scripted
 enablePlugins(ScriptedPlugin)
