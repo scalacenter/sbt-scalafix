@@ -7,12 +7,13 @@ import org.scalatest.FunSuite
 import scalafix.sbt.ScalafixPlugin
 import scala.collection.JavaConverters._
 import sbt._
+import sbt.internal.sbtscalafix.Compat
 import scalafix.interfaces.ScalafixError
 
 class ScalafixAPISuite extends FunSuite {
   test("ScalafixPlugin.cli") {
     val baos = new ByteArrayOutputStream()
-    val logger = sbt.internal.util.ConsoleLogger(new PrintStream(baos))
+    val logger = Compat.ConsoleLogger(new PrintStream(baos))
     val (api, args) = ScalafixPlugin.classloadScalafixAPI(
       logger,
       List(

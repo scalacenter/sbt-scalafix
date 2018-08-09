@@ -14,6 +14,7 @@ import sbt.Def
 import sbt.Keys._
 import sbt._
 import sbt.complete.Parser
+import sbt.internal.sbtscalafix.Compat
 import sbt.plugins.JvmPlugin
 import scalafix.internal.sbt.ScalafixCompletions
 import scalafix.interfaces.{Scalafix => ScalafixAPI}
@@ -24,6 +25,7 @@ import scalafix.interfaces.ScalafixMainArgs
 import scalafix.interfaces.ScalafixMainCallback
 import scalafix.interfaces.ScalafixMainMode
 import scalafix.interfaces.ScalafixSeverity
+import scalafix.internal.sbt.ScalafixInterfacesClassloader
 
 object ScalafixPlugin extends AutoPlugin {
   override def trigger: PluginTrigger = allRequirements
@@ -183,7 +185,10 @@ object ScalafixPlugin extends AutoPlugin {
     )
     val jars = CoursierSmall.fetch(fetchSettings.withDependencies(List(dep)))
     val urls = jars.map(_.toUri.toURL).toArray
-    val classloader = new URLClassLoader(urls, this.getClass.getClassLoader)
+    val interfacesParent = new ScalafixInterfacesClassloader(
+      this.getClass.getClassLoader
+    )
+    val classloader = new URLClassLoader(urls, interfacesParent)
     val api = ScalafixAPI.classloadInstance(classloader)
     val toolClasspath = scalafixToolClasspath(toolClasspathDeps, classloader)
     val callback = scalafixMainCallback(logger)
@@ -225,7 +230,8 @@ object ScalafixPlugin extends AutoPlugin {
   }
 
   val scalafixAPI = Def.setting {
-    val logger = sbt.internal.util.ConsoleLogger(System.out)
+    // construct custom logger so that `scalafixAPI` can be a setting instead of task.
+    val logger = Compat.ConsoleLogger(System.out)
     classloadScalafixAPI(logger, scalafixDependencies.value)
   }
 

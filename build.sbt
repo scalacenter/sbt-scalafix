@@ -48,6 +48,10 @@ sbtVersion in pluginCrossBuild := {
     case "2.12" => "1.2.0"
   }
 }
+scalacOptions ++= List(
+  "-target:jvm-1.8"
+)
+
 // Build info
 enablePlugins(BuildInfoPlugin)
 buildInfoKeys := Seq[BuildInfoKey](
