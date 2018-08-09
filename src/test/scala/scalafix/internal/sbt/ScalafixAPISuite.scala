@@ -46,7 +46,7 @@ class ScalafixAPISuite extends FunSuite {
     val obtainedOut = out.replaceFirst(".*Tmp.scala", "[error] Tmp.scala")
     assert(
       obtainedOut.trim ==
-        """|[error] Tmp.scala:3:12: error: semicolons are disabled
+        """|[error] Tmp.scala:3:12: error: [DisableSyntax.noSemicolons] semicolons are disabled
            |[error]   val x = 1;
            |[error]            ^
            |""".stripMargin.trim

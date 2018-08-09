@@ -19,6 +19,7 @@ import scalafix.internal.sbt.ScalafixCompletions
 import scalafix.interfaces.{Scalafix => ScalafixAPI}
 import scala.collection.JavaConverters._
 import scalafix.interfaces.ScalafixDiagnostic
+import scalafix.interfaces.ScalafixLintID
 import scalafix.interfaces.ScalafixMainArgs
 import scalafix.interfaces.ScalafixMainCallback
 import scalafix.interfaces.ScalafixMainMode
@@ -140,19 +141,29 @@ object ScalafixPlugin extends AutoPlugin {
 
   def scalafixMainCallback(logger: Logger): ScalafixMainCallback =
     new ScalafixMainCallback {
+      def fullStringID(lintID: ScalafixLintID): String =
+        if (lintID.categoryID().isEmpty) lintID.ruleName()
+        else if (lintID.ruleName().isEmpty) lintID.categoryID()
+        else s"${lintID.ruleName()}.${lintID.categoryID()}"
       override def reportDiagnostic(diagnostic: ScalafixDiagnostic): Unit = {
-        def formatMessage: String =
+        def formatMessage: String = {
+          val prefix =
+            if (diagnostic.lintID().isPresent) {
+              val id = fullStringID(diagnostic.lintID().get)
+              s"[$id] "
+            } else {
+              ""
+            }
+          val message = prefix + diagnostic.message()
+
           if (diagnostic.position().isPresent) {
-            diagnostic
-              .position()
-              .get()
-              .formatMessage(
-                diagnostic.severity().toString.toLowerCase(),
-                diagnostic.message()
-              )
+            val severity =
+              diagnostic.severity().toString.toLowerCase()
+            diagnostic.position().get().formatMessage(severity, message)
           } else {
-            diagnostic.message()
+            message
           }
+        }
         diagnostic.severity() match {
           case ScalafixSeverity.INFO => logger.info(formatMessage)
           case ScalafixSeverity.WARNING => logger.warn(formatMessage)
