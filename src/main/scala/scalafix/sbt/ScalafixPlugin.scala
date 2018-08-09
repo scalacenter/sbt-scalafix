@@ -163,7 +163,8 @@ object ScalafixPlugin extends AutoPlugin {
 
   def classloadScalafixAPI(
       logger: Logger,
-      toolClasspathDeps: Seq[ModuleID]): (ScalafixAPI, ScalafixMainArgs) = {
+      toolClasspathDeps: Seq[ModuleID]
+  ): (ScalafixAPI, ScalafixMainArgs) = {
     val dep = new Dependency(
       "ch.epfl.scala",
       s"scalafix-cli_${BuildInfo.scala212}",
@@ -199,7 +200,8 @@ object ScalafixPlugin extends AutoPlugin {
 
   def scalafixToolClasspath(
       deps: Seq[ModuleID],
-      parent: ClassLoader): URLClassLoader = {
+      parent: ClassLoader
+  ): URLClassLoader = {
     if (deps.isEmpty) {
       new URLClassLoader(Array(), parent)
     } else {

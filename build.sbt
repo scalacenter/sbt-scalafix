@@ -58,7 +58,6 @@ buildInfoKeys := Seq[BuildInfoKey](
 )
 buildInfoPackage := "scalafix.internal.sbtscalafix"
 
-
 // Scripted
 enablePlugins(ScriptedPlugin)
 sbtPlugin := true
