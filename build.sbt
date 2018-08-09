@@ -23,8 +23,8 @@ commands += Command.command("ci-windows") { s =>
 }
 
 def scalafixVersion: String = sys.env.get("TRAVIS_TAG") match {
-  case Some(v) => v.stripSuffix("v")
-  case None => "0.6.0-M14"
+  case Some(v) if v.nonEmpty => v.stripSuffix("v")
+  case _ => "0.6.0-M14"
 }
 
 // Dependencies
