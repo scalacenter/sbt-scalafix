@@ -32,7 +32,7 @@ lazy val scala212 = project
   .configs(IntegrationTest)
   .settings(
     Defaults.itSettings,
-    inConfig(IntegrationTest)(scalafixConfigSettings),
+    inConfig(IntegrationTest)(scalafixConfigSettings(IntegrationTest)),
     unmanagedSources.in(Compile, scalafix) :=
       unmanagedSources
         .in(Compile)
