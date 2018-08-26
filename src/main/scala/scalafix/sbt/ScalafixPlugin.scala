@@ -86,28 +86,33 @@ object ScalafixPlugin extends AutoPlugin {
     val scalafixVerbose: SettingKey[Boolean] =
       settingKey[Boolean]("pass --verbose to scalafix")
 
-    lazy val scalafixConfigSettings: Seq[Def.Setting[_]] = Seq(
-      scalafix := scalafixInputTask(
-        scalafixParserCompat,
-        compat = true,
-        ScalafixMainMode.IN_PLACE
-      ).tag(Scalafix).evaluated,
-      scalafixTest := scalafixInputTask(
-        scalafixParserCompat,
-        compat = true,
-        ScalafixMainMode.TEST
-      ).tag(Scalafix).evaluated,
-      scalafixCli := scalafixInputTask(
-        scalafixParser,
-        compat = false,
-        ScalafixMainMode.IN_PLACE
-      ).tag(Scalafix).evaluated,
-      scalafixAutoSuppressLinterErrors := scalafixInputTask(
-        scalafixParser,
-        compat = true,
-        ScalafixMainMode.AUTO_SUPPRESS_LINTER_ERRORS
-      ).tag(Scalafix).evaluated
-    )
+    def scalafixConfigSettings(config: Configuration): Seq[Def.Setting[_]] =
+      Seq(
+        scalafix := scalafixInputTask(
+          scalafixParserCompat,
+          compat = true,
+          ScalafixMainMode.IN_PLACE,
+          config
+        ).tag(Scalafix).evaluated,
+        scalafixTest := scalafixInputTask(
+          scalafixParserCompat,
+          compat = true,
+          ScalafixMainMode.TEST,
+          config
+        ).tag(Scalafix).evaluated,
+        scalafixCli := scalafixInputTask(
+          scalafixParser,
+          compat = false,
+          ScalafixMainMode.IN_PLACE,
+          config
+        ).tag(Scalafix).evaluated,
+        scalafixAutoSuppressLinterErrors := scalafixInputTask(
+          scalafixParser,
+          compat = true,
+          ScalafixMainMode.AUTO_SUPPRESS_LINTER_ERRORS,
+          config
+        ).tag(Scalafix).evaluated
+      )
 
     @deprecated("This setting is no longer used", "0.6.0")
     val scalafixSourceroot: SettingKey[File] =
@@ -200,7 +205,7 @@ object ScalafixPlugin extends AutoPlugin {
   }
 
   override def projectSettings: Seq[Def.Setting[_]] =
-    Seq(Compile, Test).flatMap(inConfig(_)(scalafixConfigSettings))
+    Seq(Compile, Test).flatMap(c => inConfig(c)(scalafixConfigSettings(c)))
 
   override def globalSettings: Seq[Def.Setting[_]] = Seq(
     scalafixConfig := Option(file(".scalafix.conf")).filter(_.isFile),
@@ -266,24 +271,26 @@ object ScalafixPlugin extends AutoPlugin {
   def scalafixInputTask(
       parser: Parser[Seq[String]],
       compat: Boolean,
-      mode: ScalafixMainMode
+      mode: ScalafixMainMode,
+      config: Configuration
   ): Def.Initialize[InputTask[Unit]] =
     Def.inputTaskDyn {
-      scalafixCompileTask(parser.parsed, compat, mode)
+      scalafixCompileTask(parser.parsed, compat, mode, config)
     }
 
   def scalafixCompileTask(
       inputArgs: Seq[String],
       compat: Boolean,
-      mode: ScalafixMainMode
+      mode: ScalafixMainMode,
+      config: Configuration
   ): Def.Initialize[Task[Unit]] =
     Def.taskDyn {
-      compile.value // trigger compilation
+      compile.in(config).value // trigger compilation
       val scalafixClasspath =
-        classDirectory.value.toPath +:
-          dependencyClasspath.value.map(_.data.toPath)
+        classDirectory.in(config).value.toPath +:
+          dependencyClasspath.in(config).value.map(_.data.toPath)
       val sourcesToFix = for {
-        source <- unmanagedSources.in(scalafix).value
+        source <- unmanagedSources.in(config).in(scalafix).value
         if source.exists()
         if canFix(source)
       } yield source.toPath
