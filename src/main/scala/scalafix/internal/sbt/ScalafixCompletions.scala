@@ -1,8 +1,9 @@
 package scalafix.internal.sbt
 
+import scalafix.interfaces.ScalafixRule
+
 import java.io.File
-import java.nio.file.Path
-import java.nio.file.Paths
+import java.nio.file._
 import java.util.regex.Pattern
 
 import scala.util.control.NonFatal
@@ -11,9 +12,13 @@ import sbt.complete._
 import sbt.complete.DefaultParsers._
 import sbt.internal.sbtscalafix.JLineAccess
 
-object ScalafixCompletions extends ScalafixCompletionsComponent with JLineAccess
+class ScalafixCompletions(
+    workingDirectory: Path,
+    loadedRules: List[ScalafixRule]
+) {
+  def this(file: File, loadedRules: List[ScalafixRule]) =
+    this(file.toPath, loadedRules)
 
-trait ScalafixCompletionsComponent { self: JLineAccess =>
   private type P = Parser[String]
   private val space: P = token(Space).map(_.toString)
   private val string: P = StringBasic
@@ -37,21 +42,21 @@ trait ScalafixCompletionsComponent { self: JLineAccess =>
 
   private def uri(protocol: String) =
     token(protocol + ":") ~> NotQuoted.map(x => s"$protocol:$x")
-  private def filepathParser(cwd: Path): P = {
-    def toAbsolutePath(path: Path, cwd: Path): Path = {
+  private val filepathParser: P = {
+    def toAbsolutePath(path: Path, workingDirectory: Path): Path = {
       if (path.isAbsolute) path
-      else cwd.resolve(path)
+      else workingDirectory.resolve(path)
     }.normalize()
 
     // Extend FileExamples to tab complete when the prefix is an absolute path or `..`
-    class AbsolutePathExamples(cwd: Path, prefix: String = "")
-        extends FileExamples(cwd.toFile, prefix) {
+    class AbsolutePathExamples(workingDirectory: Path, prefix: String = "")
+        extends FileExamples(workingDirectory.toFile, prefix) {
       override def withAddedPrefix(addedPrefix: String): FileExamples = {
 
         val nextPrefix =
           if (addedPrefix.startsWith(".")) addedPrefix
           else prefix + addedPrefix
-        val (b, p) = AbsolutePathCompleter.mkBase(nextPrefix, cwd)
+        val (b, p) = AbsolutePathCompleter.mkBase(nextPrefix, workingDirectory)
         new AbsolutePathExamples(b, p)
       }
     }
@@ -68,32 +73,31 @@ trait ScalafixCompletionsComponent { self: JLineAccess =>
     }
 
     string
-      .examples(new AbsolutePathExamples(cwd))
+      .examples(new AbsolutePathExamples(workingDirectory))
       .map { f =>
-        toAbsolutePath(Paths.get(f), cwd).toString
+        toAbsolutePath(Paths.get(f), workingDirectory).toString
       }
+      .filter(f => Files.exists(Paths.get(f)), x => x)
   }
 
   private val namedRule: P = {
-    val termWidth = terminalWidth
+    val termWidth = JLineAccess.terminalWidth
     token(
       NotQuoted,
       TokenCompletions.fixed(
         (seen, _) => {
-          val candidates = ScalafixRuleNames.all.filter {
-            case (name, _) =>
-              name.startsWith(seen)
-          }
+          val candidates = loadedRules.filter(_.name.startsWith(seen))
           val maxRuleNameLen =
-            candidates.map(_._1.length).reduceOption(_ max _).getOrElse(0)
+            candidates.map(_.name.length).reduceOption(_ max _).getOrElse(0)
           val rules = candidates
-            .map {
-              case (name, description) =>
-                val spaces = " " * (maxRuleNameLen - name.length)
-                new Token(
-                  display = s"$name$spaces -- $description".take(termWidth),
-                  append = name.stripPrefix(seen)
-                )
+            .map { candidate =>
+              val spaces = " " * (maxRuleNameLen - candidate.name.length)
+              new Token(
+                display =
+                  s"${candidate.name}$spaces -- ${candidate.description}"
+                    .take(termWidth),
+                append = candidate.name.stripPrefix(seen)
+              )
             }
             .toSet[Completion]
           Completions.strict(rules)
@@ -101,8 +105,8 @@ trait ScalafixCompletionsComponent { self: JLineAccess =>
       )
     )
   }
-  private def gitDiffParser(cwd: Path): P = {
-    val jgitCompletion = new JGitCompletion(cwd)
+  private val gitDiffParser: P = {
+    val jgitCompletion = new JGitCompletion(workingDirectory)
     token(
       NotQuoted,
       TokenCompletions.fixed(
@@ -139,8 +143,8 @@ trait ScalafixCompletionsComponent { self: JLineAccess =>
 
   def hide(p: P): P = p.examples()
 
-  def parser(cwd: Path, compat: Boolean): Parser[Seq[String]] = {
-    val pathParser: P = token(filepathParser(cwd))
+  def parser: Parser[Seq[String]] = {
+    val pathParser: P = token(filepathParser)
     val pathRegexParser: P = mapOrFail(pathParser) { regex =>
       Pattern.compile(regex); regex
     }
@@ -156,7 +160,7 @@ trait ScalafixCompletionsComponent { self: JLineAccess =>
     val autoClasspath: P = "--auto-classpath"
     val config: P = arg("--config", "-c", pathParser)
     val diff: P = "--diff"
-    val diffBase: P = arg("--diff-base", gitDiffParser(cwd))
+    val diffBase: P = arg("--diff-base", gitDiffParser)
     val exclude: P = arg("--exclude", pathRegexParser)
     val files: P = arg("--files", "-f", pathParser)
     val nonInteractive: P = "--non-interactive"
@@ -191,13 +195,13 @@ trait ScalafixCompletionsComponent { self: JLineAccess =>
         version |
         verbose
 
-    if (compat) {
-      (token(Space) ~> token(ruleParser)).* <~ SpaceClass.*
-    } else {
-      ((token(Space) ~> base).* ~ (token(Space) ~> filepathParser(cwd)).?).map {
+    val ruleDirect = ruleParser.map(rule => Seq("--rules", rule))
+    val fileDirect = filepathParser.map(file => Seq("--files", file))
+
+    ((token(Space) ~> base).* ~ (token(Space) ~> (fileDirect | ruleDirect)).?)
+      .map {
         case a ~ b =>
-          (a ++ b.toSeq).flatMap(_.split(" ").toSeq)
+          (a ++ b.getOrElse(Seq())).flatMap(_.split(" ").toSeq)
       }
-    }
   }
 }

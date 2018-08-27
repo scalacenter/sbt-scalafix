@@ -1,5 +1,7 @@
 package scalafix.internal.sbt
 
+import sbt.internal.sbtscalafix.JLineAccess
+
 import org.scalatest.FunSuite
 import sbt.complete.Parser
 import sbt.complete.Completion
@@ -8,12 +10,11 @@ import sbt.internal.sbtscalafix.JLineAccess
 import org.eclipse.jgit.lib.AbbreviatedObjectId
 import org.scalatest.Tag
 
-trait MockJLineAccess extends JLineAccess {
-  override def terminalWidth: Int = 60
-}
-object ScalafixCompletions
-    extends ScalafixCompletionsComponent
-    with MockJLineAccess
+import sbt.internal.sbtscalafix.Compat.ConsoleLogger
+
+import scala.collection.JavaConverters._
+
+import java.nio.file.Paths
 
 class SbtCompletionsSuite extends FunSuite {
   val fs = new Fs()
@@ -32,29 +33,31 @@ class SbtCompletionsSuite extends FunSuite {
   }
   git.tag("v0.1.0")
 
-  val parser = ScalafixCompletions.parser(
-    fs.workingDirectory.toAbsolutePath,
-    compat = false
-  )
+  val exampleDependency =
+    sbt.ModuleID("com.geirsson", "example-scalafix-rule_2.12", "1.2.0")
+  val (_, mainArgs) = scalafix.sbt.ScalafixPlugin
+    .classloadScalafixAPI(ConsoleLogger(), Seq(exampleDependency))
+  val loadedRules = mainArgs.availableRules.asScala.toList
+
+  val parser = new ScalafixCompletions(
+    workingDirectory = fs.workingDirectory.toAbsolutePath,
+    loadedRules = loadedRules
+  ).parser
   val space = " "
 
-  def check(name: String, testTags: Tag*)(
-      assertCompletions: List[Completion] => Unit
+  def checkCompletion(name: String, testTags: Tag*)(
+      assertCompletions: (List[String], List[String]) => Unit
   ): Unit = {
     val option =
       if (name == "all") ""
       else name
 
     test(name, testTags: _*) {
-      val completions = Parser.completions(parser, " " + option, 0).get
-      assertCompletions(completions.toList.sortBy(_.display))
-    }
-  }
+      val input = " " + option
 
-  def check2(name: String, testTags: Tag*)(
-      assertCompletions: (List[String], List[String]) => Unit
-  ): Unit = {
-    check(name, testTags: _*) { completions =>
+      val completions =
+        Parser.completions(parser, input, 0).get.toList.sortBy(_.display)
+
       val appends = completions.map(_.append)
       val displays = completions.map(_.display)
 
@@ -62,46 +65,19 @@ class SbtCompletionsSuite extends FunSuite {
     }
   }
 
-  def isSha1(in: String): Boolean =
-    AbbreviatedObjectId.isId(in)
-
-  def compat(name: String, testTags: Tag*)(
-      assertCompletions: List[Completion] => Unit
-  ): Unit = {
-    val option =
-      if (name == "all") ""
-      else name
-
-    test(s"compat $name", testTags: _*) {
-      val parser = ScalafixCompletions.parser(
-        fs.workingDirectory.toAbsolutePath,
-        compat = true
-      )
-      val completions = Parser.completions(parser, " " + option, 0).get
-      assertCompletions(completions.toList.sortBy(_.display))
+  def checkArgs(name: String)(assertArgs: Seq[String] => Unit): Unit = {
+    test(name) {
+      val input = name
+      val args = Parser.parse(" " + input, parser).right.get
+      assertArgs(args)
     }
   }
 
-  compat("all") { completions =>
-    assert(completions.exists(_.display.startsWith("file:")))
-  }
-  compat("RemoveUnusedImports Remo") { completions =>
-    val termWidth = ScalafixCompletions.terminalWidth
-    val ruleMap = ScalafixRuleNames.all.toMap
-    val obtained = completions.toList.map(_.display).toSet
-    val expected = Set(
-      s"RemoveUnusedImports -- ${ruleMap.getOrElse("RemoveUnusedImports", "")}"
-        .take(termWidth),
-      s"RemoveUnusedTerms   -- ${ruleMap.getOrElse("RemoveUnusedTerms", "")}"
-        .take(termWidth),
-      s"RemoveXmlLiterals   -- ${ruleMap.getOrElse("RemoveXmlLiterals", "")}"
-        .take(termWidth)
-    )
-    assert((expected -- obtained).isEmpty)
-  }
+  def isSha1(in: String): Boolean =
+    AbbreviatedObjectId.isId(in)
 
-  check("all", SkipWindows) { completions =>
-    val obtained = completions.map(_.display).toSet
+  checkCompletion("all", SkipWindows) { (_, displays) =>
+    val obtained = displays.toSet
     val expected = Set(
       "",
       "--classpath",
@@ -122,26 +98,27 @@ class SbtCompletionsSuite extends FunSuite {
       "--version"
     )
 
-    assert((expected -- obtained).isEmpty)
+    val diff = expected -- obtained
+
+    assert(diff.isEmpty)
   }
-  check2("--classpath ba", SkipWindows) { (appends, displays) =>
+
+  checkCompletion("--classpath ba", SkipWindows) { (appends, displays) =>
     assert(displays.contains("bar"))
     assert(appends.contains("r"))
   }
-  check2("--classpath bar", SkipWindows) { (appends, displays) =>
+  checkCompletion("--classpath bar", SkipWindows) { (appends, displays) =>
     assert(displays.contains(":"))
     assert(appends.contains(":"))
   }
-  check2("--classpath bar:", SkipWindows) { (appends, displays) =>
+  checkCompletion("--classpath bar:", SkipWindows) { (appends, displays) =>
     assert(displays.contains("foo"))
     assert(appends.contains("foo"))
   }
-  check2("--config" + space, SkipWindows) { (appends, displays) =>
+  checkCompletion("--config ", SkipWindows) { (appends, displays) =>
     assert(displays.contains("my.conf"))
   }
-  check("--diff-base" + space, SkipWindows) { completions =>
-    val displays = completions.map(_.display)
-
+  checkCompletion("--diff-base" + space, SkipWindows) { (appends, displays) =>
     // branches
     assert(displays.contains("master"))
 
@@ -149,27 +126,30 @@ class SbtCompletionsSuite extends FunSuite {
     assert(displays.contains("v0.1.0"))
 
     // last 20 commits
-    completions.reverse.take(20).foreach { completion =>
-      assert(isSha1(completion.append))
-      assert(completion.display.contains(completion.append))
-      assert(completion.display.endsWith("ago)"))
+    appends.zip(displays).reverse.take(20).foreach {
+      case (append, display) =>
+        assert(isSha1(append))
+        assert(display.endsWith("ago)"))
     }
   }
-  check2("--exclude" + space, SkipWindows) { (appends, displays) =>
+  checkCompletion("--exclude" + space, SkipWindows) { (appends, displays) =>
     assert(displays.contains("foo"))
     assert(appends.contains("foo"))
   }
-  check2("--out-from" + space, SkipWindows) { (appends, displays) =>
+  checkCompletion("--out-from" + space, SkipWindows) { (appends, displays) =>
     assert(displays.contains("foo"))
     assert(appends.contains("foo"))
   }
-  check2("--out-to" + space, SkipWindows) { (appends, displays) =>
+  checkCompletion("--out-to" + space, SkipWindows) { (appends, displays) =>
     assert(displays.contains("foo"))
     assert(appends.contains("foo"))
   }
-  check2("--rules" + space, SkipWindows) { (_, displays) =>
+  checkCompletion("--rules" + space, SkipWindows) { (_, displays) =>
     // built-in
-    assert(displays.map(_.startsWith("NoInfer")).reduceLeft(_ || _))
+    assert(displays.exists(_.startsWith("ProcedureSyntax")))
+
+    // from classpath
+    assert(displays.exists(_.startsWith("SemanticRule")))
 
     // protocols
     assert(displays.contains("file:"))
@@ -179,24 +159,56 @@ class SbtCompletionsSuite extends FunSuite {
     assert(displays.contains("replace:"))
     assert(displays.contains("scala:"))
   }
-  check2("--rules file:bar/../", SkipWindows) { (appends, displays) =>
+
+  checkCompletion("", SkipWindows) { (_, displays) =>
+    // built-in
+    assert(displays.exists(_.startsWith("ProcedureSyntax")))
+
+    // from classpath
+    assert(displays.exists(_.startsWith("SemanticRule")))
+
+    // protocols
+    assert(displays.contains("file:"))
+    assert(displays.contains("github:"))
+    assert(displays.contains("http:"))
+    assert(displays.contains("https:"))
+    assert(displays.contains("replace:"))
+    assert(displays.contains("scala:"))
+  }
+
+  // shortcut for --rules
+  checkArgs("ProcedureSyntax") { args =>
+    assert(args == Seq("--rules", "ProcedureSyntax"))
+  }
+
+  // shortcut for --files
+  checkArgs("foo") { args =>
+    val List(argName, arg) = args.toList
+
+    assert(argName == "--files")
+
+    val filename = Paths.get(arg).getFileName.toString
+    assert(filename == "foo")
+  }
+
+  checkCompletion("--rules file:bar/../", SkipWindows) { (appends, displays) =>
     // resolve parent directories
     assert(appends.contains("foo"))
     assert(displays.contains("bar/../foo"))
   }
-  check2("--sourceroot" + space, SkipWindows) { (appends, displays) =>
+  checkCompletion("--sourceroot" + space, SkipWindows) { (appends, displays) =>
     assert(displays.contains("bar"))
     assert(appends.contains("bar"))
   }
-  check2("--tool-classpath ba", SkipWindows) { (appends, displays) =>
+  checkCompletion("--tool-classpath ba", SkipWindows) { (appends, displays) =>
     assert(displays.contains("bar"))
     assert(appends.contains("r"))
   }
-  check2("--tool-classpath bar", SkipWindows) { (appends, displays) =>
+  checkCompletion("--tool-classpath bar", SkipWindows) { (appends, displays) =>
     assert(displays.contains(":"))
     assert(appends.contains(":"))
   }
-  check2("--tool-classpath bar:", SkipWindows) { (appends, displays) =>
+  checkCompletion("--tool-classpath bar:", SkipWindows) { (appends, displays) =>
     assert(displays.contains("buzz"))
     assert(appends.contains("buzz"))
   }
