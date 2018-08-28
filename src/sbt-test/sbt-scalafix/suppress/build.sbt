@@ -12,7 +12,7 @@ TaskKey[Unit]("check") := {
       "suppress/src/main/scala/Main.scala",
       """
         |object Main {
-        |  println(1 + 2.asInstanceOf/* scalafix:ok */[Double])
+        |  println(null/* scalafix:ok */)
         |}
     """.stripMargin
     )
