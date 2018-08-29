@@ -1,5 +1,5 @@
--> ; scalafixTest ; it:scalafixTest
+-> ;scalafix --test ;it:scalafix --test
 > it:scalafix
-> it:scalafixTest
--> scalafixTest
+> it:scalafix --test
+-> scalafix --test
 > tests/test

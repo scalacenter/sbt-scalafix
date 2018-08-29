@@ -37,24 +37,6 @@ object ScalafixPlugin extends AutoPlugin {
           "For example: scalafix RemoveUnusedImports. " +
           "To run on test sources use test:scalafix."
       )
-    val scalafixCli: InputKey[Unit] =
-      inputKey[Unit](
-        "Run the scalafix cli in this project and configuration. " +
-          "For example: scalafix -r RemoveUnusedImports. " +
-          "To run on test sources use test:scalafixCli."
-      )
-    val scalafixTest: InputKey[Unit] =
-      inputKey[Unit](
-        "The same as scalafix except report an error for unfixed files without modifying files. " +
-          "Useful to enforce scalafix in CI."
-      )
-    val scalafixAutoSuppressLinterErrors: InputKey[Unit] =
-      inputKey[Unit](
-        "Run scalafix and automatically suppress linter errors " +
-          "by inserting /* scalafix:ok */ comments into the source code. " +
-          "Useful when migrating an existing large codebase with many linter errors."
-      )
-
     val scalafixDependencies: SettingKey[Seq[ModuleID]] =
       settingKey[Seq[ModuleID]](
         "Optional list of custom rules to install from Maven Central. " +
@@ -77,18 +59,7 @@ object ScalafixPlugin extends AutoPlugin {
 
     def scalafixConfigSettings(config: Configuration): Seq[Def.Setting[_]] =
       Seq(
-        scalafix := scalafixCompileTask(
-          ScalafixMainMode.IN_PLACE,
-          config
-        ).tag(Scalafix).evaluated,
-        scalafixTest := scalafixCompileTask(
-          ScalafixMainMode.TEST,
-          config
-        ).tag(Scalafix).evaluated,
-        scalafixAutoSuppressLinterErrors := scalafixCompileTask(
-          ScalafixMainMode.AUTO_SUPPRESS_LINTER_ERRORS,
-          config
-        ).tag(Scalafix).evaluated
+        scalafix := scalafixCompileTask(config).tag(Scalafix).evaluated
       )
 
     @deprecated("This setting is no longer used", "0.6.0")
@@ -217,7 +188,6 @@ object ScalafixPlugin extends AutoPlugin {
   }
 
   def scalafixCompileTask(
-      mode: ScalafixMainMode,
       config: Configuration
   ): Def.Initialize[InputTask[Unit]] =
     Def
@@ -235,7 +205,6 @@ object ScalafixPlugin extends AutoPlugin {
         val (api, baseArgs) = scalafixAPI.value
 
         var mainArgs = baseArgs
-          .withMode(mode)
           .withPaths(sourcesToFix.asJava)
           .withClasspath(scalafixClasspath.asJava)
 

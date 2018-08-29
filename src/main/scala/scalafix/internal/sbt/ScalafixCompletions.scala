@@ -90,7 +90,8 @@ class ScalafixCompletions(
             .map { candidate =>
               val spaces = " " * (maxRuleNameLen - candidate.name.length)
 
-              val output = s"${candidate.name}$spaces -- ${candidate.description}"
+              val output =
+                s"${candidate.name}$spaces -- ${candidate.description}"
 
               new Token(
                 display = terminalWidth.map(output.take).getOrElse(output),
@@ -147,23 +148,26 @@ class ScalafixCompletions(
       case a ~ b => a + b
     }
     val ruleParser =
-      namedRule | fileRule | uri("github") | uri("replace") |
-        uri("http") | uri("https") | uri("scala")
+      namedRule |
+        fileRule |
+        uri("github") |
+        uri("replace") |
+        uri("http") |
+        uri("https") |
+        uri("scala")
 
+    val autoSuppressLinterErrors: P = "--auto-suppress-linter-errors"
     val diff: P = "--diff"
     val diffBase: P = arg("--diff-base", gitDiffParser)
-    val files: P = arg("--files", "-f", pathParser)
-    val rules: P = arg("--rules", "-r", ruleParser)
-
-    val test: P = "--test"
-    val autoSuppressLinterErrors: P = "--auto-suppress-linter-errors"
-    val help: P = "--help"
-    val verbose: P = "--verbose"
     val extra: P = hide(string)
-
+    val files: P = arg("--files", "-f", pathParser)
+    val help: P = "--help"
     val ruleDirect: P = namedRule.map(rule => s"--rules $rule")
-
+    val rules: P = arg("--rules", "-r", ruleParser)
+    val test: P = "--test"
+    val verbose: P = "--verbose"
     val base =
+      autoSuppressLinterErrors |
         diff |
         diffBase |
         files |
@@ -173,7 +177,6 @@ class ScalafixCompletions(
         test |
         verbose |
         extra
-
     (token(Space) ~> base).*.map(_.flatMap(_.split(" ").toSeq))
   }
 }

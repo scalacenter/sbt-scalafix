@@ -82,6 +82,7 @@ class SbtCompletionsSuite extends FunSuite {
     val expected = List(
       "",
       " ",
+      "--auto-suppress-linter-errors",
       "--diff",
       "--diff-base",
       "--files",
