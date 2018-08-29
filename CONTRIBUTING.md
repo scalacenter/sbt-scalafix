@@ -1,19 +1,15 @@
 Contributing
 ===========
 
-## Modules
-
-- `plugin/` the sbt plugin
-
 ## Setting up an IDE
 
 The project should import into IntelliJ like normal sbt builds.
 
 ## Testing
 
-- `plugin/test`: to run fast unit tests
-- `plugin/scripted`: to run slow integration tests
-- `plugin/scripted sbt-scalafix/$NAME`: to run an individual integration test.
+- `test`: to run fast unit tests
+- `scripted`: to run slow integration tests
+- `scripted sbt-scalafix/$NAME`: to run an individual integration test.
   Use tab completions to expan `$NAME`.
 
 ## Formatting

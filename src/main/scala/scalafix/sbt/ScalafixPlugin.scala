@@ -1,31 +1,29 @@
 package scalafix.sbt
 
+import scalafix.interfaces._
+import scalafix.interfaces.{Scalafix => ScalafixAPI}
+import scalafix.internal.sbt.ScalafixCompletions
+import scalafix.internal.sbt.ScalafixInterfacesClassloader
+import sbt.internal.sbtscalafix.JLineAccess
+
 import com.geirsson.coursiersmall
-import com.geirsson.coursiersmall.CoursierSmall
-import com.geirsson.coursiersmall.Dependency
-import com.geirsson.coursiersmall.Repository
+import com.geirsson.coursiersmall._
+
+import sbt._
+import sbt.complete.Parser
+import sbt.Def
+import sbt.internal.sbtscalafix.Compat
+import sbt.Keys._
+import sbt.plugins.JvmPlugin
+
+import scala.collection.JavaConverters._
+
 import java.io.OutputStreamWriter
 import java.net.URLClassLoader
 import java.nio.file.Path
-import java.util.Properties
 import java.util.function
+import java.util.Properties
 import java.{util => jutil}
-import sbt.Def
-import sbt.Keys._
-import sbt._
-import sbt.complete.Parser
-import sbt.internal.sbtscalafix.Compat
-import sbt.plugins.JvmPlugin
-import scalafix.internal.sbt.ScalafixCompletions
-import scalafix.interfaces.{Scalafix => ScalafixAPI}
-import scala.collection.JavaConverters._
-import scalafix.interfaces.ScalafixDiagnostic
-import scalafix.interfaces.ScalafixLintID
-import scalafix.interfaces.ScalafixMainArgs
-import scalafix.interfaces.ScalafixMainCallback
-import scalafix.interfaces.ScalafixMainMode
-import scalafix.interfaces.ScalafixSeverity
-import scalafix.internal.sbt.ScalafixInterfacesClassloader
 
 object ScalafixPlugin extends AutoPlugin {
   override def trigger: PluginTrigger = allRequirements
@@ -38,33 +36,6 @@ object ScalafixPlugin extends AutoPlugin {
         "Run scalafix rule in this project and configuration. " +
           "For example: scalafix RemoveUnusedImports. " +
           "To run on test sources use test:scalafix."
-      )
-    val scalafixCli: InputKey[Unit] =
-      inputKey[Unit](
-        "Run the scalafix cli in this project and configuration. " +
-          "For example: scalafix -r RemoveUnusedImports. " +
-          "To run on test sources use test:scalafixCli."
-      )
-    val scalafixTest: InputKey[Unit] =
-      inputKey[Unit](
-        "The same as scalafix except report an error for unfixed files without modifying files. " +
-          "Useful to enforce scalafix in CI."
-      )
-    val scalafixAutoSuppressLinterErrors: InputKey[Unit] =
-      inputKey[Unit](
-        "Run scalafix and automatically suppress linter errors " +
-          "by inserting /* scalafix:ok */ comments into the source code. " +
-          "Useful when migrating an existing large codebase with many linter errors."
-      )
-    val sbtfix: InputKey[Unit] =
-      inputKey[Unit](
-        "The same as scalafix except it runs on *.sbt and project/*.scala files. " +
-          "Note, semantic rewrites such as ExplicitResultTypes and RemoveUnusedImports are not supported."
-      )
-    val sbtfixTest: InputKey[Unit] =
-      inputKey[Unit](
-        "Same as scalafixTest except for *.sbt and project/*.scala files. " +
-          "Useful to enforce scalafix in CI."
       )
     val scalafixDependencies: SettingKey[Seq[ModuleID]] =
       settingKey[Seq[ModuleID]](
@@ -88,30 +59,7 @@ object ScalafixPlugin extends AutoPlugin {
 
     def scalafixConfigSettings(config: Configuration): Seq[Def.Setting[_]] =
       Seq(
-        scalafix := scalafixInputTask(
-          scalafixParserCompat,
-          compat = true,
-          ScalafixMainMode.IN_PLACE,
-          config
-        ).tag(Scalafix).evaluated,
-        scalafixTest := scalafixInputTask(
-          scalafixParserCompat,
-          compat = true,
-          ScalafixMainMode.TEST,
-          config
-        ).tag(Scalafix).evaluated,
-        scalafixCli := scalafixInputTask(
-          scalafixParser,
-          compat = false,
-          ScalafixMainMode.IN_PLACE,
-          config
-        ).tag(Scalafix).evaluated,
-        scalafixAutoSuppressLinterErrors := scalafixInputTask(
-          scalafixParser,
-          compat = true,
-          ScalafixMainMode.AUTO_SUPPRESS_LINTER_ERRORS,
-          config
-        ).tag(Scalafix).evaluated
+        scalafix := scalafixCompileTask(config).tag(Scalafix).evaluated
       )
 
     @deprecated("This setting is no longer used", "0.6.0")
@@ -123,9 +71,7 @@ object ScalafixPlugin extends AutoPlugin {
     @deprecated("Use addCompilerPlugin(semanticdb-scalac) instead", "0.6.0")
     def scalafixLibraryDependencies: Def.Initialize[List[ModuleID]] =
       Def.setting(Nil)
-    @deprecated("This setting is no longer used", "0.6.0")
-    def sbtfixSettings: Seq[Def.Setting[_]] =
-      Nil
+
     @deprecated(
       "Use addCompilerPlugin(scalafixSemanticdb) and scalacOptions += \"-Yrangepos\" instead",
       "0.6.0"
@@ -211,10 +157,6 @@ object ScalafixPlugin extends AutoPlugin {
     scalafixConfig := Option(file(".scalafix.conf")).filter(_.isFile),
     scalafixVerbose := false,
     commands += ScalafixEnable.command,
-    sbtfix := sbtfixImpl(compat = true, ScalafixMainMode.IN_PLACE).evaluated,
-    sbtfixTest := sbtfixImpl(compat = true, ScalafixMainMode.TEST).evaluated,
-    aggregate.in(sbtfix) := false,
-    aggregate.in(sbtfixTest) := false,
     scalafixSemanticdbVersion := BuildInfo.scalameta,
     scalafixDependencies := Nil
   )
@@ -240,88 +182,31 @@ object ScalafixPlugin extends AutoPlugin {
     classloadScalafixAPI(logger, scalafixDependencies.value)
   }
 
-  private def sbtfixImpl(
-      compat: Boolean,
-      mode: ScalafixMainMode
-  ): Def.Initialize[InputTask[Unit]] = {
-    Def.inputTaskDyn {
-      val baseDir = baseDirectory.in(ThisBuild).value
-      val sbtDir = baseDir./("project").toPath
-      val sbtFiles = baseDir.*("*.sbt").get.map(_.toPath)
-      scalafixMainTask(
-        inputArgs = scalafixParserCompat.parsed,
-        compat = compat,
-        mode = mode,
-        files = sbtDir +: sbtFiles,
-        projectId = "sbt-build",
-        streams = streams.value
-      )
-    }
+  val loadedRules = Def.setting {
+    val (_, baseArgs) = scalafixAPI.value
+    baseArgs.availableRules.asScala.toList
   }
 
-  // hack to avoid illegal dynamic reference, can't figure out how to do
-  // scalafixParser(baseDirectory.in(ThisBuild).value).parsed
-  private def workingDirectory: File = file(sys.props("user.dir"))
-
-  private val scalafixParser =
-    ScalafixCompletions.parser(workingDirectory.toPath, compat = false)
-  private val scalafixParserCompat =
-    ScalafixCompletions.parser(workingDirectory.toPath, compat = true)
-
-  def scalafixInputTask(
-      parser: Parser[Seq[String]],
-      compat: Boolean,
-      mode: ScalafixMainMode,
+  def scalafixCompileTask(
       config: Configuration
   ): Def.Initialize[InputTask[Unit]] =
-    Def.inputTaskDyn {
-      scalafixCompileTask(parser.parsed, compat, mode, config)
-    }
+    Def
+      .inputTask {
+        val scalafixClasspath =
+          classDirectory.in(config).value.toPath +:
+            dependencyClasspath.in(config).value.map(_.data.toPath)
 
-  def scalafixCompileTask(
-      inputArgs: Seq[String],
-      compat: Boolean,
-      mode: ScalafixMainMode,
-      config: Configuration
-  ): Def.Initialize[Task[Unit]] =
-    Def.taskDyn {
-      compile.in(config).value // trigger compilation
-      val scalafixClasspath =
-        classDirectory.in(config).value.toPath +:
-          dependencyClasspath.in(config).value.map(_.data.toPath)
-      val sourcesToFix = for {
-        source <- unmanagedSources.in(config).in(scalafix).value
-        if source.exists()
-        if canFix(source)
-      } yield source.toPath
-      scalafixMainTask(
-        inputArgs,
-        compat,
-        mode,
-        sourcesToFix,
-        thisProject.value.id,
-        streams.value,
-        scalafixClasspath
-      )
-    }
+        val sourcesToFix = for {
+          source <- unmanagedSources.in(config).in(scalafix).value
+          if source.exists()
+          if canFix(source)
+        } yield source.toPath
 
-  def scalafixMainTask(
-      inputArgs: Seq[String],
-      compat: Boolean,
-      mode: ScalafixMainMode,
-      files: Seq[Path],
-      projectId: String,
-      streams: TaskStreams,
-      classpath: Seq[Path] = Nil
-  ): Def.Initialize[Task[Unit]] = {
-    if (files.isEmpty) Def.task(())
-    else {
-      Def.task {
         val (api, baseArgs) = scalafixAPI.value
+
         var mainArgs = baseArgs
-          .withMode(mode)
-          .withPaths(files.asJava)
-          .withClasspath(classpath.asJava)
+          .withPaths(sourcesToFix.asJava)
+          .withClasspath(scalafixClasspath.asJava)
 
         if (scalafixVerbose.value) {
           mainArgs = mainArgs.withArgs(List("--verbose").asJava)
@@ -332,22 +217,32 @@ object ScalafixPlugin extends AutoPlugin {
             mainArgs = mainArgs.withConfig(x.toPath)
           case _ =>
         }
+        val logger = streams.value.log
 
-        if (compat && inputArgs.nonEmpty) {
-          mainArgs = mainArgs.withRules(inputArgs.asJava)
-        }
+        val inputArgs = new ScalafixCompletions(
+          workingDirectory = baseDirectory.in(ThisBuild).value.toPath,
+          loadedRules = loadedRules.value,
+          terminalWidth = Some(JLineAccess.terminalWidth)
+        ).parser.parsed
 
-        if (files.lengthCompare(1) > 0) {
-          streams.log.info(s"Running scalafix on ${files.size} Scala sources")
-        }
+        if (sourcesToFix.nonEmpty) {
+          if (inputArgs.nonEmpty) {
+            mainArgs = mainArgs.withArgs(inputArgs.asJava)
+          }
 
-        val errors = api.runMain(mainArgs)
-        if (errors.nonEmpty) {
-          throw new ScalafixFailed(errors.toList)
+          if (sourcesToFix.lengthCompare(1) > 0) {
+            logger.info(
+              s"Running scalafix on ${sourcesToFix.size} Scala sources"
+            )
+          }
+
+          val errors = api.runMain(mainArgs)
+          if (errors.nonEmpty) {
+            throw new ScalafixFailed(errors.toList)
+          }
         }
       }
-    }
-  }
+      .dependsOn(compile.in(config)) // trigger compilation
 
   private def canFix(file: File): Boolean = {
     val path = file.getPath
