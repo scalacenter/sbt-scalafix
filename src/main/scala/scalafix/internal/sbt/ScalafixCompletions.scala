@@ -10,14 +10,12 @@ import scala.util.control.NonFatal
 
 import sbt.complete._
 import sbt.complete.DefaultParsers._
-import sbt.internal.sbtscalafix.JLineAccess
 
 class ScalafixCompletions(
     workingDirectory: Path,
-    loadedRules: List[ScalafixRule]
+    loadedRules: List[ScalafixRule],
+    terminalWidth: Option[Int]
 ) {
-  def this(file: File, loadedRules: List[ScalafixRule]) =
-    this(file.toPath, loadedRules)
 
   private type P = Parser[String]
   private val space: P = token(Space).map(_.toString)
@@ -81,9 +79,8 @@ class ScalafixCompletions(
   }
 
   private val namedRule: P = {
-    val termWidth = JLineAccess.terminalWidth
     token(
-      NotQuoted,
+      string,
       TokenCompletions.fixed(
         (seen, _) => {
           val candidates = loadedRules.filter(_.name.startsWith(seen))
@@ -92,10 +89,11 @@ class ScalafixCompletions(
           val rules = candidates
             .map { candidate =>
               val spaces = " " * (maxRuleNameLen - candidate.name.length)
+
+              val output = s"${candidate.name}$spaces -- ${candidate.description}"
+
               new Token(
-                display =
-                  s"${candidate.name}$spaces -- ${candidate.description}"
-                    .take(termWidth),
+                display = terminalWidth.map(output.take).getOrElse(output),
                 append = candidate.name.stripPrefix(seen)
               )
             }
@@ -103,7 +101,7 @@ class ScalafixCompletions(
           Completions.strict(rules)
         }
       )
-    )
+    ).filter(!_.startsWith("-"), x => x)
   }
   private val gitDiffParser: P = {
     val jgitCompletion = new JGitCompletion(workingDirectory)
@@ -145,10 +143,6 @@ class ScalafixCompletions(
 
   def parser: Parser[Seq[String]] = {
     val pathParser: P = token(filepathParser)
-    val pathRegexParser: P = mapOrFail(pathParser) { regex =>
-      Pattern.compile(regex); regex
-    }
-    val classpathParser: P = repsep(pathParser, File.pathSeparator)
     val fileRule: P = (token("file:") ~ pathParser.map("file:" + _)).map {
       case a ~ b => a + b
     }
@@ -156,52 +150,30 @@ class ScalafixCompletions(
       namedRule | fileRule | uri("github") | uri("replace") |
         uri("http") | uri("https") | uri("scala")
 
-    val classpath: P = arg("--classpath", classpathParser)
-    val autoClasspath: P = "--auto-classpath"
-    val config: P = arg("--config", "-c", pathParser)
     val diff: P = "--diff"
     val diffBase: P = arg("--diff-base", gitDiffParser)
-    val exclude: P = arg("--exclude", pathRegexParser)
     val files: P = arg("--files", "-f", pathParser)
-    val nonInteractive: P = "--non-interactive"
-    val outFrom: P = arg("--out-from", pathRegexParser)
-    val outTo: P = arg("--out-to", pathRegexParser)
     val rules: P = arg("--rules", "-r", ruleParser)
-    val sourceroot: P = arg("--sourceroot", pathParser)
-    val stdout: P = "--stdout"
+
     val test: P = "--test"
-    val toolClasspath: P = arg("--tool-classpath", classpathParser)
+    val autoSuppressLinterErrors: P = "--auto-suppress-linter-errors"
     val help: P = "--help"
-    val version: P = "--version" | hide("-v")
     val verbose: P = "--verbose"
+    val extra: P = hide(string)
+
+    val ruleDirect: P = namedRule.map(rule => s"--rules $rule")
 
     val base =
-      classpath |
-        autoClasspath |
-        config |
         diff |
         diffBase |
-        exclude |
         files |
-        nonInteractive |
-        outFrom |
-        outTo |
-        rules |
-        sourceroot |
-        stdout |
-        test |
-        toolClasspath |
         help |
-        version |
-        verbose
+        ruleDirect |
+        rules |
+        test |
+        verbose |
+        extra
 
-    val ruleDirect = ruleParser.map(rule => Seq("--rules", rule))
-    val fileDirect = filepathParser.map(file => Seq("--files", file))
-
-    ((token(Space) ~> base).* ~ (token(Space) ~> (fileDirect | ruleDirect)).?)
-      .map {
-        case a ~ b =>
-          (a ++ b.getOrElse(Seq())).flatMap(_.split(" ").toSeq)
-      }
+    (token(Space) ~> base).*.map(_.flatMap(_.split(" ").toSeq))
   }
 }

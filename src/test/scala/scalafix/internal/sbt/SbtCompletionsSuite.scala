@@ -41,7 +41,8 @@ class SbtCompletionsSuite extends FunSuite {
 
   val parser = new ScalafixCompletions(
     workingDirectory = fs.workingDirectory.toAbsolutePath,
-    loadedRules = loadedRules
+    loadedRules = loadedRules,
+    terminalWidth = None
   ).parser
   val space = " "
 
@@ -77,47 +78,31 @@ class SbtCompletionsSuite extends FunSuite {
     AbbreviatedObjectId.isId(in)
 
   checkCompletion("all", SkipWindows) { (_, displays) =>
-    val obtained = displays.toSet
-    val expected = Set(
+    val obtained = displays
+    val expected = List(
       "",
-      "--classpath",
-      "--config",
+      " ",
       "--diff",
       "--diff-base",
-      "--exclude",
+      "--files",
       "--help",
-      "--non-interactive",
-      "--out-from",
-      "--out-to",
       "--rules",
-      "--sourceroot",
-      "--stdout",
       "--test",
-      "--tool-classpath",
       "--verbose",
-      "--version"
+      "DisableSyntax           -- Linter that reports an error on a configurable set of keywords and syntax.",
+      "ExplicitResultTypes     -- Rewrite that inserts explicit type annotations for def/val/var",
+      "LeakingImplicitClassVal -- Add private access modifier to val parameters of implicit value classes in order to prevent public access",
+      "NoAutoTupling           -- Rewrite that inserts explicit tuples for adapted argument lists for compatibility with -Yno-adapted-args",
+      "NoValInForComprehension -- Rewrite that removes redundant val inside for-comprehensions",
+      "ProcedureSyntax         -- Rewrite that inserts explicit : Unit = for soon-to-be-deprecated procedure syntax def foo { ... }",
+      "RemoveUnusedImports     -- Rewrite that removes unused imports reported by the compiler under -Xwarn-unused-import.",
+      "RemoveUnusedTerms       -- Rewrite that removes unused locals or privates by -Ywarn-unused:locals,privates",
+      "SemanticRule            -- ",
+      "SyntacticRule           -- "
     )
-
-    val diff = expected -- obtained
-
-    assert(diff.isEmpty)
+    assert(obtained == expected)
   }
 
-  checkCompletion("--classpath ba", SkipWindows) { (appends, displays) =>
-    assert(displays.contains("bar"))
-    assert(appends.contains("r"))
-  }
-  checkCompletion("--classpath bar", SkipWindows) { (appends, displays) =>
-    assert(displays.contains(":"))
-    assert(appends.contains(":"))
-  }
-  checkCompletion("--classpath bar:", SkipWindows) { (appends, displays) =>
-    assert(displays.contains("foo"))
-    assert(appends.contains("foo"))
-  }
-  checkCompletion("--config ", SkipWindows) { (appends, displays) =>
-    assert(displays.contains("my.conf"))
-  }
   checkCompletion("--diff-base" + space, SkipWindows) { (appends, displays) =>
     // branches
     assert(displays.contains("master"))
@@ -131,18 +116,6 @@ class SbtCompletionsSuite extends FunSuite {
         assert(isSha1(append))
         assert(display.endsWith("ago)"))
     }
-  }
-  checkCompletion("--exclude" + space, SkipWindows) { (appends, displays) =>
-    assert(displays.contains("foo"))
-    assert(appends.contains("foo"))
-  }
-  checkCompletion("--out-from" + space, SkipWindows) { (appends, displays) =>
-    assert(displays.contains("foo"))
-    assert(appends.contains("foo"))
-  }
-  checkCompletion("--out-to" + space, SkipWindows) { (appends, displays) =>
-    assert(displays.contains("foo"))
-    assert(appends.contains("foo"))
   }
   checkCompletion("--rules" + space, SkipWindows) { (_, displays) =>
     // built-in
@@ -160,20 +133,10 @@ class SbtCompletionsSuite extends FunSuite {
     assert(displays.contains("scala:"))
   }
 
-  checkCompletion("", SkipWindows) { (_, displays) =>
-    // built-in
-    assert(displays.exists(_.startsWith("ProcedureSyntax")))
-
-    // from classpath
-    assert(displays.exists(_.startsWith("SemanticRule")))
-
-    // protocols
-    assert(displays.contains("file:"))
-    assert(displays.contains("github:"))
-    assert(displays.contains("http:"))
-    assert(displays.contains("https:"))
-    assert(displays.contains("replace:"))
-    assert(displays.contains("scala:"))
+  checkCompletion("--rules file:bar/../", SkipWindows) { (appends, displays) =>
+    // resolve parent directories
+    assert(appends.contains("foo"))
+    assert(displays.contains("bar/../foo"))
   }
 
   // shortcut for --rules
@@ -181,35 +144,8 @@ class SbtCompletionsSuite extends FunSuite {
     assert(args == Seq("--rules", "ProcedureSyntax"))
   }
 
-  // shortcut for --files
-  checkArgs("foo") { args =>
-    val List(argName, arg) = args.toList
-
-    assert(argName == "--files")
-
-    val filename = Paths.get(arg).getFileName.toString
-    assert(filename == "foo")
-  }
-
-  checkCompletion("--rules file:bar/../", SkipWindows) { (appends, displays) =>
-    // resolve parent directories
-    assert(appends.contains("foo"))
-    assert(displays.contains("bar/../foo"))
-  }
-  checkCompletion("--sourceroot" + space, SkipWindows) { (appends, displays) =>
-    assert(displays.contains("bar"))
-    assert(appends.contains("bar"))
-  }
-  checkCompletion("--tool-classpath ba", SkipWindows) { (appends, displays) =>
-    assert(displays.contains("bar"))
-    assert(appends.contains("r"))
-  }
-  checkCompletion("--tool-classpath bar", SkipWindows) { (appends, displays) =>
-    assert(displays.contains(":"))
-    assert(appends.contains(":"))
-  }
-  checkCompletion("--tool-classpath bar:", SkipWindows) { (appends, displays) =>
-    assert(displays.contains("buzz"))
-    assert(appends.contains("buzz"))
+  // consume extra
+  checkArgs("--bash") { args =>
+    assert(args == Seq("--bash"))
   }
 }

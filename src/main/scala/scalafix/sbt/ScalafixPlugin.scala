@@ -4,6 +4,7 @@ import scalafix.interfaces._
 import scalafix.interfaces.{Scalafix => ScalafixAPI}
 import scalafix.internal.sbt.ScalafixCompletions
 import scalafix.internal.sbt.ScalafixInterfacesClassloader
+import sbt.internal.sbtscalafix.JLineAccess
 
 import com.geirsson.coursiersmall
 import com.geirsson.coursiersmall._
@@ -251,7 +252,8 @@ object ScalafixPlugin extends AutoPlugin {
 
         val inputArgs = new ScalafixCompletions(
           workingDirectory = baseDirectory.in(ThisBuild).value.toPath,
-          loadedRules = loadedRules.value
+          loadedRules = loadedRules.value,
+          terminalWidth = Some(JLineAccess.terminalWidth)
         ).parser.parsed
 
         if (sourcesToFix.nonEmpty) {
