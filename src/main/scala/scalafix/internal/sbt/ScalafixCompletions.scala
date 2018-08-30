@@ -164,7 +164,6 @@ class ScalafixCompletions(
     val help: P = "--help"
     val ruleDirect: P = namedRule.map(rule => s"--rules $rule")
     val rules: P = arg("--rules", "-r", ruleParser)
-    val test: P = "--test"
     val verbose: P = "--verbose"
     val base =
       autoSuppressLinterErrors |
@@ -174,7 +173,6 @@ class ScalafixCompletions(
         help |
         ruleDirect |
         rules |
-        test |
         verbose |
         extra
     (token(Space) ~> base).*.map(_.flatMap(_.split(" ").toSeq))

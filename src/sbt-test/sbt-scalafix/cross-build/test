@@ -1,24 +1,24 @@
 # compile should not affect scalafix
 > compile
 
--> scalafix --test ProcedureSyntax
--> compile:scalafix --test ProcedureSyntax
--> test:scalafix --test ProcedureSyntax
--> it:scalafix --test ProcedureSyntax
+-> scalafixTest ProcedureSyntax
+-> compile:scalafixTest ProcedureSyntax
+-> test:scalafixTest ProcedureSyntax
+-> it:scalafixTest ProcedureSyntax
 
 > scalafix ProcedureSyntax
-> scalafix --test ProcedureSyntax
+> scalafixTest ProcedureSyntax
 > compile:scalafix ProcedureSyntax
-> compile:scalafix --test ProcedureSyntax
--> test:scalafix --test ProcedureSyntax
--> it:scalafix --test ProcedureSyntax
+> compile:scalafixTest ProcedureSyntax
+-> test:scalafixTest ProcedureSyntax
+-> it:scalafixTest ProcedureSyntax
 
 > test:scalafix ProcedureSyntax
-> test:scalafix --test ProcedureSyntax
--> it:scalafix --test ProcedureSyntax
+> test:scalafixTest ProcedureSyntax
+-> it:scalafixTest ProcedureSyntax
 
 > it:scalafix ProcedureSyntax
-> it:scalafix --test ProcedureSyntax
+> it:scalafixTest ProcedureSyntax
 
 > javaProject/compile:scalafix ProcedureSyntax
 # Should fail because 2.10 has no semanticdb
@@ -31,6 +31,6 @@
 > scala212/compile:scalafix
 > scala212/test:scalafix
 > scala212/it:scalafix
-> scala212/compile:scalafix --test
-> scala212/test:scalafix --test
-> scala212/it:scalafix --test
+> scala212/compile:scalafixTest
+> scala212/test:scalafixTest
+> scala212/it:scalafixTest

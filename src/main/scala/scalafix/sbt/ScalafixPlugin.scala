@@ -37,6 +37,8 @@ object ScalafixPlugin extends AutoPlugin {
           "For example: scalafix RemoveUnusedImports. " +
           "To run on test sources use test:scalafix."
       )
+    val scalafixTest: TaskKey[Unit] =
+      taskKey[Unit]("Shorthand for 'scalafix --test'")
     val scalafixDependencies: SettingKey[Seq[ModuleID]] =
       settingKey[Seq[ModuleID]](
         "Optional list of custom rules to install from Maven Central. " +
@@ -59,7 +61,8 @@ object ScalafixPlugin extends AutoPlugin {
 
     def scalafixConfigSettings(config: Configuration): Seq[Def.Setting[_]] =
       Seq(
-        scalafix := scalafixCompileTask(config).tag(Scalafix).evaluated
+        scalafix := scalafixCompileTask(config).tag(Scalafix).evaluated,
+        scalafixTest := scalafix.toTask(" --test").value
       )
 
     @deprecated("This setting is no longer used", "0.6.0")

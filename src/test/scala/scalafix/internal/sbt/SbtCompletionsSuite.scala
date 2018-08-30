@@ -88,7 +88,6 @@ class SbtCompletionsSuite extends FunSuite {
       "--files",
       "--help",
       "--rules",
-      "--test",
       "--verbose",
       "DisableSyntax           -- Linter that reports an error on a configurable set of keywords and syntax.",
       "ExplicitResultTypes     -- Rewrite that inserts explicit type annotations for def/val/var",
