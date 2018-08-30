@@ -6,3 +6,11 @@ addSbtPlugin(
 )
 
 libraryDependencies += "org.scala-sbt" %% "scripted-plugin" % sbtVersion.value
+unmanagedSourceDirectories.in(Compile) ++=  {
+  val root = baseDirectory.in(ThisBuild).value.getParentFile / "src" / "main"
+  List(
+    root / "scala",
+    root / "scala-sbt-1.0"
+  )
+}
+libraryDependencies ++= Dependencies.all
