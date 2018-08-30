@@ -43,6 +43,7 @@ class ScalafixAPISuite extends FunSuite {
     val obtainedError = api
       .runMain(
         args
+          .withPrintStream(new PrintStream(baos))
           .withPaths(List(tmp).asJava)
           .withArgs(
             List("--settings.DisableSyntax.noSemicolons", "true").asJava
@@ -50,10 +51,10 @@ class ScalafixAPISuite extends FunSuite {
           .withRules(List("SyntacticRule", "DisableSyntax").asJava) // from example-scalafix-rule
       )
       .toList
-    assert(obtainedError == List(ScalafixError.LinterError))
-    val obtained = new String(Files.readAllBytes(tmp))
-    assert(obtained.endsWith("// v1 SyntacticRule!\n"))
     val out = fansi.Str(baos.toString()).plainText
+    assert(obtainedError == List(ScalafixError.LinterError), out)
+    val obtained = new String(Files.readAllBytes(tmp))
+    assert(obtained.endsWith("// v1 SyntacticRule!\n"), out)
     val obtainedOut = out.replaceFirst(".*Tmp.scala", "[error] Tmp.scala")
     assertNoDiff(
       obtainedOut,

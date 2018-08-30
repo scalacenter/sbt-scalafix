@@ -222,11 +222,13 @@ object ScalafixPlugin extends AutoPlugin {
         }
         val logger = streams.value.log
 
-        val inputArgs = new ScalafixCompletions(
+        val args = new ScalafixCompletions(
           workingDirectory = baseDirectory.in(ThisBuild).value.toPath,
           loadedRules = loadedRules.value,
           terminalWidth = Some(JLineAccess.terminalWidth)
         ).parser.parsed
+        val inputArgs = args.extra ++
+          args.rules.flatMap(r => List("-r", r.name))
 
         if (sourcesToFix.nonEmpty) {
           if (inputArgs.nonEmpty) {

@@ -4,12 +4,31 @@ import scalafix.interfaces.ScalafixRule
 
 import java.io.File
 import java.nio.file._
-import java.util.regex.Pattern
 
 import scala.util.control.NonFatal
 
 import sbt.complete._
 import sbt.complete.DefaultParsers._
+
+case class ScalafixArgs(
+    rules: Seq[Rule],
+    extra: Seq[String]
+) {
+  def isMaybeSemantic: Boolean = rules.exists(_.isMaybeSemantic)
+}
+
+object ScalafixArgs {
+  def apply(args: Seq[ScalafixArg]): ScalafixArgs = {
+    ScalafixArgs(
+      args.collect { case x: Rule => x },
+      args.collect { case x: Extra => x.value }
+    )
+  }
+}
+
+sealed abstract class ScalafixArg
+case class Rule(name: String, isMaybeSemantic: Boolean) extends ScalafixArg
+case class Extra(value: String) extends ScalafixArg
 
 class ScalafixCompletions(
     workingDirectory: Path,
@@ -29,17 +48,9 @@ class ScalafixCompletions(
       case a ~ _ ~ c => a + " " + c
     }
 
-  private def mapOrFail[S, T](p: Parser[S])(f: S => T): Parser[T] =
-    p.flatMap { s =>
-      try {
-        success(f(s))
-      } catch {
-        case NonFatal(e) => failure(e.toString)
-      }
-    }
-
-  private def uri(protocol: String) =
-    token(protocol + ":") ~> NotQuoted.map(x => s"$protocol:$x")
+  private def uri(protocol: String): Parser[Rule] =
+    token(protocol + ":") ~> NotQuoted.map(x =>
+      Rule(s"$protocol:$x", isMaybeSemantic = true))
   private val filepathParser: P = {
     def toAbsolutePath(path: Path, workingDirectory: Path): Path = {
       if (path.isAbsolute) path
@@ -94,7 +105,7 @@ class ScalafixCompletions(
                 s"${candidate.name}$spaces -- ${candidate.description}"
 
               new Token(
-                display = terminalWidth.map(output.take).getOrElse(output),
+                display = terminalWidth.map(output.take).getOrElse(output).trim,
                 append = candidate.name.stripPrefix(seen)
               )
             }
@@ -104,6 +115,8 @@ class ScalafixCompletions(
       )
     ).filter(!_.startsWith("-"), x => x)
   }
+  private val namedRule2: Parser[Rule] =
+    namedRule.map(s => Rule(s, isSemantic(s)))
   private val gitDiffParser: P = {
     val jgitCompletion = new JGitCompletion(workingDirectory)
     token(
@@ -141,20 +154,15 @@ class ScalafixCompletions(
   }
 
   def hide(p: P): P = p.examples()
+  def isSemantic(rule: String): Boolean =
+    rule == "ExplicitResultTypes"
 
-  def parser: Parser[Seq[String]] = {
+  def parser: Parser[ScalafixArgs] = {
     val pathParser: P = token(filepathParser)
-    val fileRule: P = (token("file:") ~ pathParser.map("file:" + _)).map {
-      case a ~ b => a + b
-    }
-    val ruleParser =
-      namedRule |
-        fileRule |
-        uri("github") |
-        uri("replace") |
-        uri("http") |
-        uri("https") |
-        uri("scala")
+    val fileRule: Parser[Rule] =
+      (token("file:") ~ pathParser.map("file:" + _)).map {
+        case a ~ b => Rule(a + b, isMaybeSemantic = true)
+      }
 
     val autoSuppressLinterErrors: P = "--auto-suppress-linter-errors"
     val diff: P = "--diff"
@@ -162,8 +170,6 @@ class ScalafixCompletions(
     val extra: P = hide(string)
     val files: P = arg("--files", "-f", pathParser)
     val help: P = "--help"
-    val ruleDirect: P = namedRule.map(rule => s"--rules $rule")
-    val rules: P = arg("--rules", "-r", ruleParser)
     val verbose: P = "--verbose"
     val base =
       autoSuppressLinterErrors |
@@ -171,10 +177,22 @@ class ScalafixCompletions(
         diffBase |
         files |
         help |
-        ruleDirect |
-        rules |
         verbose |
         extra
-    (token(Space) ~> base).*.map(_.flatMap(_.split(" ").toSeq))
+    val allBase = base.map(Extra)
+    val rules: Parser[Rule] =
+      namedRule2 |
+        fileRule |
+        uri("github") |
+        uri("replace") |
+        uri("http") |
+        uri("https") |
+        uri("scala")
+    val result: Parser[ScalafixArg] =
+      rules |
+        allBase
+    (token(Space) ~> result).*.map { args =>
+      ScalafixArgs(args)
+    }
   }
 }
