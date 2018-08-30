@@ -1,3 +1,11 @@
+inThisBuild(
+  List(
+    scalafixDependencies := List(
+      // Custom rule published to Maven Central https://github.com/olafurpg/example-scalafix-rule
+      "com.geirsson" % "example-scalafix-rule_2.12" % "1.2.0"
+    )
+  )
+)
 onLoadMessage := s"Welcome to sbt-scalafix ${version.value}"
 moduleName := "sbt-scalafix"
 

@@ -53,8 +53,7 @@ object ScalafixEnable {
           s"-Xplugin-require:semanticdb"
         ),
         libraryDependencies.in(p) += compilerPlugin(
-          "org.scalameta" % "semanticdb-scalac" %
-            scalafixSemanticdbVersion.value cross CrossVersion.full
+          ScalafixPlugin.autoImport.scalafixSemanticdb
         )
       )
     } yield setting

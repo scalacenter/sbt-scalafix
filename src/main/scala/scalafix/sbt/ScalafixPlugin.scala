@@ -1,33 +1,23 @@
 package scalafix.sbt
 
+import java.nio.file.Path
+import sbt.Def
+import sbt.Keys._
+import sbt._
+import sbt.internal.sbtscalafix.JLineAccess
+import sbt.plugins.JvmPlugin
+import scala.collection.JavaConverters._
+import scala.util.control.NonFatal
 import scalafix.interfaces._
 import scalafix.interfaces.{Scalafix => ScalafixAPI}
 import scalafix.internal.sbt.ScalafixCompletions
-import scalafix.internal.sbt.ScalafixInterfacesClassloader
-import sbt.internal.sbtscalafix.JLineAccess
-
-import com.geirsson.coursiersmall
-import com.geirsson.coursiersmall._
-
-import sbt._
-import sbt.complete.Parser
-import sbt.Def
-import sbt.internal.sbtscalafix.Compat
-import sbt.Keys._
-import sbt.plugins.JvmPlugin
-
-import scala.collection.JavaConverters._
-
-import java.io.OutputStreamWriter
-import java.net.URLClassLoader
-import java.nio.file.Path
-import java.util.function
-import java.util.Properties
-import java.{util => jutil}
+import scalafix.internal.sbt.ScalafixInterface
+import scalafix.internal.sbt.ShellArgs
 
 object ScalafixPlugin extends AutoPlugin {
   override def trigger: PluginTrigger = allRequirements
   override def requires: Plugins = JvmPlugin
+
   object autoImport {
     val Scalafix = Tags.Tag("scalafix")
 
@@ -37,8 +27,6 @@ object ScalafixPlugin extends AutoPlugin {
           "For example: scalafix RemoveUnusedImports. " +
           "To run on test sources use test:scalafix."
       )
-    val scalafixTest: TaskKey[Unit] =
-      taskKey[Unit]("Shorthand for 'scalafix --test'")
     val scalafixDependencies: SettingKey[Seq[ModuleID]] =
       settingKey[Seq[ModuleID]](
         "Optional list of custom rules to install from Maven Central. " +
@@ -49,20 +37,14 @@ object ScalafixPlugin extends AutoPlugin {
         "Optional location to .scalafix.conf file to specify which scalafix rules should run. " +
           "Defaults to the build base directory if a .scalafix.conf file exists."
       )
-    val scalafixSemanticdbVersion: SettingKey[String] = settingKey[String](
-      s"Which version of semanticdb to use. Default is ${BuildInfo.scalameta}."
-    )
     val scalafixSemanticdb: ModuleID =
-      scalafixSemanticdb(BuildInfo.scalameta)
+      scalafixSemanticdb(BuildInfo.scalametaVersion)
     def scalafixSemanticdb(scalametaVersion: String): ModuleID =
       "org.scalameta" % "semanticdb-scalac" % scalametaVersion cross CrossVersion.full
-    val scalafixVerbose: SettingKey[Boolean] =
-      settingKey[Boolean]("pass --verbose to scalafix")
 
     def scalafixConfigSettings(config: Configuration): Seq[Def.Setting[_]] =
       Seq(
-        scalafix := scalafixCompileTask(config).tag(Scalafix).evaluated,
-        scalafixTest := scalafix.toTask(" --test").value
+        scalafix := scalafixInputTask(config).evaluated
       )
 
     @deprecated("This setting is no longer used", "0.6.0")
@@ -82,212 +64,188 @@ object ScalafixPlugin extends AutoPlugin {
     def scalafixSettings: Seq[Def.Setting[_]] =
       Nil
   }
+
   import autoImport._
-
-  lazy val props: Properties = {
-    val props = new Properties()
-    Option(this.getClass.getResourceAsStream("sbt-scalafix.properties")) match {
-      case Some(stream) =>
-        props.load(stream)
-      case None =>
-        println("error: failed to load sbt-scalafix-properties")
-    }
-    props
-  }
-
-  def scalafixMainCallback(logger: Logger): ScalafixMainCallback =
-    new ScalafixMainCallback {
-      def fullStringID(lintID: ScalafixLintID): String =
-        if (lintID.categoryID().isEmpty) lintID.ruleName()
-        else if (lintID.ruleName().isEmpty) lintID.categoryID()
-        else s"${lintID.ruleName()}.${lintID.categoryID()}"
-      override def reportDiagnostic(diagnostic: ScalafixDiagnostic): Unit = {
-        def formatMessage: String = {
-          val prefix =
-            if (diagnostic.lintID().isPresent) {
-              val id = fullStringID(diagnostic.lintID().get)
-              s"[$id] "
-            } else {
-              ""
-            }
-          val message = prefix + diagnostic.message()
-
-          if (diagnostic.position().isPresent) {
-            val severity =
-              diagnostic.severity().toString.toLowerCase()
-            diagnostic.position().get().formatMessage(severity, message)
-          } else {
-            message
-          }
-        }
-        diagnostic.severity() match {
-          case ScalafixSeverity.INFO => logger.info(formatMessage)
-          case ScalafixSeverity.WARNING => logger.warn(formatMessage)
-          case ScalafixSeverity.ERROR => logger.error(formatMessage)
-        }
-      }
-    }
-
-  def classloadScalafixAPI(
-      logger: Logger,
-      toolClasspathDeps: Seq[ModuleID]
-  ): (ScalafixAPI, ScalafixMainArgs) = {
-    val dep = new Dependency(
-      "ch.epfl.scala",
-      s"scalafix-cli_${BuildInfo.scala212}",
-      BuildInfo.scalafix
-    )
-    val jars = CoursierSmall.fetch(fetchSettings.withDependencies(List(dep)))
-    val urls = jars.map(_.toUri.toURL).toArray
-    val interfacesParent = new ScalafixInterfacesClassloader(
-      this.getClass.getClassLoader
-    )
-    val classloader = new URLClassLoader(urls, interfacesParent)
-    val api = ScalafixAPI.classloadInstance(classloader)
-    val toolClasspath = scalafixToolClasspath(toolClasspathDeps, classloader)
-    val callback = scalafixMainCallback(logger)
-    val args = api
-      .newMainArgs()
-      .withToolClasspath(toolClasspath)
-      .withMainCallback(callback)
-    (api, args)
-  }
 
   override def projectSettings: Seq[Def.Setting[_]] =
     Seq(Compile, Test).flatMap(c => inConfig(c)(scalafixConfigSettings(c)))
 
   override def globalSettings: Seq[Def.Setting[_]] = Seq(
-    scalafixConfig := Option(file(".scalafix.conf")).filter(_.isFile),
-    scalafixVerbose := false,
-    commands += ScalafixEnable.command,
-    scalafixSemanticdbVersion := BuildInfo.scalameta,
-    scalafixDependencies := Nil
+    initialize := {
+      val _ = initialize.value
+      // Ideally, we would not resort to storing mutable state in `initialize`.
+      // The optimal solution would be to run `scalafixDependencies.value`
+      // inside `scalafixInputTask`.
+      // However, we can't do that due to an sbt bug:
+      //   https://github.com/sbt/sbt/issues/3572#issuecomment-417582703
+      workingDirectory = baseDirectory.in(ThisBuild).value.toPath
+      scalafixInterface = ScalafixInterface.fromToolClasspath(
+        scalafixDependencies = scalafixDependencies.in(ThisBuild).value
+      )
+    },
+    scalafixConfig := None, // let scalafix-cli try to infer $CWD/.scalafix.conf
+    scalafixDependencies := Nil,
+    commands += ScalafixEnable.command
   )
 
-  def scalafixToolClasspath(
-      deps: Seq[ModuleID],
-      parent: ClassLoader
-  ): URLClassLoader = {
-    if (deps.isEmpty) {
-      new URLClassLoader(Array(), parent)
+  private var workingDirectory = file("").getAbsoluteFile.toPath
+  private var scalafixInterface: () => ScalafixInterface =
+    () => throw new UninitializedError
+  private def scalafixAPI(): ScalafixAPI = scalafixInterface().api
+  private def scalafixArgs(): ScalafixMainArgs = scalafixInterface().args
+
+  private def scalafixInputTask(
+      config: Configuration
+  ): Def.Initialize[InputTask[Unit]] =
+    Def.inputTaskDyn {
+      val args = new ScalafixCompletions(
+        workingDirectory = () => workingDirectory,
+        loadedRules = () => scalafixArgs().availableRules().asScala,
+        terminalWidth = Some(JLineAccess.terminalWidth)
+      ).parser.parsed
+      if (args.rules.isEmpty && args.extra == List("--help")) scalafixHelp
+      else {
+        val mainArgs = scalafixArgs()
+          .withRules(args.rules.map(_.name).asJava)
+          .safeWithArgs(args.extra)
+        val rulesThatWillRun = mainArgs.safeRulesThatWillRun()
+        val isSemantic = rulesThatWillRun.exists(_.kind().isSemantic)
+        if (isSemantic) {
+          val names = rulesThatWillRun.map(_.name())
+          scalafixSemantic(names, mainArgs, args, config)
+        } else {
+          scalafixSyntactic(mainArgs, args, config)
+        }
+      }
+    }
+  private def scalafixHelp: Def.Initialize[Task[Unit]] =
+    Def.task {
+      scalafixArgs().withArgs(List("--help").asJava).run()
+      ()
+    }
+
+  private def scalafixSyntactic(
+      mainArgs: ScalafixMainArgs,
+      shellArgs: ShellArgs,
+      config: Configuration
+  ): Def.Initialize[Task[Unit]] = Def.task {
+    runArgs(
+      shellArgs,
+      filesToFix(shellArgs, config).value,
+      mainArgs,
+      streams.value.log,
+      scalafixConfig.value
+    )
+  }
+
+  private def scalafixSemantic(
+      ruleNames: Seq[String],
+      mainArgs: ScalafixMainArgs,
+      shellArgs: ShellArgs,
+      config: Configuration
+  ): Def.Initialize[Task[Unit]] = Def.taskDyn {
+    val isSemanticdb =
+      libraryDependencies.value.exists(_.name.startsWith("semanticdb-scalac"))
+    val files = filesToFix(shellArgs, config).value
+    // FIXME: Validate scalacOptions here https://github.com/scalacenter/scalafix/issues/857
+    if (isSemanticdb && files.nonEmpty) {
+      Def.task {
+        val args = mainArgs
+          .withScalaVersion(scalaVersion.value)
+          .withScalacOptions(scalacOptions.value.asJava)
+          .withClasspath(fullClasspath.value.map(_.data.toPath).asJava)
+        runArgs(
+          shellArgs,
+          files,
+          args,
+          streams.value.log,
+          scalafixConfig.value
+        )
+      }
     } else {
-      val jars =
-        dependencyCache.computeIfAbsent(deps, fetchScalafixDependencies)
-      val urls = jars.map(_.toUri.toURL).toArray
-      val classloader = new URLClassLoader(urls, parent)
-      classloader
+      Def.task {
+        val names = ruleNames.mkString(", ")
+        throw new MissingSemanticdb(names)
+      }
     }
   }
 
-  val scalafixAPI = Def.setting {
-    // construct custom logger so that `scalafixAPI` can be a setting instead of task.
-    val logger = Compat.ConsoleLogger(System.out)
-    classloadScalafixAPI(logger, scalafixDependencies.value)
-  }
+  private def runArgs(
+      shellArgs: ShellArgs,
+      paths: Seq[Path],
+      mainArgs: ScalafixMainArgs,
+      logger: Logger,
+      config: Option[File]
+  ): Unit = {
+    var finalArgs = mainArgs
 
-  val loadedRules = Def.setting {
-    val (_, baseArgs) = scalafixAPI.value
-    baseArgs.availableRules.asScala.toList
-  }
+    if (paths.nonEmpty) {
+      finalArgs = finalArgs.withPaths(paths.asJava)
+    }
 
-  def scalafixCompileTask(
-      config: Configuration
-  ): Def.Initialize[InputTask[Unit]] =
-    Def
-      .inputTask {
-        val scalafixClasspath =
-          classDirectory.in(config).value.toPath +:
-            dependencyClasspath.in(config).value.map(_.data.toPath)
+    config match {
+      case Some(file) =>
+        finalArgs = finalArgs.withConfig(file.toPath)
+      case None =>
+    }
 
-        val sourcesToFix = for {
-          source <- unmanagedSources.in(config).in(scalafix).value
-          if source.exists()
-          if canFix(source)
-        } yield source.toPath
+    if (paths.nonEmpty || shellArgs.explicitlyListsFiles) {
 
-        val (api, baseArgs) = scalafixAPI.value
-
-        var mainArgs = baseArgs
-          .withPaths(sourcesToFix.asJava)
-          .withClasspath(scalafixClasspath.asJava)
-
-        if (scalafixVerbose.value) {
-          mainArgs = mainArgs.withArgs(List("--verbose").asJava)
-        }
-
-        scalafixConfig.value match {
-          case Some(x) =>
-            mainArgs = mainArgs.withConfig(x.toPath)
-          case _ =>
-        }
-        val logger = streams.value.log
-
-        val args = new ScalafixCompletions(
-          workingDirectory = baseDirectory.in(ThisBuild).value.toPath,
-          loadedRules = loadedRules.value,
-          terminalWidth = Some(JLineAccess.terminalWidth)
-        ).parser.parsed
-        val inputArgs = args.extra ++
-          args.rules.flatMap(r => List("-r", r.name))
-
-        if (sourcesToFix.nonEmpty) {
-          if (inputArgs.nonEmpty) {
-            mainArgs = mainArgs.withArgs(inputArgs.asJava)
-          }
-
-          if (sourcesToFix.lengthCompare(1) > 0) {
-            logger.info(
-              s"Running scalafix on ${sourcesToFix.size} Scala sources"
-            )
-          }
-
-          val errors = api.runMain(mainArgs)
-          if (errors.nonEmpty) {
-            throw new ScalafixFailed(errors.toList)
-          }
-        }
+      if (paths.lengthCompare(1) > 0) {
+        logger.info(
+          s"Running scalafix on ${paths.size} Scala sources"
+        )
       }
-      .dependsOn(compile.in(config)) // trigger compilation
 
-  private def canFix(file: File): Boolean = {
+      val errors = finalArgs.run()
+      if (errors.nonEmpty) {
+        throw new ScalafixFailed(errors.toList)
+      }
+    } else {
+      () // do nothing
+    }
+  }
+
+  private def isScalaFile(file: File): Boolean = {
     val path = file.getPath
     path.endsWith(".scala") ||
     path.endsWith(".sbt")
   }
-
-  private val dependencyCache: jutil.Map[Seq[ModuleID], List[Path]] = {
-    jutil.Collections.synchronizedMap(new jutil.HashMap())
-  }
-
-  private[scalafix] val fetchScalafixDependencies =
-    new function.Function[Seq[ModuleID], List[Path]] {
-      override def apply(t: Seq[ModuleID]): List[Path] = {
-        val dependencies = t.map { module =>
-          new Dependency(module.organization, module.name, module.revision)
+  private def filesToFix(
+      shellArgs: ShellArgs,
+      config: Configuration
+  ): Def.Initialize[Task[Seq[Path]]] =
+    Def.taskDyn {
+      // Dynamic task to avoid redundantly computing `unmanagedSources.value`
+      if (shellArgs.explicitlyListsFiles) {
+        Def.task {
+          Nil
         }
-        CoursierSmall.fetch(fetchSettings.withDependencies(dependencies.toList))
+      } else {
+        Def.task {
+          for {
+            source <- unmanagedSources.in(config).in(scalafix).value
+            if source.exists()
+            if isScalaFile(source)
+          } yield source.toPath
+        }
       }
     }
 
-  private val silentCoursierWriter = new OutputStreamWriter(System.out) {
-    override def write(str: String): Unit = {
-      if (str.endsWith(".pom\n") || str.endsWith(".pom.sha1\n")) {
-        () // Ignore noisy "Downloading $URL.pom" logs that appear even for cached artifacts
-      } else {
-        super.write(str)
+  implicit class XtensionArgs(mainArgs: ScalafixMainArgs) {
+    def safeRulesThatWillRun(): Seq[ScalafixRule] = {
+      try mainArgs.rulesThatWillRun().asScala
+      catch {
+        case NonFatal(e) =>
+          throw new InvalidArgument(e.getMessage)
+      }
+    }
+    def safeWithArgs(args: Seq[String]): ScalafixMainArgs = {
+      try mainArgs.withArgs(args.asJava)
+      catch {
+        case NonFatal(e) =>
+          throw new InvalidArgument(e.getMessage)
       }
     }
   }
-
-  private val fetchSettings = new coursiersmall.Settings()
-    .withRepositories(
-      List(
-        Repository.MavenCentral,
-        Repository.SonatypeReleases,
-        Repository.SonatypeSnapshots,
-        Repository.Ivy2Local
-      )
-    )
-    .withWriter(silentCoursierWriter)
-
 }
