@@ -46,10 +46,23 @@ sbtVersion in pluginCrossBuild := {
     case "2.12" => "1.2.1"
   }
 }
-addCompilerPlugin(scalafixSemanticdb)
+libraryDependencies ++= {
+  scalaBinaryVersion.value match {
+    case "2.12" =>
+      List(compilerPlugin(scalafixSemanticdb))
+    case _ =>
+      List()
+  }
+}
+scalacOptions ++= {
+  scalaBinaryVersion.value match {
+    case "2.12" =>
+      List("-Ywarn-unused", "-Yrangepos")
+    case _ =>
+      List()
+  }
+}
 scalacOptions ++= List(
-  "-Yrangepos",
-  "-Ywarn-unused",
   "-target:jvm-1.8"
 )
 
