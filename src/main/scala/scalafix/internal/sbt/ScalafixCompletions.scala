@@ -4,57 +4,45 @@ import scalafix.interfaces.ScalafixRule
 
 import java.io.File
 import java.nio.file._
-import java.util.regex.Pattern
-
-import scala.util.control.NonFatal
 
 import sbt.complete._
 import sbt.complete.DefaultParsers._
 
 class ScalafixCompletions(
-    workingDirectory: Path,
-    loadedRules: List[ScalafixRule],
+    workingDirectory: () => Path,
+    loadedRules: () => Seq[ScalafixRule],
     terminalWidth: Option[Int]
 ) {
 
   private type P = Parser[String]
-  private val space: P = token(Space).map(_.toString)
+
+  private val equal: P = token("=").map(_.toString)
   private val string: P = StringBasic
-  private def repsep(rep: P, sep: String): P =
-    DefaultParsers.repsep(rep, sep: P).map(_.mkString(sep))
   private def arg(key: String, value: P): P =
-    (key ~ space ~ value).map { case a ~ _ ~ c => a + " " + c }
+    (key ~ equal ~ value).map { case a ~ _ ~ c => a + "=" + c }
   private def arg(key: String, shortKey: String, value: P): P =
-    ((key | hide(shortKey)) ~ space ~ value).map {
-      case a ~ _ ~ c => a + " " + c
+    ((key | shortKey).examples(key) ~ equal ~ value).map {
+      case a ~ _ ~ c => a + "=" + c
     }
 
-  private def mapOrFail[S, T](p: Parser[S])(f: S => T): Parser[T] =
-    p.flatMap { s =>
-      try {
-        success(f(s))
-      } catch {
-        case NonFatal(e) => failure(e.toString)
-      }
-    }
+  private def uri(protocol: String): Parser[Rule] =
+    token(protocol + ":") ~> NotQuoted.map(x => Rule(s"$protocol:$x"))
 
-  private def uri(protocol: String) =
-    token(protocol + ":") ~> NotQuoted.map(x => s"$protocol:$x")
   private val filepathParser: P = {
-    def toAbsolutePath(path: Path, workingDirectory: Path): Path = {
+    def toAbsolutePath(path: Path, cwd: Path): Path = {
       if (path.isAbsolute) path
-      else workingDirectory.resolve(path)
+      else cwd.resolve(path)
     }.normalize()
 
     // Extend FileExamples to tab complete when the prefix is an absolute path or `..`
-    class AbsolutePathExamples(workingDirectory: Path, prefix: String = "")
-        extends FileExamples(workingDirectory.toFile, prefix) {
+    class AbsolutePathExamples(cwd: Path, prefix: String = "")
+        extends FileExamples(cwd.toFile, prefix) {
       override def withAddedPrefix(addedPrefix: String): FileExamples = {
 
         val nextPrefix =
           if (addedPrefix.startsWith(".")) addedPrefix
           else prefix + addedPrefix
-        val (b, p) = AbsolutePathCompleter.mkBase(nextPrefix, workingDirectory)
+        val (b, p) = AbsolutePathCompleter.mkBase(nextPrefix, cwd)
         new AbsolutePathExamples(b, p)
       }
     }
@@ -71,9 +59,9 @@ class ScalafixCompletions(
     }
 
     string
-      .examples(new AbsolutePathExamples(workingDirectory))
+      .examples(new AbsolutePathExamples(workingDirectory()))
       .map { f =>
-        toAbsolutePath(Paths.get(f), workingDirectory).toString
+        toAbsolutePath(Paths.get(f), workingDirectory()).toString
       }
       .filter(f => Files.exists(Paths.get(f)), x => x)
   }
@@ -83,18 +71,12 @@ class ScalafixCompletions(
       string,
       TokenCompletions.fixed(
         (seen, _) => {
-          val candidates = loadedRules.filter(_.name.startsWith(seen))
-          val maxRuleNameLen =
-            candidates.map(_.name.length).reduceOption(_ max _).getOrElse(0)
+          val candidates = loadedRules().filter(_.name.startsWith(seen))
           val rules = candidates
             .map { candidate =>
-              val spaces = " " * (maxRuleNameLen - candidate.name.length)
-
-              val output =
-                s"${candidate.name}$spaces -- ${candidate.description}"
-
+              val output = s"${candidate.name}\n  ${candidate.description}"
               new Token(
-                display = terminalWidth.map(output.take).getOrElse(output),
+                display = terminalWidth.map(output.take).getOrElse(output).trim,
                 append = candidate.name.stripPrefix(seen)
               )
             }
@@ -104,8 +86,10 @@ class ScalafixCompletions(
       )
     ).filter(!_.startsWith("-"), x => x)
   }
-  private val gitDiffParser: P = {
-    val jgitCompletion = new JGitCompletion(workingDirectory)
+  private val namedRule2: Parser[Rule] =
+    namedRule.map(s => Rule(s))
+  private lazy val gitDiffParser: P = {
+    val jgitCompletion = new JGitCompletion(workingDirectory())
     token(
       NotQuoted,
       TokenCompletions.fixed(
@@ -142,41 +126,40 @@ class ScalafixCompletions(
 
   def hide(p: P): P = p.examples()
 
-  def parser: Parser[Seq[String]] = {
+  def parser: Parser[ShellArgs] = {
     val pathParser: P = token(filepathParser)
-    val fileRule: P = (token("file:") ~ pathParser.map("file:" + _)).map {
-      case a ~ b => a + b
-    }
-    val ruleParser =
-      namedRule |
-        fileRule |
-        uri("github") |
-        uri("replace") |
-        uri("http") |
-        uri("https") |
-        uri("scala")
+    val fileRule: Parser[Rule] =
+      (token("file:", "file:<path>\n  run rule from a source file on disk")
+        .examples("file:") ~ pathParser.map("file:" + _)).map {
+        case a ~ b => Rule(a + b)
+      }
 
-    val autoSuppressLinterErrors: P = "--auto-suppress-linter-errors"
     val diff: P = "--diff"
     val diffBase: P = arg("--diff-base", gitDiffParser)
     val extra: P = hide(string)
     val files: P = arg("--files", "-f", pathParser)
     val help: P = "--help"
-    val ruleDirect: P = namedRule.map(rule => s"--rules $rule")
-    val rules: P = arg("--rules", "-r", ruleParser)
-    val test: P = "--test"
     val verbose: P = "--verbose"
+    val autoSuppressLinterErrors: P = "--auto-suppress-linter-errors"
     val base =
-      autoSuppressLinterErrors |
+      help |
+        verbose |
+        files |
         diff |
         diffBase |
-        files |
-        help |
-        ruleDirect |
-        rules |
-        test |
-        verbose |
+        autoSuppressLinterErrors |
         extra
-    (token(Space) ~> base).*.map(_.flatMap(_.split(" ").toSeq))
+    val shellBase = base.map(Extra)
+    val rules: Parser[Rule] =
+      fileRule |
+        uri("class") |
+        uri("replace") |
+        uri("github") |
+        namedRule2
+    val shellArg: Parser[ShellArg] =
+      rules | shellBase
+    (token(Space) ~> shellArg).*.map { args =>
+      ShellArgs(args)
+    }
   }
 }

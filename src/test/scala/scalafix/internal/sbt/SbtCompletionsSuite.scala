@@ -1,20 +1,11 @@
 package scalafix.internal.sbt
 
-import sbt.internal.sbtscalafix.JLineAccess
-
-import org.scalatest.FunSuite
-import sbt.complete.Parser
-import sbt.complete.Completion
-import sbt.internal.sbtscalafix.JLineAccess
-
 import org.eclipse.jgit.lib.AbbreviatedObjectId
+import org.scalatest.FunSuite
 import org.scalatest.Tag
-
+import sbt.complete.Parser
 import sbt.internal.sbtscalafix.Compat.ConsoleLogger
-
 import scala.collection.JavaConverters._
-
-import java.nio.file.Paths
 
 class SbtCompletionsSuite extends FunSuite {
   val fs = new Fs()
@@ -35,16 +26,15 @@ class SbtCompletionsSuite extends FunSuite {
 
   val exampleDependency =
     sbt.ModuleID("com.geirsson", "example-scalafix-rule_2.12", "1.2.0")
-  val (_, mainArgs) = scalafix.sbt.ScalafixPlugin
-    .classloadScalafixAPI(ConsoleLogger(), Seq(exampleDependency))
+  val mainArgs =
+    ScalafixInterface.fromToolClasspath(Seq(exampleDependency))().args
   val loadedRules = mainArgs.availableRules.asScala.toList
 
   val parser = new ScalafixCompletions(
-    workingDirectory = fs.workingDirectory.toAbsolutePath,
-    loadedRules = loadedRules,
+    workingDirectory = () => fs.workingDirectory.toAbsolutePath,
+    loadedRules = () => loadedRules,
     terminalWidth = None
   ).parser
-  val space = " "
 
   def checkCompletion(name: String, testTags: Tag*)(
       assertCompletions: (List[String], List[String]) => Unit
@@ -70,7 +60,9 @@ class SbtCompletionsSuite extends FunSuite {
     test(name) {
       val input = name
       val args = Parser.parse(" " + input, parser).right.get
-      assertArgs(args)
+      val asStrings =
+        args.rules.flatMap(r => "-r" :: r :: Nil) ++ args.extra
+      assertArgs(asStrings)
     }
   }
 
@@ -78,33 +70,48 @@ class SbtCompletionsSuite extends FunSuite {
     AbbreviatedObjectId.isId(in)
 
   checkCompletion("all", SkipWindows) { (_, displays) =>
-    val obtained = displays
-    val expected = List(
-      "",
-      " ",
-      "--auto-suppress-linter-errors",
-      "--diff",
-      "--diff-base",
-      "--files",
-      "--help",
-      "--rules",
-      "--test",
-      "--verbose",
-      "DisableSyntax           -- Linter that reports an error on a configurable set of keywords and syntax.",
-      "ExplicitResultTypes     -- Rewrite that inserts explicit type annotations for def/val/var",
-      "LeakingImplicitClassVal -- Add private access modifier to val parameters of implicit value classes in order to prevent public access",
-      "NoAutoTupling           -- Rewrite that inserts explicit tuples for adapted argument lists for compatibility with -Yno-adapted-args",
-      "NoValInForComprehension -- Rewrite that removes redundant val inside for-comprehensions",
-      "ProcedureSyntax         -- Rewrite that inserts explicit : Unit = for soon-to-be-deprecated procedure syntax def foo { ... }",
-      "RemoveUnusedImports     -- Rewrite that removes unused imports reported by the compiler under -Xwarn-unused-import.",
-      "RemoveUnusedTerms       -- Rewrite that removes unused locals or privates by -Ywarn-unused:locals,privates",
-      "SemanticRule            -- ",
-      "SyntacticRule           -- "
-    )
-    assert(obtained == expected)
+    val obtained = displays.mkString("\n").trim
+    val expected =
+      """|
+         |--auto-suppress-linter-errors
+         |--diff
+         |--diff-base
+         |--files
+         |--help
+         |--verbose
+         |DisableSyntax
+         |  Reports an error for disabled constructs such as var/null keywords or XML literals.
+         |ExplicitResultTypes
+         |  Inserts explicit annotations for inferred types of def/val/var
+         |LeakingImplicitClassVal
+         |  Adds 'private' to val parameters of implicit value classes
+         |NoAutoTupling
+         |  Inserts explicit tuples for adapted argument lists for compatibility with -Yno-adapted-args
+         |NoValInForComprehension
+         |  Removes deprecated val inside for-comprehension binders
+         |ProcedureSyntax
+         |  Replaces deprecated procedure syntax with explicit ': Unit ='
+         |RemoveUnused
+         |  Removes unused imports and terms that reported by the compiler under -Ywarn-unused
+         |SemanticRule
+         |SyntacticRule
+         |class:
+         |file:
+         |github:
+         |replace:
+      """.stripMargin.trim.replaceAll("\r\n", "\n")
+    if (obtained != expected) {
+      println("\"\"\"|")
+      obtained.lines.foreach { line =>
+        print("   |")
+        println(line)
+      }
+      println("   |\"\"\"")
+      fail("obtained != expected")
+    }
   }
 
-  checkCompletion("--diff-base" + space, SkipWindows) { (appends, displays) =>
+  checkCompletion("--diff-base=", SkipWindows) { (appends, displays) =>
     // branches
     assert(displays.contains("master"))
 
@@ -118,21 +125,6 @@ class SbtCompletionsSuite extends FunSuite {
         assert(display.endsWith("ago)"))
     }
   }
-  checkCompletion("--rules" + space, SkipWindows) { (_, displays) =>
-    // built-in
-    assert(displays.exists(_.startsWith("ProcedureSyntax")))
-
-    // from classpath
-    assert(displays.exists(_.startsWith("SemanticRule")))
-
-    // protocols
-    assert(displays.contains("file:"))
-    assert(displays.contains("github:"))
-    assert(displays.contains("http:"))
-    assert(displays.contains("https:"))
-    assert(displays.contains("replace:"))
-    assert(displays.contains("scala:"))
-  }
 
   checkCompletion("--rules file:bar/../", SkipWindows) { (appends, displays) =>
     // resolve parent directories
@@ -142,7 +134,7 @@ class SbtCompletionsSuite extends FunSuite {
 
   // shortcut for --rules
   checkArgs("ProcedureSyntax") { args =>
-    assert(args == Seq("--rules", "ProcedureSyntax"))
+    assert(args == Seq("-r", "ProcedureSyntax"))
   }
 
   // consume extra

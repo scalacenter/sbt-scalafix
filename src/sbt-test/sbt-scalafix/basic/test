@@ -1,4 +1,4 @@
--> scalafix --test
-> scalafix
-> scalafix --test
+-> example/scalafix --test
+> example/scalafix
+> example/scalafix --test
 > tests/test

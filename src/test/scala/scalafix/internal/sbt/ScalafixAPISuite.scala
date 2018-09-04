@@ -5,11 +5,11 @@ import java.io.PrintStream
 import java.nio.file.Files
 import org.scalactic.source.Position
 import org.scalatest.FunSuite
-import scalafix.sbt.ScalafixPlugin
-import scala.collection.JavaConverters._
 import sbt._
 import sbt.internal.sbtscalafix.Compat
+import scala.collection.JavaConverters._
 import scalafix.interfaces.ScalafixError
+import scalafix.interfaces.ScalafixMainMode
 
 class ScalafixAPISuite extends FunSuite {
 
@@ -21,15 +21,16 @@ class ScalafixAPISuite extends FunSuite {
     val expectedStrip = strip(expected)
     assert(obtainedStrip == expectedStrip)
   }
+
   test("ScalafixPlugin.cli") {
     val baos = new ByteArrayOutputStream()
     val logger = Compat.ConsoleLogger(new PrintStream(baos))
-    val (api, args) = ScalafixPlugin.classloadScalafixAPI(
-      logger,
+    val ScalafixInterface(_, args) = ScalafixInterface.fromToolClasspath(
       List(
         "com.geirsson" % "example-scalafix-rule_2.12" % "1.2.0"
-      )
-    )
+      ),
+      logger
+    )()
     val tmp = Files.createTempFile("scalafix", "Tmp.scala")
     tmp.toFile.deleteOnExit()
     Files.write(
@@ -37,23 +38,32 @@ class ScalafixAPISuite extends FunSuite {
       """
         |object A {
         |  val x = 1;
+        |  def foo { println(42) }
         |}
         |""".stripMargin.getBytes()
     )
-    val obtainedError = api
-      .runMain(
-        args
-          .withPaths(List(tmp).asJava)
-          .withArgs(
-            List("--settings.DisableSyntax.noSemicolons", "true").asJava
-          )
-          .withRules(List("SyntacticRule", "DisableSyntax").asJava) // from example-scalafix-rule
+    val availableRules = args.availableRules().asScala.toList.map(_.name())
+    assert(availableRules.contains("SyntacticRule"))
+    val mainArgs = args
+      .withPrintStream(new PrintStream(baos))
+      .withPaths(List(tmp).asJava)
+      .withRules(
+        List(
+          "ProcedureSyntax",
+          "DisableSyntax"
+        ).asJava
       )
-      .toList
-    assert(obtainedError == List(ScalafixError.LinterError))
-    val obtained = new String(Files.readAllBytes(tmp))
-    assert(obtained.endsWith("// v1 SyntacticRule!\n"))
+      .withArgs(
+        List(
+          "--settings.DisableSyntax.noSemicolons",
+          "true"
+        ).asJava
+      )
+    val obtainedError = mainArgs.run().toList
     val out = fansi.Str(baos.toString()).plainText
+    assert(obtainedError == List(ScalafixError.LinterError), out)
+    val obtained = new String(Files.readAllBytes(tmp))
+    assert(obtained.contains(": Unit = {"), out)
     val obtainedOut = out.replaceFirst(".*Tmp.scala", "[error] Tmp.scala")
     assertNoDiff(
       obtainedOut,
