@@ -9,10 +9,11 @@ import sbt.plugins.JvmPlugin
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 import scalafix.interfaces._
-import scalafix.interfaces.{Scalafix => ScalafixAPI}
 import scalafix.internal.sbt.ScalafixCompletions
 import scalafix.internal.sbt.ScalafixInterface
 import scalafix.internal.sbt.ShellArgs
+import java.{util => jutil}
+import scala.collection.mutable.ListBuffer
 
 object ScalafixPlugin extends AutoPlugin {
   override def trigger: PluginTrigger = allRequirements
@@ -91,8 +92,8 @@ object ScalafixPlugin extends AutoPlugin {
   private var workingDirectory = file("").getAbsoluteFile.toPath
   private var scalafixInterface: () => ScalafixInterface =
     () => throw new UninitializedError
-  private def scalafixAPI(): ScalafixAPI = scalafixInterface().api
-  private def scalafixArgs(): ScalafixMainArgs = scalafixInterface().args
+
+  private def scalafixArgs(): ScalafixArguments = scalafixInterface().args
 
   private def scalafixInputTask(
       config: Configuration
@@ -121,12 +122,12 @@ object ScalafixPlugin extends AutoPlugin {
     }
   private def scalafixHelp: Def.Initialize[Task[Unit]] =
     Def.task {
-      scalafixArgs().withArgs(List("--help").asJava).run()
+      scalafixArgs().withParsedArguments(List("--help").asJava).run()
       ()
     }
 
   private def scalafixSyntactic(
-      mainArgs: ScalafixMainArgs,
+      mainArgs: ScalafixArguments,
       shellArgs: ShellArgs,
       config: Configuration
   ): Def.Initialize[Task[Unit]] = Def.task {
@@ -141,20 +142,36 @@ object ScalafixPlugin extends AutoPlugin {
 
   private def scalafixSemantic(
       ruleNames: Seq[String],
-      mainArgs: ScalafixMainArgs,
+      mainArgs: ScalafixArguments,
       shellArgs: ShellArgs,
       config: Configuration
   ): Def.Initialize[Task[Unit]] = Def.taskDyn {
+    val errors = ListBuffer.empty[String]
     val isSemanticdb =
       libraryDependencies.value.exists(_.name.startsWith("semanticdb-scalac"))
+    if (!isSemanticdb) {
+      val names = ruleNames.mkString(", ")
+      errors +=
+        s"""|The semanticdb-scalac compiler plugin is required to run semantic rules like $names.
+            |To fix this problem for this sbt shell session, run `scalafixEnable` and try again.
+            |To fix this problem permanently for your build, add the following settings to build.sbt:
+            |  addCompilerPlugin(scalafixSemanticdb)
+            |  scalacOptions += "-Yrangepos"
+            |""".stripMargin
+    }
+    val withScalaArgs = mainArgs
+      .withScalaVersion(scalaVersion.value)
+      .withScalacOptions(scalacOptions.value.asJava)
+    val validateError = withScalaArgs.validate()
+    if (validateError.isPresent()) {
+      errors += validateError.get().getMessage
+    }
     val files = filesToFix(shellArgs, config).value
-    // FIXME: Validate scalacOptions here https://github.com/scalacenter/scalafix/issues/857
-    if (isSemanticdb && files.nonEmpty) {
+    if (errors.isEmpty) {
       Def.task {
-        val args = mainArgs
-          .withScalaVersion(scalaVersion.value)
-          .withScalacOptions(scalacOptions.value.asJava)
-          .withClasspath(fullClasspath.value.map(_.data.toPath).asJava)
+        val args = withScalaArgs.withClasspath(
+          fullClasspath.value.map(_.data.toPath).asJava
+        )
         runArgs(
           shellArgs,
           files,
@@ -165,8 +182,14 @@ object ScalafixPlugin extends AutoPlugin {
       }
     } else {
       Def.task {
-        val names = ruleNames.mkString(", ")
-        throw new MissingSemanticdb(names)
+        if (errors.length == 1) {
+          throw new InvalidArgument(errors.head)
+        } else {
+          val message = errors.zipWithIndex
+            .map { case (msg, i) => s"[E${i + 1}] $msg" }
+            .mkString(s"${errors.length} errors\n", "\n", "")
+          throw new InvalidArgument(message)
+        }
       }
     }
   }
@@ -174,21 +197,13 @@ object ScalafixPlugin extends AutoPlugin {
   private def runArgs(
       shellArgs: ShellArgs,
       paths: Seq[Path],
-      mainArgs: ScalafixMainArgs,
+      mainArgs: ScalafixArguments,
       logger: Logger,
       config: Option[File]
   ): Unit = {
-    var finalArgs = mainArgs
-
-    if (paths.nonEmpty) {
-      finalArgs = finalArgs.withPaths(paths.asJava)
-    }
-
-    config match {
-      case Some(file) =>
-        finalArgs = finalArgs.withConfig(file.toPath)
-      case None =>
-    }
+    val finalArgs = mainArgs
+      .withConfig(jutil.Optional.ofNullable(config.map(_.toPath).orNull))
+      .withPaths(paths.asJava)
 
     if (paths.nonEmpty || shellArgs.explicitlyListsFiles) {
 
@@ -233,7 +248,7 @@ object ScalafixPlugin extends AutoPlugin {
       }
     }
 
-  implicit class XtensionArgs(mainArgs: ScalafixMainArgs) {
+  implicit class XtensionArgs(mainArgs: ScalafixArguments) {
     def safeRulesThatWillRun(): Seq[ScalafixRule] = {
       try mainArgs.rulesThatWillRun().asScala
       catch {
@@ -241,8 +256,8 @@ object ScalafixPlugin extends AutoPlugin {
           throw new InvalidArgument(e.getMessage)
       }
     }
-    def safeWithArgs(args: Seq[String]): ScalafixMainArgs = {
-      try mainArgs.withArgs(args.asJava)
+    def safeWithArgs(args: Seq[String]): ScalafixArguments = {
+      try mainArgs.withParsedArguments(args.asJava)
       catch {
         case NonFatal(e) =>
           throw new InvalidArgument(e.getMessage)

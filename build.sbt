@@ -2,7 +2,7 @@ inThisBuild(
   List(
     scalafixDependencies := List(
       // Custom rule published to Maven Central https://github.com/olafurpg/example-scalafix-rule
-      "com.geirsson" % "example-scalafix-rule_2.12" % "1.2.0"
+      "com.geirsson" % "example-scalafix-rule_2.12" % "1.3.0"
     )
   )
 )
@@ -46,7 +46,10 @@ sbtVersion in pluginCrossBuild := {
     case "2.12" => "1.2.1"
   }
 }
+addCompilerPlugin(scalafixSemanticdb)
 scalacOptions ++= List(
+  "-Yrangepos",
+  "-Ywarn-unused",
   "-target:jvm-1.8"
 )
 

@@ -8,7 +8,6 @@ import java.nio.file.Path
 import java.util.function
 import java.{util => jutil}
 import sbt._
-import scala.collection.JavaConverters._
 import scalafix.sbt.BuildInfo
 
 object ScalafixCoursier {

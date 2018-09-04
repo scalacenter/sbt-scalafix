@@ -3,11 +3,10 @@ package scalafix.internal.sbt
 import java.net.URLClassLoader
 import sbt._
 import sbt.internal.sbtscalafix.Compat
-import scala.collection.JavaConverters._
-import scalafix.interfaces.ScalafixMainArgs
+import scalafix.interfaces.ScalafixArguments
 import scalafix.interfaces.{Scalafix => ScalafixAPI}
 
-case class ScalafixInterface(api: ScalafixAPI, args: ScalafixMainArgs)
+case class ScalafixInterface(api: ScalafixAPI, args: ScalafixArguments)
 object ScalafixInterface {
   private class LazyValue[T](thunk: () => T) extends (() => T) {
     private lazy val _value = scala.util.Try(thunk())
@@ -31,7 +30,7 @@ object ScalafixInterface {
       val callback = new ScalafixLogger(logger)
 
       val args = api
-        .newMainArgs()
+        .newArguments()
         .withToolClasspath(toolClasspath)
         .withMainCallback(callback)
 
