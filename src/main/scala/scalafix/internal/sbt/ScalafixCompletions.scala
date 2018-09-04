@@ -28,7 +28,7 @@ class ScalafixCompletions(
   private def uri(protocol: String): Parser[Rule] =
     token(protocol + ":") ~> NotQuoted.map(x => Rule(s"$protocol:$x"))
 
-  private val filepathParser: P = {
+  private val filepathParser: Parser[Path] = {
     def toAbsolutePath(path: Path, cwd: Path): Path = {
       if (path.isAbsolute) path
       else cwd.resolve(path)
@@ -61,9 +61,9 @@ class ScalafixCompletions(
     string
       .examples(new AbsolutePathExamples(workingDirectory()))
       .map { f =>
-        toAbsolutePath(Paths.get(f), workingDirectory()).toString
+        toAbsolutePath(Paths.get(f), workingDirectory())
       }
-      .filter(f => Files.exists(Paths.get(f)), x => x)
+      .filter(f => Files.exists(f), x => x)
   }
 
   private val namedRule: P = {
@@ -127,17 +127,16 @@ class ScalafixCompletions(
   def hide(p: P): P = p.examples()
 
   def parser: Parser[ShellArgs] = {
-    val pathParser: P = token(filepathParser)
+    val pathParser: Parser[Path] = token(filepathParser)
     val fileRule: Parser[Rule] =
-      (token("file:", "file:<path>\n  run rule from a source file on disk")
-        .examples("file:") ~ pathParser.map("file:" + _)).map {
-        case a ~ b => Rule(a + b)
+      (token("file:") ~ pathParser).map {
+        case _ ~ path => Rule(path.toUri.toString)
       }
 
     val diff: P = "--diff"
     val diffBase: P = arg("--diff-base", gitDiffParser)
     val extra: P = hide(string)
-    val files: P = arg("--files", "-f", pathParser)
+    val files: P = arg("--files", "-f", pathParser.map(_.toString))
     val help: P = "--help"
     val verbose: P = "--verbose"
     val autoSuppressLinterErrors: P = "--auto-suppress-linter-errors"
