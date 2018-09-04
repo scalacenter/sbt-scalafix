@@ -9,7 +9,6 @@ import sbt._
 import sbt.internal.sbtscalafix.Compat
 import scala.collection.JavaConverters._
 import scalafix.interfaces.ScalafixError
-import scalafix.interfaces.ScalafixMainMode
 
 class ScalafixAPISuite extends FunSuite {
 
@@ -27,7 +26,7 @@ class ScalafixAPISuite extends FunSuite {
     val logger = Compat.ConsoleLogger(new PrintStream(baos))
     val ScalafixInterface(_, args) = ScalafixInterface.fromToolClasspath(
       List(
-        "com.geirsson" % "example-scalafix-rule_2.12" % "1.2.0"
+        "com.geirsson" % "example-scalafix-rule_2.12" % "1.3.0"
       ),
       logger
     )()
@@ -49,11 +48,12 @@ class ScalafixAPISuite extends FunSuite {
       .withPaths(List(tmp).asJava)
       .withRules(
         List(
+          "SyntacticRule", // from example-scalafix-rule
           "ProcedureSyntax",
           "DisableSyntax"
         ).asJava
       )
-      .withArgs(
+      .withParsedArguments(
         List(
           "--settings.DisableSyntax.noSemicolons",
           "true"
@@ -64,6 +64,7 @@ class ScalafixAPISuite extends FunSuite {
     assert(obtainedError == List(ScalafixError.LinterError), out)
     val obtained = new String(Files.readAllBytes(tmp))
     assert(obtained.contains(": Unit = {"), out)
+    assert(obtained.endsWith("// v1 SyntacticRule!\n"), out)
     val obtainedOut = out.replaceFirst(".*Tmp.scala", "[error] Tmp.scala")
     assertNoDiff(
       obtainedOut,

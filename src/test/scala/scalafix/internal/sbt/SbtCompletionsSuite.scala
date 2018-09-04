@@ -4,7 +4,6 @@ import org.eclipse.jgit.lib.AbbreviatedObjectId
 import org.scalatest.FunSuite
 import org.scalatest.Tag
 import sbt.complete.Parser
-import sbt.internal.sbtscalafix.Compat.ConsoleLogger
 import scala.collection.JavaConverters._
 
 class SbtCompletionsSuite extends FunSuite {
@@ -25,7 +24,7 @@ class SbtCompletionsSuite extends FunSuite {
   git.tag("v0.1.0")
 
   val exampleDependency =
-    sbt.ModuleID("com.geirsson", "example-scalafix-rule_2.12", "1.2.0")
+    sbt.ModuleID("com.geirsson", "example-scalafix-rule_2.12", "1.3.0")
   val mainArgs =
     ScalafixInterface.fromToolClasspath(Seq(exampleDependency))().args
   val loadedRules = mainArgs.availableRules.asScala.toList

@@ -5,7 +5,6 @@ import sbt.Keys._
 
 /** Command to automatically enable semanticdb-scalac for shell session */
 object ScalafixEnable {
-  import ScalafixPlugin.autoImport._
 
   /** sbt 1.0 and 0.13 compatible implementation of partialVersion */
   private def partialVersion(version: String): Option[(Long, Long)] =

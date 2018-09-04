@@ -8,7 +8,7 @@ import java.nio.file.Path
 import java.util.function
 import java.{util => jutil}
 import sbt._
-import scala.collection.JavaConverters._
+import scala.concurrent.duration.Duration
 import scalafix.sbt.BuildInfo
 
 object ScalafixCoursier {
@@ -71,5 +71,10 @@ object ScalafixCoursier {
       )
     )
     .withWriter(silentCoursierWriter)
+    // Scalafix SNAPSHOT releases always use a new version number so it's  safe to use infinity here.
+    .withTtl(Some(Duration.Inf))
+    // For custom external rules to use the same Scalafix version as this plugin instead of
+    // the (presumably) older Scalafix version that the custom rules depend on.
+    .withForceVersions(List(scalafixCli))
 
 }

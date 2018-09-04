@@ -2,7 +2,7 @@ inThisBuild(
   List(
     scalafixDependencies := List(
       // Custom rule published to Maven Central https://github.com/olafurpg/example-scalafix-rule
-      "com.geirsson" % "example-scalafix-rule_2.12" % "1.2.0"
+      "com.geirsson" % "example-scalafix-rule_2.12" % "1.3.0"
     )
   )
 )
@@ -44,6 +44,22 @@ sbtVersion in pluginCrossBuild := {
   scalaBinaryVersion.value match {
     case "2.10" => "0.13.17"
     case "2.12" => "1.2.1"
+  }
+}
+libraryDependencies ++= {
+  scalaBinaryVersion.value match {
+    case "2.12" =>
+      List(compilerPlugin(scalafixSemanticdb))
+    case _ =>
+      List()
+  }
+}
+scalacOptions ++= {
+  scalaBinaryVersion.value match {
+    case "2.12" =>
+      List("-Ywarn-unused", "-Yrangepos")
+    case _ =>
+      List()
   }
 }
 scalacOptions ++= List(
