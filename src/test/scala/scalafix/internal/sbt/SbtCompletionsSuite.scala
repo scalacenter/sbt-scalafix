@@ -60,7 +60,9 @@ class SbtCompletionsSuite extends FunSuite {
     test(name) {
       val input = name
       val args = Parser.parse(" " + input, parser).right.get
-      assertArgs(args.asStrings)
+      val asStrings =
+        args.rules.flatMap(r => "-r" :: r :: Nil) ++ args.extra
+      assertArgs(asStrings)
     }
   }
 

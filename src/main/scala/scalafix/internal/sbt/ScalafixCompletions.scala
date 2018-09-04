@@ -26,8 +26,7 @@ class ScalafixCompletions(
     }
 
   private def uri(protocol: String): Parser[Rule] =
-    token(protocol + ":") ~>
-      NotQuoted.map(x => Rule(s"$protocol:$x", isMaybeSemantic = true))
+    token(protocol + ":") ~> NotQuoted.map(x => Rule(s"$protocol:$x"))
 
   private val filepathParser: P = {
     def toAbsolutePath(path: Path, cwd: Path): Path = {
@@ -88,7 +87,7 @@ class ScalafixCompletions(
     ).filter(!_.startsWith("-"), x => x)
   }
   private val namedRule2: Parser[Rule] =
-    namedRule.map(s => Rule(s, isSemantic(s)))
+    namedRule.map(s => Rule(s))
   private lazy val gitDiffParser: P = {
     val jgitCompletion = new JGitCompletion(workingDirectory())
     token(
@@ -127,15 +126,12 @@ class ScalafixCompletions(
 
   def hide(p: P): P = p.examples()
 
-  def isSemantic(rule: String): Boolean =
-    Set("ExplicitResultTypes", "RemoveUnusedImports").contains(rule)
-
   def parser: Parser[ShellArgs] = {
     val pathParser: P = token(filepathParser)
     val fileRule: Parser[Rule] =
       (token("file:", "file:<path>\n  run rule from a source file on disk")
         .examples("file:") ~ pathParser.map("file:" + _)).map {
-        case a ~ b => Rule(a + b, isMaybeSemantic = true)
+        case a ~ b => Rule(a + b)
       }
 
     val diff: P = "--diff"

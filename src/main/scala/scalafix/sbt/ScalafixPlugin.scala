@@ -103,10 +103,11 @@ object ScalafixPlugin extends AutoPlugin {
         loadedRules = () => scalafixArgs().availableRules().asScala,
         terminalWidth = Some(JLineAccess.terminalWidth)
       ).parser.parsed
-      if (args.rules.isEmpty && args.extra == List("--help")) scalafixHelp
-      else {
+      if (args.rules.isEmpty && args.extra == List("--help")) {
+        scalafixHelp
+      } else {
         val mainArgs = scalafixArgs()
-          .withRules(args.rules.map(_.name).asJava)
+          .withRules(args.rules.asJava)
           .safeWithArgs(args.extra)
         val rulesThatWillRun = mainArgs.safeRulesThatWillRun()
         val isSemantic = rulesThatWillRun.exists(_.kind().isSemantic)

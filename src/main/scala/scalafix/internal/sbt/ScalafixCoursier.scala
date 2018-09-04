@@ -65,9 +65,9 @@ object ScalafixCoursier {
     .withRepositories(
       List(
         Repository.MavenCentral,
+        Repository.Ivy2Local,
         Repository.SonatypeReleases,
-        Repository.SonatypeSnapshots,
-        Repository.Ivy2Local
+        Repository.SonatypeSnapshots
       )
     )
     .withWriter(silentCoursierWriter)

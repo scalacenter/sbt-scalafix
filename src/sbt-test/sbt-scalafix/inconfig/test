@@ -1,4 +1,4 @@
--> ; example/scalafix --test ; example/it:scalafixTest
+-> ; example/scalafix --test ; example/it:scalafix --test
 > example/it:scalafix
 > example/it:scalafix --test
 -> example/scalafix --test

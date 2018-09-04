@@ -1,10 +1,10 @@
 package scalafix.internal.sbt
 
-import sbt.util.Logger
 import scalafix.interfaces.ScalafixDiagnostic
 import scalafix.interfaces.ScalafixLintID
 import scalafix.interfaces.ScalafixMainCallback
 import scalafix.interfaces.ScalafixSeverity
+import sbt.Logger
 
 class ScalafixLogger(logger: Logger) extends ScalafixMainCallback {
   def fullStringID(lintID: ScalafixLintID): String =
