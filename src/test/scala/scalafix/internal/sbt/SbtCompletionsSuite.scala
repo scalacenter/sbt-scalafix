@@ -23,8 +23,10 @@ class SbtCompletionsSuite extends FunSuite {
   }
   git.tag("v0.1.0")
 
-  val exampleDependency =
-    sbt.ModuleID("com.geirsson", "example-scalafix-rule_2.12", "1.3.0")
+  val exampleDependency = {
+    import sbt._
+    "com.geirsson" %% "example-scalafix-rule" % "1.3.0"
+  }
   val mainArgs =
     ScalafixInterface.fromToolClasspath(Seq(exampleDependency))().args
   val loadedRules = mainArgs.availableRules.asScala.toList

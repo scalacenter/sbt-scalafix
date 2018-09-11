@@ -25,9 +25,7 @@ class ScalafixAPISuite extends FunSuite {
     val baos = new ByteArrayOutputStream()
     val logger = Compat.ConsoleLogger(new PrintStream(baos))
     val ScalafixInterface(_, args) = ScalafixInterface.fromToolClasspath(
-      List(
-        "com.geirsson" % "example-scalafix-rule_2.12" % "1.3.0"
-      ),
+      List("com.geirsson" %% "example-scalafix-rule" % "1.3.0"),
       logger
     )()
     val tmp = Files.createTempFile("scalafix", "Tmp.scala")

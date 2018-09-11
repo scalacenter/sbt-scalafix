@@ -2,7 +2,7 @@ inThisBuild(
   List(
     scalafixDependencies := List(
       // Custom rule published to Maven Central https://github.com/olafurpg/example-scalafix-rule
-      "com.geirsson" % "example-scalafix-rule_2.12" % "1.3.0"
+      "com.geirsson" %% "example-scalafix-rule" % "1.3.0"
     )
   )
 )
