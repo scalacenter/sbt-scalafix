@@ -44,7 +44,7 @@ object ScalafixCoursier {
       override def apply(t: Seq[ModuleID]): List[Path] = {
         val dependencies = t.map { module =>
           val binarySuffix =
-            if (module.crossVersion == CrossVersion.binary) "_2.12"
+            if (module.crossVersion.isInstanceOf[CrossVersion.Binary]) "_2.12"
             else ""
           new Dependency(
             module.organization,
