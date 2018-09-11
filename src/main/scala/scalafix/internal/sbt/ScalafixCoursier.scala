@@ -43,7 +43,14 @@ object ScalafixCoursier {
     new function.Function[Seq[ModuleID], List[Path]] {
       override def apply(t: Seq[ModuleID]): List[Path] = {
         val dependencies = t.map { module =>
-          new Dependency(module.organization, module.name, module.revision)
+          val binarySuffix =
+            if (module.crossVersion == CrossVersion.binary) "_2.12"
+            else ""
+          new Dependency(
+            module.organization,
+            module.name + binarySuffix,
+            module.revision
+          )
         }
         CoursierSmall.fetch(
           fetchSettings.withDependencies(scalafixCli :: dependencies.toList)

@@ -1,6 +1,7 @@
 import sbt._
 
 object Dependencies {
+  val x = List(1) // scalafix:ok
   def scalafixVersion: String = sys.env.get("TRAVIS_TAG") match {
     case Some(v) if v.nonEmpty => v.stripPrefix("v")
     case _ => "0.6.0-M19"
