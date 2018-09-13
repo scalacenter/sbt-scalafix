@@ -71,7 +71,9 @@ class ScalafixCompletions(
       string,
       TokenCompletions.fixed(
         (seen, _) => {
-          val candidates = loadedRules().filter(_.name.startsWith(seen))
+          val candidates = loadedRules().iterator
+            .filterNot(_.isExperimental)
+            .filter(_.name.startsWith(seen))
           val rules = candidates
             .map { candidate =>
               val output = s"${candidate.name}\n  ${candidate.description}"
