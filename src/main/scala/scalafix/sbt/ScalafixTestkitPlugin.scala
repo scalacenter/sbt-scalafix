@@ -39,6 +39,8 @@ object ScalafixTestkitPlugin extends AutoPlugin {
             files.iterator.filter(_.exists()).mkString(pathSeparator)
           )
       }
+      props.put("scalaVersion", scalaVersion.value)
+      props.put("scalacOptions", scalacOptions.value.mkString("|"))
       val out =
         managedResourceDirectories.in(Test).value.head /
           "scalafix-testkit.properties"
