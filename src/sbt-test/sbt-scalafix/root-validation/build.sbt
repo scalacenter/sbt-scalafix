@@ -1,6 +1,6 @@
 inThisBuild(
   List(
-    scalaVersion := "2.12.6",
+    scalaVersion := "2.12.6"
   )
 )
 
@@ -17,4 +17,3 @@ lazy val lib = project
       "-Yrangepos"
     )
   )
-
