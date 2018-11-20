@@ -1,14 +1,15 @@
 package scalafix.internal.sbt
 
-import java.io.ByteArrayOutputStream
-import java.io.PrintStream
+import java.io.{ByteArrayOutputStream, PrintStream}
 import java.nio.file.Files
+
 import org.scalactic.source.Position
 import org.scalatest.FunSuite
 import sbt._
 import sbt.internal.sbtscalafix.Compat
-import scala.collection.JavaConverters._
 import scalafix.interfaces.ScalafixError
+
+import scala.collection.JavaConverters._
 
 class ScalafixAPISuite extends FunSuite {
 
@@ -26,6 +27,7 @@ class ScalafixAPISuite extends FunSuite {
     val logger = Compat.ConsoleLogger(new PrintStream(baos))
     val ScalafixInterface(_, args) = ScalafixInterface.fromToolClasspath(
       List("com.geirsson" %% "example-scalafix-rule" % "1.3.0"),
+      Seq.empty,
       logger
     )()
     val tmp = Files.createTempFile("scalafix", "Tmp.scala")
