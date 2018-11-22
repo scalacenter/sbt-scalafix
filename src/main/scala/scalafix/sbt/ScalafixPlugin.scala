@@ -28,7 +28,7 @@ object ScalafixPlugin extends AutoPlugin {
           "For example: scalafix RemoveUnusedImports. " +
           "To run on test sources use test:scalafix."
       )
-    val scalafixResolvers: SettingKey[Seq[Repository]] =
+    val scalafixCustomResolvers: SettingKey[Seq[Repository]] =
       settingKey[Seq[Repository]](
         "Optional list of Repositories used for fetching custom rules."
       )
@@ -86,11 +86,11 @@ object ScalafixPlugin extends AutoPlugin {
       workingDirectory = baseDirectory.in(ThisBuild).value.toPath
       scalafixInterface = ScalafixInterface.fromToolClasspath(
         scalafixDependencies = scalafixDependencies.in(ThisBuild).value,
-        scalafixResolvers = scalafixResolvers.in(ThisBuild).value
+        scalafixCustomResolvers = scalafixCustomResolvers.in(ThisBuild).value
       )
     },
     scalafixConfig := None, // let scalafix-cli try to infer $CWD/.scalafix.conf
-    scalafixResolvers := Nil,
+    scalafixCustomResolvers := Nil,
     scalafixDependencies := Nil,
     commands += ScalafixEnable.command
   )

@@ -25,7 +25,7 @@ object ScalafixCoursier {
   }
   def scalafixToolClasspath(
       deps: Seq[ModuleID],
-      resolvers: Seq[Repository],
+      customResolvers: Seq[Repository],
       parent: ClassLoader
   ): URLClassLoader = {
     if (deps.isEmpty) {
@@ -34,7 +34,7 @@ object ScalafixCoursier {
       val jars =
         dependencyCache.computeIfAbsent(
           deps,
-          fetchScalafixDependencies(resolvers)
+          fetchScalafixDependencies(customResolvers)
         )
       val urls = jars.map(_.toUri.toURL).toArray
       val classloader = new URLClassLoader(urls, parent)
@@ -46,7 +46,7 @@ object ScalafixCoursier {
     jutil.Collections.synchronizedMap(new jutil.HashMap())
   }
   private[scalafix] def fetchScalafixDependencies(
-      resolvers: Seq[Repository]
+      customResolvers: Seq[Repository]
   ): function.Function[Seq[ModuleID], List[Path]] =
     new function.Function[Seq[ModuleID], List[Path]] {
       override def apply(t: Seq[ModuleID]): List[Path] = {
@@ -62,7 +62,7 @@ object ScalafixCoursier {
         }
         CoursierSmall.fetch(
           fetchSettings
-            .withRepositories(resolvers ++: fetchSettings.repositories)
+            .withRepositories(customResolvers ++: fetchSettings.repositories)
             .withDependencies(scalafixCli :: dependencies.toList)
         )
       }

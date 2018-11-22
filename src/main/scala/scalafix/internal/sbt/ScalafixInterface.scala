@@ -15,7 +15,7 @@ object ScalafixInterface {
   }
   def fromToolClasspath(
       scalafixDependencies: Seq[ModuleID],
-      scalafixResolvers: Seq[Repository],
+      scalafixCustomResolvers: Seq[Repository],
       logger: Logger = Compat.ConsoleLogger(System.out)
   ): () => ScalafixInterface =
     new LazyValue({ () =>
@@ -27,7 +27,7 @@ object ScalafixInterface {
       val api = ScalafixAPI.classloadInstance(classloader)
       val toolClasspath = ScalafixCoursier.scalafixToolClasspath(
         scalafixDependencies,
-        scalafixResolvers,
+        scalafixCustomResolvers,
         classloader
       )
       val callback = new ScalafixLogger(logger)
