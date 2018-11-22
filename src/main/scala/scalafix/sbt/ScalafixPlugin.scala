@@ -30,7 +30,8 @@ object ScalafixPlugin extends AutoPlugin {
       )
     val scalafixResolvers: SettingKey[Seq[Repository]] =
       settingKey[Seq[Repository]](
-        "Optional list of Repositories used for fetching custom rules.")
+        "Optional list of Repositories used for fetching custom rules."
+      )
     val scalafixDependencies: SettingKey[Seq[ModuleID]] =
       settingKey[Seq[ModuleID]](
         "Optional list of custom rules to install from Maven Central. " +

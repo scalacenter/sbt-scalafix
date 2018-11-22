@@ -28,7 +28,9 @@ class SbtCompletionsSuite extends FunSuite {
     "com.geirsson" %% "example-scalafix-rule" % "1.3.0"
   }
   val mainArgs =
-    ScalafixInterface.fromToolClasspath(Seq(exampleDependency), Seq.empty)().args
+    ScalafixInterface
+      .fromToolClasspath(Seq(exampleDependency), Seq.empty)()
+      .args
   val loadedRules = mainArgs.availableRules.asScala.toList
 
   val parser = new ScalafixCompletions(

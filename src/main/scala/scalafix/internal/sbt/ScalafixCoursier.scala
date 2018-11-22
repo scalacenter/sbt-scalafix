@@ -34,7 +34,8 @@ object ScalafixCoursier {
       val jars =
         dependencyCache.computeIfAbsent(
           deps,
-          fetchScalafixDependencies(resolvers))
+          fetchScalafixDependencies(resolvers)
+        )
       val urls = jars.map(_.toUri.toURL).toArray
       val classloader = new URLClassLoader(urls, parent)
       classloader
@@ -44,24 +45,27 @@ object ScalafixCoursier {
   private val dependencyCache: jutil.Map[Seq[ModuleID], List[Path]] = {
     jutil.Collections.synchronizedMap(new jutil.HashMap())
   }
-  private[scalafix] def fetchScalafixDependencies(resolvers: Seq[Repository])
-    : function.Function[Seq[ModuleID], List[Path]] =
-    (t: Seq[ModuleID]) => {
-      val dependencies = t.map { module =>
-        val binarySuffix =
-          if (module.crossVersion.isInstanceOf[CrossVersion.Binary]) "_2.12"
-          else ""
-        new Dependency(
-          module.organization,
-          module.name + binarySuffix,
-          module.revision
+  private[scalafix] def fetchScalafixDependencies(
+      resolvers: Seq[Repository]
+  ): function.Function[Seq[ModuleID], List[Path]] =
+    new function.Function[Seq[ModuleID], List[Path]] {
+      override def apply(t: Seq[ModuleID]): List[Path] = {
+        val dependencies = t.map { module =>
+          val binarySuffix =
+            if (module.crossVersion.isInstanceOf[CrossVersion.Binary]) "_2.12"
+            else ""
+          new Dependency(
+            module.organization,
+            module.name + binarySuffix,
+            module.revision
+          )
+        }
+        CoursierSmall.fetch(
+          fetchSettings
+            .withRepositories(resolvers ++: fetchSettings.repositories)
+            .withDependencies(scalafixCli :: dependencies.toList)
         )
       }
-      CoursierSmall.fetch(
-        fetchSettings
-          .withRepositories(resolvers ++: fetchSettings.repositories)
-          .withDependencies(scalafixCli :: dependencies.toList)
-      )
     }
 
   private val silentCoursierWriter = new OutputStreamWriter(System.out) {
