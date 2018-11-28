@@ -1,15 +1,17 @@
 package scalafix.internal.sbt
 
-import com.geirsson.coursiersmall
-import com.geirsson.coursiersmall._
 import java.io.OutputStreamWriter
 import java.net.URLClassLoader
 import java.nio.file.Path
 import java.util.function
 import java.{util => jutil}
+
+import com.geirsson.coursiersmall
+import com.geirsson.coursiersmall._
 import sbt._
-import scala.concurrent.duration.Duration
 import scalafix.sbt.BuildInfo
+
+import scala.concurrent.duration.Duration
 
 object ScalafixCoursier {
   private def scalafixCli: Dependency = new Dependency(
@@ -23,13 +25,17 @@ object ScalafixCoursier {
   }
   def scalafixToolClasspath(
       deps: Seq[ModuleID],
+      customResolvers: Seq[Repository],
       parent: ClassLoader
   ): URLClassLoader = {
     if (deps.isEmpty) {
       new URLClassLoader(Array(), parent)
     } else {
       val jars =
-        dependencyCache.computeIfAbsent(deps, fetchScalafixDependencies)
+        dependencyCache.computeIfAbsent(
+          deps,
+          fetchScalafixDependencies(customResolvers)
+        )
       val urls = jars.map(_.toUri.toURL).toArray
       val classloader = new URLClassLoader(urls, parent)
       classloader
@@ -39,7 +45,9 @@ object ScalafixCoursier {
   private val dependencyCache: jutil.Map[Seq[ModuleID], List[Path]] = {
     jutil.Collections.synchronizedMap(new jutil.HashMap())
   }
-  private[scalafix] val fetchScalafixDependencies =
+  private[scalafix] def fetchScalafixDependencies(
+      customResolvers: Seq[Repository]
+  ): function.Function[Seq[ModuleID], List[Path]] =
     new function.Function[Seq[ModuleID], List[Path]] {
       override def apply(t: Seq[ModuleID]): List[Path] = {
         val dependencies = t.map { module =>
@@ -53,7 +61,9 @@ object ScalafixCoursier {
           )
         }
         CoursierSmall.fetch(
-          fetchSettings.withDependencies(scalafixCli :: dependencies.toList)
+          fetchSettings
+            .withRepositories(customResolvers ++: fetchSettings.repositories)
+            .withDependencies(scalafixCli :: dependencies.toList)
         )
       }
     }

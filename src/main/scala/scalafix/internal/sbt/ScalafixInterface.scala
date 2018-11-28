@@ -1,10 +1,11 @@
 package scalafix.internal.sbt
 
 import java.net.URLClassLoader
+
+import com.geirsson.coursiersmall.Repository
 import sbt._
 import sbt.internal.sbtscalafix.Compat
-import scalafix.interfaces.ScalafixArguments
-import scalafix.interfaces.{Scalafix => ScalafixAPI}
+import scalafix.interfaces.{ScalafixArguments, Scalafix => ScalafixAPI}
 
 case class ScalafixInterface(api: ScalafixAPI, args: ScalafixArguments)
 object ScalafixInterface {
@@ -14,6 +15,7 @@ object ScalafixInterface {
   }
   def fromToolClasspath(
       scalafixDependencies: Seq[ModuleID],
+      scalafixCustomResolvers: Seq[Repository],
       logger: Logger = Compat.ConsoleLogger(System.out)
   ): () => ScalafixInterface =
     new LazyValue({ () =>
@@ -25,6 +27,7 @@ object ScalafixInterface {
       val api = ScalafixAPI.classloadInstance(classloader)
       val toolClasspath = ScalafixCoursier.scalafixToolClasspath(
         scalafixDependencies,
+        scalafixCustomResolvers,
         classloader
       )
       val callback = new ScalafixLogger(logger)

@@ -1,19 +1,19 @@
 package scalafix.sbt
 
 import java.nio.file.Path
-import sbt.Def
+import java.{util => jutil}
+
+import com.geirsson.coursiersmall.Repository
 import sbt.Keys._
-import sbt._
 import sbt.internal.sbtscalafix.JLineAccess
 import sbt.plugins.JvmPlugin
-import scala.collection.JavaConverters._
-import scala.util.control.NonFatal
+import sbt.{Def, _}
 import scalafix.interfaces._
-import scalafix.internal.sbt.ScalafixCompletions
-import scalafix.internal.sbt.ScalafixInterface
-import scalafix.internal.sbt.ShellArgs
-import java.{util => jutil}
+import scalafix.internal.sbt.{ScalafixCompletions, ScalafixInterface, ShellArgs}
+
+import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
+import scala.util.control.NonFatal
 
 object ScalafixPlugin extends AutoPlugin {
   override def trigger: PluginTrigger = allRequirements
@@ -27,6 +27,10 @@ object ScalafixPlugin extends AutoPlugin {
         "Run scalafix rule in this project and configuration. " +
           "For example: scalafix RemoveUnusedImports. " +
           "To run on test sources use test:scalafix."
+      )
+    val scalafixCustomResolvers: SettingKey[Seq[Repository]] =
+      settingKey[Seq[Repository]](
+        "Optional list of Repositories used for fetching custom rules."
       )
     val scalafixDependencies: SettingKey[Seq[ModuleID]] =
       settingKey[Seq[ModuleID]](
@@ -81,10 +85,12 @@ object ScalafixPlugin extends AutoPlugin {
       //   https://github.com/sbt/sbt/issues/3572#issuecomment-417582703
       workingDirectory = baseDirectory.in(ThisBuild).value.toPath
       scalafixInterface = ScalafixInterface.fromToolClasspath(
-        scalafixDependencies = scalafixDependencies.in(ThisBuild).value
+        scalafixDependencies = scalafixDependencies.in(ThisBuild).value,
+        scalafixCustomResolvers = scalafixCustomResolvers.in(ThisBuild).value
       )
     },
     scalafixConfig := None, // let scalafix-cli try to infer $CWD/.scalafix.conf
+    scalafixCustomResolvers := Nil,
     scalafixDependencies := Nil,
     commands += ScalafixEnable.command
   )
