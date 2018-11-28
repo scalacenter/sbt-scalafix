@@ -156,6 +156,7 @@ class ScalafixCompletions(
         uri("class") |
         uri("replace") |
         uri("github") |
+        uri("dependency") |
         namedRule2
     val shellArg: Parser[ShellArg] =
       rules | shellBase

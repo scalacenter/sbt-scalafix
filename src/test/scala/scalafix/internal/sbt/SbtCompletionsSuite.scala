@@ -97,6 +97,7 @@ class SbtCompletionsSuite extends FunSuite {
          |SemanticRule
          |SyntacticRule
          |class:
+         |dependency:
          |file:
          |github:
          |replace:

@@ -1,0 +1,3 @@
+> scalafixEnable
+> scalafix dependency:SemanticRule@com.geirsson:example-scalafix-rule:1.3.0
+> check

@@ -2,18 +2,19 @@ package scalafix.sbt
 
 import java.nio.file.Path
 import java.{util => jutil}
-
 import com.geirsson.coursiersmall.Repository
+import java.io.PrintStream
 import sbt.Keys._
+import sbt.internal.sbtscalafix.Compat
 import sbt.internal.sbtscalafix.JLineAccess
 import sbt.plugins.JvmPlugin
 import sbt.{Def, _}
 import scalafix.interfaces._
 import scalafix.internal.sbt.{ScalafixCompletions, ScalafixInterface, ShellArgs}
-
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import scala.util.control.NonFatal
+import scalafix.internal.sbt.DependencyRule
 
 object ScalafixPlugin extends AutoPlugin {
   override def trigger: PluginTrigger = allRequirements
@@ -28,9 +29,9 @@ object ScalafixPlugin extends AutoPlugin {
           "For example: scalafix RemoveUnusedImports. " +
           "To run on test sources use test:scalafix."
       )
-    val scalafixCustomResolvers: SettingKey[Seq[Repository]] =
+    val scalafixResolvers: SettingKey[Seq[Repository]] =
       settingKey[Seq[Repository]](
-        "Optional list of Repositories used for fetching custom rules."
+        "Optional list of Maven/Ivy repositories to use for fetching custom rules."
       )
     val scalafixDependencies: SettingKey[Seq[ModuleID]] =
       settingKey[Seq[ModuleID]](
@@ -86,43 +87,79 @@ object ScalafixPlugin extends AutoPlugin {
       workingDirectory = baseDirectory.in(ThisBuild).value.toPath
       scalafixInterface = ScalafixInterface.fromToolClasspath(
         scalafixDependencies = scalafixDependencies.in(ThisBuild).value,
-        scalafixCustomResolvers = scalafixCustomResolvers.in(ThisBuild).value
+        scalafixCustomResolvers = scalafixResolvers.in(ThisBuild).value
       )
     },
     scalafixConfig := None, // let scalafix-cli try to infer $CWD/.scalafix.conf
-    scalafixCustomResolvers := Nil,
+    scalafixResolvers := Nil,
     scalafixDependencies := Nil,
     commands += ScalafixEnable.command
   )
 
+  lazy val stdoutLogger = Compat.ConsoleLogger(System.out)
   private var workingDirectory = file("").getAbsoluteFile.toPath
   private var scalafixInterface: () => ScalafixInterface =
     () => throw new UninitializedError
 
   private def scalafixArgs(): ScalafixArguments = scalafixInterface().args
+  private def scalafixArgsFromShell(
+      shell: ShellArgs,
+      baseDependencies: Seq[ModuleID],
+      baseResolvers: Seq[Repository]
+  ): (ShellArgs, ScalafixArguments) = {
+    val (dependencyRules, rules) =
+      shell.rules.partition(_.startsWith("dependency:"))
+    if (dependencyRules.isEmpty) {
+      (shell, scalafixInterface().args)
+    } else {
+      val parsed = dependencyRules.map {
+        case DependencyRule.Parsed(ruleName, org, art, ver) =>
+          DependencyRule(ruleName, org %% art % ver)
+        case els =>
+          stdoutLogger.error(
+            s"""|Invalid rule:    $els
+                |Expected format: ${DependencyRule.format}
+                |""".stripMargin
+          )
+          throw new ScalafixFailed(List(ScalafixError.CommandLineError))
+      }
+      val extraDependencies = parsed.map(_.dependency)
+      val interface = ScalafixInterface.fromToolClasspath(
+        scalafixDependencies = extraDependencies ++ baseDependencies,
+        scalafixCustomResolvers = baseResolvers
+      )
+      val newShell = shell.copy(rules = rules ++ parsed.map(_.ruleName))
+      (newShell, interface().args)
+    }
+  }
 
   private def scalafixInputTask(
       config: Configuration
   ): Def.Initialize[InputTask[Unit]] =
     Def.inputTaskDyn {
-      val args = new ScalafixCompletions(
+      val shell0 = new ScalafixCompletions(
         workingDirectory = () => workingDirectory,
         loadedRules = () => scalafixArgs().availableRules().asScala,
         terminalWidth = Some(JLineAccess.terminalWidth)
       ).parser.parsed
-      if (args.rules.isEmpty && args.extra == List("--help")) {
+      if (shell0.rules.isEmpty && shell0.extra == List("--help")) {
         scalafixHelp
       } else {
-        val mainArgs = scalafixArgs()
-          .withRules(args.rules.asJava)
-          .safeWithArgs(args.extra)
+        val (shell, mainArgs0) = scalafixArgsFromShell(
+          shell0,
+          scalafixDependencies.in(ThisBuild).value,
+          scalafixResolvers.in(ThisBuild).value
+        )
+        val mainArgs = mainArgs0
+          .withRules(shell.rules.asJava)
+          .safeWithArgs(shell.extra)
         val rulesThatWillRun = mainArgs.safeRulesThatWillRun()
         val isSemantic = rulesThatWillRun.exists(_.kind().isSemantic)
         if (isSemantic) {
           val names = rulesThatWillRun.map(_.name())
-          scalafixSemantic(names, mainArgs, args, config)
+          scalafixSemantic(names, mainArgs, shell, config)
         } else {
-          scalafixSyntactic(mainArgs, args, config)
+          scalafixSyntactic(mainArgs, shell, config)
         }
       }
     }
