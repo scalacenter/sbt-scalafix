@@ -20,8 +20,8 @@ object ScalafixCoursier {
     BuildInfo.scalafixVersion
   )
 
-  def scalafixCliJars: List[Path] = {
-    CoursierSmall.fetch(fetchSettings.withDependencies(List(scalafixCli)))
+  def scalafixCliJars(repositories: Seq[Repository]): List[Path] = {
+    CoursierSmall.fetch(fetchSettings(repositories, List(scalafixCli)))
   }
   def scalafixToolClasspath(
       deps: Seq[ModuleID],
@@ -61,9 +61,7 @@ object ScalafixCoursier {
           )
         }
         CoursierSmall.fetch(
-          fetchSettings
-            .withRepositories(customResolvers ++: fetchSettings.repositories)
-            .withDependencies(scalafixCli :: dependencies.toList)
+          fetchSettings(customResolvers, scalafixCli :: dependencies.toList)
         )
       }
     }
@@ -78,20 +76,24 @@ object ScalafixCoursier {
     }
   }
 
-  private val fetchSettings = new coursiersmall.Settings()
-    .withRepositories(
-      List(
-        Repository.MavenCentral,
-        Repository.Ivy2Local,
-        Repository.SonatypeReleases,
-        Repository.SonatypeSnapshots
-      )
-    )
-    .withWriter(silentCoursierWriter)
-    // Scalafix SNAPSHOT releases always use a new version number so it's  safe to use infinity here.
-    .withTtl(Some(Duration.Inf))
-    // For custom external rules to use the same Scalafix version as this plugin instead of
-    // the (presumably) older Scalafix version that the custom rules depend on.
-    .withForceVersions(List(scalafixCli))
+  private def fetchSettings(
+      repositories: Seq[Repository],
+      dependencies: Seq[Dependency]
+  ) =
+    new coursiersmall.Settings()
+      .withRepositories(repositories.toList)
+      .withDependencies(dependencies.toList)
+      .withWriter(silentCoursierWriter)
+      // Scalafix SNAPSHOT releases always use a new version number so it's  safe to use infinity here.
+      .withTtl(Some(Duration.Inf))
+      // For custom external rules to use the same Scalafix version as this plugin instead of
+      // the (presumably) older Scalafix version that the custom rules depend on.
+      .withForceVersions(List(scalafixCli))
 
+  val defaultResolvers: Seq[Repository] = Seq(
+    Repository.Ivy2Local,
+    Repository.MavenCentral,
+    Repository.SonatypeReleases,
+    Repository.SonatypeSnapshots
+  )
 }
