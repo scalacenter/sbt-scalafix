@@ -2,19 +2,21 @@ package scalafix.sbt
 
 import java.nio.file.Path
 import java.{util => jutil}
+
 import com.geirsson.coursiersmall.Repository
 import java.io.PrintStream
+
 import sbt.Keys._
 import sbt.internal.sbtscalafix.Compat
 import sbt.internal.sbtscalafix.JLineAccess
 import sbt.plugins.JvmPlugin
 import sbt.{Def, _}
 import scalafix.interfaces._
-import scalafix.internal.sbt.{ScalafixCompletions, ScalafixInterface, ShellArgs}
+import scalafix.internal.sbt._
+
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 import scala.util.control.NonFatal
-import scalafix.internal.sbt.DependencyRule
 
 object ScalafixPlugin extends AutoPlugin {
   override def trigger: PluginTrigger = allRequirements
@@ -91,7 +93,7 @@ object ScalafixPlugin extends AutoPlugin {
       )
     },
     scalafixConfig := None, // let scalafix-cli try to infer $CWD/.scalafix.conf
-    scalafixResolvers := Nil,
+    scalafixResolvers := ScalafixCoursier.defaultResolvers,
     scalafixDependencies := Nil,
     commands += ScalafixEnable.command
   )

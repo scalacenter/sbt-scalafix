@@ -29,7 +29,10 @@ class SbtCompletionsSuite extends FunSuite {
   }
   val mainArgs =
     ScalafixInterface
-      .fromToolClasspath(Seq(exampleDependency), Seq.empty)()
+      .fromToolClasspath(
+        Seq(exampleDependency),
+        ScalafixCoursier.defaultResolvers
+      )()
       .args
   val loadedRules = mainArgs.availableRules.asScala.toList
 

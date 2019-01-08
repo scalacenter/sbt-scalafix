@@ -19,7 +19,7 @@ object ScalafixInterface {
       logger: Logger = Compat.ConsoleLogger(System.out)
   ): () => ScalafixInterface =
     new LazyValue({ () =>
-      val jars = ScalafixCoursier.scalafixCliJars
+      val jars = ScalafixCoursier.scalafixCliJars(scalafixCustomResolvers)
       val urls = jars.map(_.toUri.toURL).toArray
       val interfacesParent =
         new ScalafixInterfacesClassloader(this.getClass.getClassLoader)
