@@ -12,6 +12,6 @@ object Dependencies {
     // coursier-small provides a binary stable API around Coursier making sure that
     // sbt-scalafix doesn't conflict with the user's installed version of sbt-coursier.
     // Details: https://github.com/olafurpg/coursier-small
-    "com.geirsson" %% "coursier-small" % "1.2.0"
+    "com.geirsson" %% "coursier-small" % "1.3.3"
   )
 }

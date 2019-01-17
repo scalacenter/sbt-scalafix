@@ -4,11 +4,8 @@ import java.nio.file.Path
 import java.{util => jutil}
 
 import com.geirsson.coursiersmall.Repository
-import java.io.PrintStream
-
 import sbt.Keys._
-import sbt.internal.sbtscalafix.Compat
-import sbt.internal.sbtscalafix.JLineAccess
+import sbt.internal.sbtscalafix.{Compat, JLineAccess}
 import sbt.plugins.JvmPlugin
 import sbt.{Def, _}
 import scalafix.interfaces._
