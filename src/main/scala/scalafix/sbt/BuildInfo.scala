@@ -5,9 +5,9 @@ import java.util.Properties
 object BuildInfo {
 
   def scalafixVersion: String =
-    props.getProperty("scalafixVersion", "0.9.1")
+    props.getProperty("scalafixVersion", "0.9.2")
   def scalafixStableVersion: String =
-    props.getProperty("scalafixStableVersion", "0.9.1")
+    props.getProperty("scalafixStableVersion", "0.9.2")
   def scalametaVersion: String =
     props.getProperty("scalametaVersion", "4.1.0")
   def scala212: String =
