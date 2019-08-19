@@ -1,6 +1,6 @@
 language: scala
 jdk:
-  - oraclejdk8
+- openjdk8
 
 stages:
   - name: test
@@ -12,7 +12,7 @@ jobs:
     - env: TEST="scalafmt"
       script: ./bin/scalafmt --test
     - env: TEST="sbt 1.2"
-      script: sbt ++2.12.6 test scripted
+      script: sbt ++2.12.8 test scripted
     - env: TEST="sbt 0.13"
       script: sbt ++2.10.7 test scripted
     - stage: release
