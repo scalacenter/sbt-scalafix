@@ -5,13 +5,11 @@ import java.util.Properties
 object BuildInfo {
 
   def scalafixVersion: String =
-    props.getProperty("scalafixVersion", "0.9.3")
-  def scalafixStableVersion: String =
-    props.getProperty("scalafixStableVersion", "0.9.3")
+    props.getProperty("scalafixVersion", "0.9.6")
   def scalametaVersion: String =
-    props.getProperty("scalametaVersion", "4.1.0")
+    props.getProperty("scalametaVersion", "4.2.2")
   def scala212: String =
-    props.getProperty("scala212", "2.12.7")
+    props.getProperty("scala212", "2.12.8")
   def scala211: String =
     props.getProperty("scala211", "2.11.12")
   def supportedScalaVersions: List[String] =

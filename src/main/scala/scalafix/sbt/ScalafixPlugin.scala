@@ -320,4 +320,6 @@ object ScalafixPlugin extends AutoPlugin {
       }
     }
   }
+
+  final class UninitializedError extends RuntimeException("uninitialized value")
 }

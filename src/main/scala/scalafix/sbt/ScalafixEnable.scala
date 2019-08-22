@@ -57,7 +57,7 @@ object ScalafixEnable {
       )
     } yield setting
 
-    val semanticdbInstalled = extracted.append(settings, s)
+    val semanticdbInstalled = extracted.appendWithoutSession(settings, s)
 
     semanticdbInstalled
   }
