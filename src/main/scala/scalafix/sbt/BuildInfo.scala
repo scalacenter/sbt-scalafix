@@ -37,7 +37,7 @@ object BuildInfo {
   private def property(key: String, default: String): String =
     Option(props.getProperty(key)).getOrElse {
       Logger.warn(
-        s"property $key missing; falling back to older version $default"
+        s"sbt-scalafix property '$key' missing; falling back to older version '$default'"
       )
       default
     }
