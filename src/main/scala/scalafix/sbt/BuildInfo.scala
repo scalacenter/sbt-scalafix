@@ -2,16 +2,22 @@ package scalafix.sbt
 
 import java.util.Properties
 
+import sbt.internal.sbtscalafix.Compat
+
 object BuildInfo {
+  private[this] val Logger = Compat.ConsoleLogger(System.out)
 
   def scalafixVersion: String =
-    props.getProperty("scalafixVersion", "0.9.6")
+    property("scalafixVersion", "0.9.3")
+  @deprecated("Use scalafixVersion", "0.9.7")
+  def scalafixStableVersion: String =
+    property("scalafixStableVersion", "0.9.3")
   def scalametaVersion: String =
-    props.getProperty("scalametaVersion", "4.2.2")
+    property("scalametaVersion", "4.1.0")
   def scala212: String =
-    props.getProperty("scala212", "2.12.8")
+    property("scala212", "2.12.7")
   def scala211: String =
-    props.getProperty("scala211", "2.11.12")
+    property("scala211", "2.11.12")
   def supportedScalaVersions: List[String] =
     List(scala212, scala211)
 
@@ -23,8 +29,16 @@ object BuildInfo {
       case Some(stream) =>
         props.load(stream)
       case None =>
-        println(s"error: failed to load $path")
+        Logger.error(s"failed to load $path")
     }
     props
   }
+
+  private def property(key: String, default: String): String =
+    Option(props.getProperty(key)).getOrElse {
+      Logger.warn(
+        s"property $key missing; falling back to older version $default"
+      )
+      default
+    }
 }

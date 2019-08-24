@@ -46,7 +46,7 @@ crossScalaVersions := Seq(scala212, scala210)
 sbtVersion in pluginCrossBuild := {
   scalaBinaryVersion.value match {
     case "2.10" => "0.13.17"
-    case "2.12" => "1.2.8"
+    case "2.12" => "1.2.1"
   }
 }
 libraryDependencies ++= {
