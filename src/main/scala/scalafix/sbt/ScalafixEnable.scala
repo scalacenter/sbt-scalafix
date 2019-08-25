@@ -2,6 +2,7 @@ package scalafix.sbt
 
 import sbt._
 import sbt.Keys._
+import sbt.internal.sbtscalafix.Compat
 
 /** Command to automatically enable semanticdb-scalac for shell session */
 object ScalafixEnable {
@@ -57,7 +58,7 @@ object ScalafixEnable {
       )
     } yield setting
 
-    val semanticdbInstalled = extracted.append(settings, s)
+    val semanticdbInstalled = Compat.append(extracted, settings, s)
 
     semanticdbInstalled
   }

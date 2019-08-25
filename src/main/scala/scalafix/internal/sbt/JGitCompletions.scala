@@ -30,7 +30,7 @@ class JGitCompletion(cwd: Path) {
     }
 
   val branchesAndTags: List[String] =
-    refList.map { case (a, b) => Repository.shortenRefName(a) }.toList
+    refList.map { case (a, _) => Repository.shortenRefName(a) }.toList
 
   private val dateFormatter = new GitDateFormatter(
     GitDateFormatter.Format.RELATIVE
