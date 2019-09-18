@@ -72,10 +72,10 @@ object ScalafixPlugin extends AutoPlugin {
 
   import autoImport._
 
-  override def projectSettings: Seq[Def.Setting[_]] =
+  override lazy val projectSettings: Seq[Def.Setting[_]] =
     Seq(Compile, Test).flatMap(c => inConfig(c)(scalafixConfigSettings(c)))
 
-  override def globalSettings: Seq[Def.Setting[_]] = Seq(
+  override lazy val globalSettings: Seq[Def.Setting[_]] = Seq(
     initialize := {
       val _ = initialize.value
       // Ideally, we would not resort to storing mutable state in `initialize`.
