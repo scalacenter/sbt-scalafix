@@ -1,41 +1,48 @@
 package scalafix.internal.sbt
 
-import java.io.OutputStreamWriter
 import java.net.URLClassLoader
 import java.nio.file.Path
 import java.util.function
 import java.{util => jutil}
 
-import com.geirsson.coursiersmall
-import com.geirsson.coursiersmall._
+import coursierapi._
+import com.geirsson.{coursiersmall => cs}
 import sbt._
 import scalafix.sbt.BuildInfo
-
-import scala.concurrent.duration.Duration
+import scala.collection.JavaConverters._
 
 object ScalafixCoursier {
-  private def scalafixCli: Dependency = new Dependency(
+  private def scalafixCliModule: Module = Module.of(
     "ch.epfl.scala",
-    s"scalafix-cli_${BuildInfo.scala212}",
+    s"scalafix-cli_${BuildInfo.scala212}"
+  )
+  private def scalafixCli: Dependency = Dependency.of(
+    scalafixCliModule,
     BuildInfo.scalafixVersion
   )
 
-  def scalafixCliJars(repositories: Seq[Repository]): List[Path] = {
-    CoursierSmall.fetch(fetchSettings(repositories, List(scalafixCli)))
+  def scalafixCliJars(
+      repositories: Seq[cs.Repository]
+  ): List[Path] = {
+    runFetch(
+      newFetch()
+        .addDependencies(scalafixCli)
+        .addRepositories(toCoursierRepositories(repositories): _*)
+    )
   }
+
   def scalafixToolClasspath(
       deps: Seq[ModuleID],
-      customResolvers: Seq[Repository],
+      customResolvers: Seq[cs.Repository],
       parent: ClassLoader
   ): URLClassLoader = {
     if (deps.isEmpty) {
       new URLClassLoader(Array(), parent)
     } else {
-      val jars =
-        dependencyCache.computeIfAbsent(
-          deps,
-          fetchScalafixDependencies(customResolvers)
-        )
+      val jars = dependencyCache.computeIfAbsent(
+        deps,
+        fetchScalafixDependencies(customResolvers)
+      )
       val urls = jars.map(_.toUri.toURL).toArray
       val classloader = new URLClassLoader(urls, parent)
       classloader
@@ -46,7 +53,7 @@ object ScalafixCoursier {
     jutil.Collections.synchronizedMap(new jutil.HashMap())
   }
   private[scalafix] def fetchScalafixDependencies(
-      customResolvers: Seq[Repository]
+      customResolvers: Seq[cs.Repository]
   ): function.Function[Seq[ModuleID], List[Path]] =
     new function.Function[Seq[ModuleID], List[Path]] {
       override def apply(t: Seq[ModuleID]): List[Path] = {
@@ -54,46 +61,49 @@ object ScalafixCoursier {
           val binarySuffix =
             if (module.crossVersion.isInstanceOf[CrossVersion.Binary]) "_2.12"
             else ""
-          new Dependency(
+          Dependency.of(
             module.organization,
             module.name + binarySuffix,
             module.revision
           )
         }
-        CoursierSmall.fetch(
-          fetchSettings(customResolvers, scalafixCli :: dependencies.toList)
+        runFetch(
+          newFetch()
+            .addRepositories(toCoursierRepositories(customResolvers): _*)
+            .addDependencies(scalafixCli)
+            .addDependencies(dependencies.toArray: _*)
         )
       }
     }
 
-  private val silentCoursierWriter = new OutputStreamWriter(System.out) {
-    override def write(str: String): Unit = {
-      if (str.endsWith(".pom\n") || str.endsWith(".pom.sha1\n")) {
-        () // Ignore noisy "Downloading $URL.pom" logs that appear even for cached artifacts
-      } else {
-        super.write(str)
-      }
-    }
-  }
+  def toCoursierRepositories(
+      repositories: Seq[cs.Repository]
+  ): Array[Repository] =
+    repositories.iterator.collect {
+      case m: cs.Repository.Maven => coursierapi.MavenRepository.of(m.root)
+      case i: cs.Repository.Ivy => coursierapi.IvyRepository.of(i.root)
+      case cs.Repository.Ivy2Local => coursierapi.Repository.ivy2Local()
+    }.toArray
+  def runFetch(fetch: Fetch): List[Path] =
+    fetch.fetch().asScala.iterator.map(_.toPath()).toList
+  def newFetch(): Fetch =
+    Fetch
+      .create()
+      .withRepositories()
+      .withResolutionParams(
+        ResolutionParams
+          .create()
+          .withForceVersions(
+            Map(
+              scalafixCliModule -> scalafixCli.getVersion()
+            ).asJava
+          )
+      )
 
-  private def fetchSettings(
-      repositories: Seq[Repository],
-      dependencies: Seq[Dependency]
-  ) =
-    new coursiersmall.Settings()
-      .withRepositories(repositories.toList)
-      .withDependencies(dependencies.toList)
-      .withWriter(silentCoursierWriter)
-      // Scalafix SNAPSHOT releases always use a new version number so it's  safe to use infinity here.
-      .withTtl(Some(Duration.Inf))
-      // For custom external rules to use the same Scalafix version as this plugin instead of
-      // the (presumably) older Scalafix version that the custom rules depend on.
-      .withForceVersions(List(scalafixCli))
-
-  val defaultResolvers: Seq[Repository] = Seq(
-    Repository.Ivy2Local,
-    Repository.MavenCentral,
-    Repository.SonatypeReleases,
-    Repository.SonatypeSnapshots
+  val defaultResolvers: Seq[cs.Repository] = Seq(
+    cs.Repository.Ivy2Local,
+    cs.Repository.MavenCentral,
+    cs.Repository.SonatypeReleases,
+    cs.Repository.SonatypeSnapshots
   )
 }
