@@ -87,6 +87,8 @@ class SbtCompletionsSuite extends FunSuite {
          |--verbose
          |DisableSyntax
          |  Reports an error for disabled features such as var or XML literals.
+         |ExplicitResultTypes
+         |  Inserts type annotations for inferred public members
          |LeakingImplicitClassVal
          |  Adds 'private' to val parameters of implicit value classes
          |NoAutoTupling
