@@ -17,7 +17,7 @@ class CheckSuite extends FunSuite with DiffAssertions {
         |import java.util.Map
         |
         |object Example {
-        |  implicit val str: _root_.java.util.Map.Entry[_root_.scala.Int, _root_.scala.Predef.String] = null.asInstanceOf[Map.Entry[Int, String]]
+        |  implicit val str: Map.Entry[Int,String] = null.asInstanceOf[Map.Entry[Int, String]]
         |}
         |// Hello world!
         |""".stripMargin
