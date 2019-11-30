@@ -14,9 +14,19 @@ lazy val overridesSettings = project.settings(
   scalacOptions := Nil
 )
 
-// 2.12.3 is supported
-lazy val isEnabled = project.settings(
+// 2.11.x is supported
+lazy val scala211 = project.settings(
+  scalaVersion := V.scala211
+)
+
+// 2.12.x is supported
+lazy val scala212 = project.settings(
   scalaVersion := V.scala212
+)
+
+// 2.13.x is supported
+lazy val scala213 = project.settings(
+  scalaVersion := V.scala213
 )
 
 TaskKey[Unit]("check") := {
@@ -30,6 +40,7 @@ TaskKey[Unit]("check") := {
   assert(libraryDependencies.in(overridesSettings).value.nonEmpty)
   assert(scalacOptions.in(overridesSettings).value.contains("-Yrangepos"))
 
-  // 2.12.X should not change that much
-  assert(scalacOptions.in(isEnabled).value.count(_ == "-Yrangepos") == 1)
+  assert(scalacOptions.in(scala211).value.count(_ == "-Yrangepos") == 1)
+  assert(scalacOptions.in(scala212).value.count(_ == "-Yrangepos") == 1)
+  assert(scalacOptions.in(scala213).value.count(_ == "-Yrangepos") == 1)
 }
