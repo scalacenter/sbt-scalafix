@@ -69,23 +69,21 @@ class ScalafixCompletions(
   private val namedRule: P = {
     token(
       string,
-      TokenCompletions.fixed(
-        (seen, _) => {
-          val candidates = loadedRules().iterator
-            .filterNot(_.isExperimental)
-            .filter(_.name.startsWith(seen))
-          val rules = candidates
-            .map { candidate =>
-              val output = s"${candidate.name}\n  ${candidate.description}"
-              new Token(
-                display = terminalWidth.map(output.take).getOrElse(output).trim,
-                append = candidate.name.stripPrefix(seen)
-              )
-            }
-            .toSet[Completion]
-          Completions.strict(rules)
-        }
-      )
+      TokenCompletions.fixed((seen, _) => {
+        val candidates = loadedRules().iterator
+          .filterNot(_.isExperimental)
+          .filter(_.name.startsWith(seen))
+        val rules = candidates
+          .map { candidate =>
+            val output = s"${candidate.name}\n  ${candidate.description}"
+            new Token(
+              display = terminalWidth.map(output.take).getOrElse(output).trim,
+              append = candidate.name.stripPrefix(seen)
+            )
+          }
+          .toSet[Completion]
+        Completions.strict(rules)
+      })
     ).filter(!_.startsWith("-"), x => x)
   }
   private val namedRule2: Parser[Rule] =
@@ -94,34 +92,32 @@ class ScalafixCompletions(
     val jgitCompletion = new JGitCompletion(workingDirectory())
     token(
       NotQuoted,
-      TokenCompletions.fixed(
-        (seen, _) => {
-          val last20Commits =
-            jgitCompletion.last20Commits
-              .filter { case (_, sha1) => sha1.startsWith(seen) }
-              .zipWithIndex
-              .map {
-                case ((log, sha1), i) =>
-                  val j = i + 1
-                  val idx = if (j < 10) " " + j.toString else j.toString
-                  new Token(
-                    display = s"|$idx| $log",
-                    append = sha1.stripPrefix(seen)
-                  )
-              }
-              .toSet
+      TokenCompletions.fixed((seen, _) => {
+        val last20Commits =
+          jgitCompletion.last20Commits
+            .filter { case (_, sha1) => sha1.startsWith(seen) }
+            .zipWithIndex
+            .map {
+              case ((log, sha1), i) =>
+                val j = i + 1
+                val idx = if (j < 10) " " + j.toString else j.toString
+                new Token(
+                  display = s"|$idx| $log",
+                  append = sha1.stripPrefix(seen)
+                )
+            }
+            .toSet
 
-          val branchesAndTags =
-            jgitCompletion.branchesAndTags
-              .filter(info => info.startsWith(seen))
-              .map { info =>
-                new Token(display = info, append = info.stripPrefix(seen))
-              }
-              .toSet
+        val branchesAndTags =
+          jgitCompletion.branchesAndTags
+            .filter(info => info.startsWith(seen))
+            .map { info =>
+              new Token(display = info, append = info.stripPrefix(seen))
+            }
+            .toSet
 
-          Completions.strict(last20Commits ++ branchesAndTags)
-        }
-      )
+        Completions.strict(last20Commits ++ branchesAndTags)
+      })
     )
   }
 
