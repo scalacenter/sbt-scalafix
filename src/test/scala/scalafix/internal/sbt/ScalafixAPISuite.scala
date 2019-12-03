@@ -4,14 +4,14 @@ import java.io.{ByteArrayOutputStream, PrintStream}
 import java.nio.file.Files
 
 import org.scalactic.source.Position
-import org.scalatest.FunSuite
 import sbt._
 import sbt.internal.sbtscalafix.Compat
 import scalafix.interfaces.ScalafixError
 
 import scala.collection.JavaConverters._
+import org.scalatest.funsuite.AnyFunSuite
 
-class ScalafixAPISuite extends FunSuite {
+class ScalafixAPISuite extends AnyFunSuite {
 
   def assertNoDiff(obtained: String, expected: String)(
       implicit pos: Position
