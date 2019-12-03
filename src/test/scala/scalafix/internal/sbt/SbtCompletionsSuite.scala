@@ -1,12 +1,12 @@
 package scalafix.internal.sbt
 
 import org.eclipse.jgit.lib.AbbreviatedObjectId
-import org.scalatest.FunSuite
 import org.scalatest.Tag
 import sbt.complete.Parser
 import scala.collection.JavaConverters._
+import org.scalatest.funsuite.AnyFunSuite
 
-class SbtCompletionsSuite extends FunSuite {
+class SbtCompletionsSuite extends AnyFunSuite {
   val fs = new Fs()
   val git = new Git(fs.workingDirectory)
   fs.mkdir("foo")
