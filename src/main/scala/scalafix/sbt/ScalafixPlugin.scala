@@ -184,15 +184,16 @@ object ScalafixPlugin extends AutoPlugin {
 
   private def validateProject(
       files: Seq[Path],
-      dependencies: Seq[ModuleID],
       args: ScalafixArguments,
-      ruleNames: Seq[String]
+      ruleNames: Seq[String],
+      scalacArgs: Seq[String]
   ): Seq[String] = {
     if (files.isEmpty) Nil
     else {
       val errors = ListBuffer.empty[String]
-      val isSemanticdb =
-        dependencies.exists(_.name.startsWith("semanticdb-scalac"))
+      val isSemanticdb = scalacArgs.exists(arg =>
+        arg.startsWith("-Xplugin:") && arg.contains("semanticdb-scalac")
+      )
       if (!isSemanticdb) {
         val names = ruleNames.mkString(", ")
         errors +=
@@ -217,12 +218,12 @@ object ScalafixPlugin extends AutoPlugin {
       shellArgs: ShellArgs,
       config: Configuration
   ): Def.Initialize[Task[Unit]] = Def.taskDyn {
-    val dependencies = libraryDependencies.value
     val files = filesToFix(shellArgs, config).value
     val withScalaArgs = mainArgs
       .withScalaVersion(scalaVersion.value)
       .withScalacOptions(scalacOptions.value.asJava)
-    val errors = validateProject(files, dependencies, withScalaArgs, ruleNames)
+    val errors =
+      validateProject(files, withScalaArgs, ruleNames, scalacOptions.value)
     if (errors.isEmpty) {
       Def.task {
         val args = withScalaArgs.withClasspath(
