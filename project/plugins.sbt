@@ -1,5 +1,5 @@
 resolvers += Resolver.sonatypeRepo("releases")
-addSbtPlugin("com.geirsson" % "sbt-ci-release" % "1.4.31")
+addSbtPlugin("com.geirsson" % "sbt-ci-release" % "1.5.2")
 addSbtPlugin("com.eed3si9n" % "sbt-buildinfo" % "0.9.0")
 
 libraryDependencies += "org.scala-sbt" %% "scripted-plugin" % sbtVersion.value
