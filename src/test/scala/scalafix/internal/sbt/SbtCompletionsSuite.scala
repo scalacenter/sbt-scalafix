@@ -78,8 +78,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
   checkCompletion("all", SkipWindows) { (_, displays) =>
     val obtained = displays.mkString("\n").trim
     val expected =
-      """|
-         |--auto-suppress-linter-errors
+      """|--auto-suppress-linter-errors
          |--diff
          |--diff-base
          |--files
@@ -88,7 +87,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
          |DisableSyntax
          |  Reports an error for disabled features such as var or XML literals.
          |ExplicitResultTypes
-         |  Inserts type annotations for inferred public members
+         |  Inserts type annotations for inferred public members. Only compatible with Scala 2.12.11.
          |LeakingImplicitClassVal
          |  Adds 'private' to val parameters of implicit value classes
          |NoAutoTupling
@@ -106,7 +105,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
          |file:
          |github:
          |replace:
-      """.stripMargin.trim.replaceAll("\r\n", "\n")
+         |""".stripMargin.trim.replaceAll("\r\n", "\n")
     if (obtained != expected) {
       println("\"\"\"|")
       obtained.lines.foreach { line =>
