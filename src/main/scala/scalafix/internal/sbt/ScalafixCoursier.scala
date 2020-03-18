@@ -103,7 +103,9 @@ object ScalafixCoursier {
   val defaultResolvers: Seq[cs.Repository] = Seq(
     cs.Repository.Ivy2Local,
     cs.Repository.MavenCentral,
-    cs.Repository.SonatypeReleases,
+    new cs.Repository.Maven(
+      "https://oss.sonatype.org/content/repositories/public"
+    ),
     cs.Repository.SonatypeSnapshots
   )
 }

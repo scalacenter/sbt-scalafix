@@ -17,7 +17,7 @@ object BuildInfo {
   def scala213: String =
     property("scala213", "2.13.1")
   def scala212: String =
-    property("scala212", "2.12.10")
+    property("scala212", "2.12.11")
   def scala211: String =
     property("scala211", "2.11.12")
   def supportedScalaVersions: List[String] =

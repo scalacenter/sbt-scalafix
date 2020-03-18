@@ -31,7 +31,7 @@ commands += Command.command("ci-windows") { s =>
 }
 
 // Dependencies
-resolvers += Resolver.sonatypeRepo("releases")
+resolvers += Resolver.sonatypeRepo("public")
 libraryDependencies ++= Dependencies.all
 libraryDependencies ++= List(
   "com.lihaoyi" %% "fansi" % "0.2.6" % Test,
@@ -39,7 +39,7 @@ libraryDependencies ++= List(
 )
 
 // Cross-building settings (see https://github.com/sbt/sbt/issues/3473#issuecomment-325729747)
-def scala212 = "2.12.10"
+def scala212 = "2.12.11"
 def scala210 = "2.10.7"
 scalaVersion := scala212
 crossScalaVersions := Seq(scala212, scala210)
