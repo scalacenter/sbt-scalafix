@@ -1,6 +1,6 @@
 inThisBuild(
   List(
-    scalaVersion := "2.12.10",
+    scalaVersion := "2.12.11",
     libraryDependencies ++= List(
       "org.scalameta" %% "testkit" % "4.0.0-M6" % Test,
       "org.scalacheck" %% "scalacheck" % "1.13.5" % Test,
