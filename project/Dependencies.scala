@@ -10,6 +10,6 @@ object Dependencies {
     // sbt-scalafix doesn't conflict with the user's installed version of sbt-coursier.
     // Details: https://github.com/olafurpg/coursier-small
     "com.geirsson" %% "coursier-small" % "1.3.3",
-    "io.get-coursier" % "interface" % "0.0.19"
+    "io.get-coursier" % "interface" % "0.0.21"
   )
 }
