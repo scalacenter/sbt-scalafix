@@ -217,7 +217,7 @@ object ScalafixPlugin extends AutoPlugin {
       shellArgs: ShellArgs,
       config: Configuration
   ): Def.Initialize[Task[Unit]] = Def.taskDyn {
-    val dependencies = libraryDependencies.value
+    val dependencies = allDependencies.value
     val files = filesToFix(shellArgs, config).value
     val withScalaArgs = mainArgs
       .withScalaVersion(scalaVersion.value)
