@@ -2,7 +2,7 @@ package scalafix.sbt
 
 import java.nio.file.Path
 
-import sbt.librarymanagement.{CrossVersion, ModuleID}
+import sbt.{CrossVersion, ModuleID}
 import scalafix.interfaces.ScalafixArguments
 
 import scala.collection.mutable.ListBuffer
