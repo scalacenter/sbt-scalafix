@@ -1,0 +1,3 @@
+-> example/scalafix --check
+> example/scalafix
+> example/scalafix --check
