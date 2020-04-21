@@ -10,6 +10,7 @@ import scalafix.interfaces.ScalafixError
 
 import scala.collection.JavaConverters._
 import org.scalatest.funsuite.AnyFunSuite
+import scala.util.Properties
 
 class ScalafixAPISuite extends AnyFunSuite {
 
@@ -23,6 +24,7 @@ class ScalafixAPISuite extends AnyFunSuite {
   }
 
   test("ScalafixPlugin.cli") {
+    assume(!Properties.isWin)
     val baos = new ByteArrayOutputStream()
     val logger = Compat.ConsoleLogger(new PrintStream(baos))
     val ScalafixInterface(_, args) = ScalafixInterface.fromToolClasspath(
