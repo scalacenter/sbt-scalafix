@@ -2,7 +2,6 @@ inThisBuild(
   List(
     scalaVersion := "2.12.11",
     semanticdbEnabled := true,
-    semanticdbIncludeInJar := true,
     semanticdbVersion := scalafixSemanticdb.revision
   )
 )
