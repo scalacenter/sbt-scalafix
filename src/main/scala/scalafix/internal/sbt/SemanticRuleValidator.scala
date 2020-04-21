@@ -1,4 +1,4 @@
-package scalafix.sbt
+package scalafix.internal.sbt
 
 import java.nio.file.Path
 
@@ -7,7 +7,7 @@ import scalafix.interfaces.ScalafixArguments
 
 import scala.collection.mutable.ListBuffer
 
-private[sbt] class SemanticRuleValidator(ifNotFound: => SemanticdbNotFound) {
+class SemanticRuleValidator(ifNotFound: SemanticdbNotFound) {
   def findErrors(
       files: Seq[Path],
       dependencies: Seq[ModuleID],
@@ -28,7 +28,7 @@ private[sbt] class SemanticRuleValidator(ifNotFound: => SemanticdbNotFound) {
   }
 }
 
-private[sbt] class SemanticdbNotFound(
+class SemanticdbNotFound(
     ruleNames: Seq[String],
     scalaVersion: String,
     sbtVersion: String
