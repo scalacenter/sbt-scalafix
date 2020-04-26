@@ -173,7 +173,6 @@ object ScalafixPlugin extends AutoPlugin {
       config: Configuration
   ): Def.Initialize[Task[Unit]] = Def.task {
     runArgs(
-      shellArgs,
       filesToFix(shellArgs, config).value,
       mainArgs,
       streams.value.log,
@@ -201,7 +200,6 @@ object ScalafixPlugin extends AutoPlugin {
           fullClasspath.value.map(_.data.toPath).asJava
         )
         runArgs(
-          shellArgs,
           files,
           args,
           streams.value.log,
@@ -223,7 +221,6 @@ object ScalafixPlugin extends AutoPlugin {
   }
 
   private def runArgs(
-      shellArgs: ShellArgs,
       paths: Seq[Path],
       mainArgs: ScalafixArguments,
       logger: Logger,
@@ -233,12 +230,9 @@ object ScalafixPlugin extends AutoPlugin {
       .withConfig(jutil.Optional.ofNullable(config.map(_.toPath).orNull))
       .withPaths(paths.asJava)
 
-    if (paths.nonEmpty || shellArgs.explicitlyListsFiles) {
-
+    if (paths.nonEmpty) {
       if (paths.lengthCompare(1) > 0) {
-        logger.info(
-          s"Running scalafix on ${paths.size} Scala sources"
-        )
+        logger.info(s"Running scalafix on ${paths.size} Scala sources")
       }
 
       val errors = finalArgs.run()
@@ -261,9 +255,9 @@ object ScalafixPlugin extends AutoPlugin {
   ): Def.Initialize[Task[Seq[Path]]] =
     Def.taskDyn {
       // Dynamic task to avoid redundantly computing `unmanagedSources.value`
-      if (shellArgs.explicitlyListsFiles) {
+      if (shellArgs.explicitFiles.nonEmpty) {
         Def.task {
-          Nil
+          shellArgs.explicitFiles.map(file(_).toPath)
         }
       } else {
         Def.task {

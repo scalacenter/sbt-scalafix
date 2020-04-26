@@ -1,0 +1,3 @@
+class KO {
+  println(null)
+}

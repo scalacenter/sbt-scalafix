@@ -16,11 +16,16 @@ case class ShellArgs(
     rules: List[String],
     extra: List[String]
 ) {
-  private def isExplicitFile(arg: String) =
-    arg.startsWith("-f=") ||
-      arg.startsWith("--files=")
-  def explicitlyListsFiles: Boolean =
-    extra.exists(isExplicitFile)
+  private val filesArgsPrefixes = Seq("-f=", "--files=")
+
+  lazy val explicitFiles: List[String] =
+    extra.flatMap { e =>
+      filesArgsPrefixes.collectFirst {
+        case prefix if e.startsWith(prefix) =>
+          e.stripPrefix(prefix)
+      }
+    }
+
 }
 
 sealed abstract class ShellArg
