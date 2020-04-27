@@ -1,0 +1,11 @@
+-> scalafix
+
+-> scalafix -f=explicit/src/main/scala/KO.scala
+-> scalafix --files=explicit/src/main/scala/KO.scala
+
+-> scalafix -f=explicit/src/main/scala/OK.scala --files=explicit/src/main/scala/KO.scala
+-> scalafix --files=explicit/src/main/scala/OK.scala -f=explicit/src/main/scala/KO.scala
+-> scalafix -f=explicit/src/main/scala/KO.scala -f=explicit/src/main/scala/OK.scala
+
+> scalafix -f=explicit/src/main/scala/OK.scala
+> scalafix --files=explicit/src/main/scala/OK.scala
