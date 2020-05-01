@@ -18,7 +18,7 @@ class ScalafixCompletions(
   private type ArgP = Parser[ShellArgs.Arg]
   private type KVArgP = Parser[ArgP] // nested parser allows to match the key only
 
-  private val equal: P = token("=").examples("=")
+  private val sep: P = token("=" | " ").examples("=")
   private val string: P = StringBasic
   private def valueAfterKey(
       key: String,
@@ -27,7 +27,7 @@ class ScalafixCompletions(
       valueParser: ArgP
   ): KVArgP = {
     val keyParser = Parser.oneOf((key +: keyAliases).map(literal)).examples(key)
-    val sepValueParser = (equal ~> valueParser).!!!("missing or invalid value")
+    val sepValueParser = (sep ~> valueParser).!!!("missing or invalid value")
     keyParser.^^^(sepValueParser)
   }
 

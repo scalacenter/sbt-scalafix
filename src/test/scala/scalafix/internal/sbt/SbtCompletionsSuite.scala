@@ -122,6 +122,12 @@ class SbtCompletionsSuite extends AnyFunSuite {
     assert(appends == Seq("es="))
   }
 
+  // only provide values suggestion after the key of a key/value arg
+  checkCompletion("--diff-base ") { (appends, _) =>
+    assert(appends.nonEmpty)
+    assert(!appends.contains("--help"))
+  }
+
   checkCompletion("--diff-base=", SkipWindows) { (appends, displays) =>
     // branches
     assert(displays.contains("master"))
@@ -153,6 +159,12 @@ class SbtCompletionsSuite extends AnyFunSuite {
     assert(args == Right(ShellArgs(extra = List("--bash"))))
   }
 
+  checkArgs("--files --test") { args =>
+    assert(args == Left("""missing or invalid value
+                          | --files --test
+                          |               ^""".stripMargin))
+  }
+
   checkArgs("--test --rules=Foo --files=NotHere", SkipWindows) { args =>
     assert(args == Left("""--files=NotHere
                           |missing or invalid value
@@ -168,10 +180,9 @@ class SbtCompletionsSuite extends AnyFunSuite {
   }
 
   checkArgs("--test  -f --rules=Foo", SkipWindows) { args =>
-    assert(args == Left("""Expected non-whitespace character
-                          |missing or invalid value
+    assert(args == Left("""missing or invalid value
                           | --test  -f --rules=Foo
-                          |           ^""".stripMargin))
+                          |                       ^""".stripMargin))
   }
 
   checkArgs("--test --rules=Foo -f", SkipWindows) { args =>
