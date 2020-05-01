@@ -138,9 +138,13 @@ class ScalafixCompletions(
     val keyOnlyArg: ArgP = {
       val flags = Seq(
         "--auto-suppress-linter-errors",
+        "--check",
         "--diff",
         "--help",
-        "--verbose"
+        "--stdout",
+        "--syntactic",
+        "--verbose",
+        "--version"
       ).map(literal)
       Parser.oneOf(flags) |
         hide(string) // catch-all for all args not known to sbt-scalafix

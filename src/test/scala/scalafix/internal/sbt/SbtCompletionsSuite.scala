@@ -80,12 +80,16 @@ class SbtCompletionsSuite extends AnyFunSuite {
     val obtained = displays.mkString("\n").trim
     val expected =
       """|--auto-suppress-linter-errors
+         |--check
          |--diff
          |--diff-base=
          |--files=
          |--help
          |--rules=
+         |--stdout
+         |--syntactic
          |--verbose
+         |--version
          |DisableSyntax
          |  Reports an error for disabled features such as var or XML literals.
          |ExplicitResultTypes
