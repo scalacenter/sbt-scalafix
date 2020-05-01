@@ -63,9 +63,10 @@ class SbtCompletionsSuite extends AnyFunSuite {
   }
 
   def checkArgs(
-      name: String
+      name: String,
+      testTags: Tag*
   )(assertArgs: Either[String, ShellArgs] => Unit): Unit = {
-    test(name) {
+    test(name, testTags: _*) {
       val input = name
       val args = Parser.parse(" " + input, parser)
       assertArgs(args)
@@ -150,6 +151,34 @@ class SbtCompletionsSuite extends AnyFunSuite {
   // consume extra
   checkArgs("--bash") { args =>
     assert(args == Right(ShellArgs(extra = List("--bash"))))
+  }
+
+  checkArgs("--test --rules=Foo --files=NotHere", SkipWindows) { args =>
+    assert(args == Left("""--files=NotHere
+                          |missing or invalid value
+                          | --test --rules=Foo --files=NotHere
+                          |                                   ^""".stripMargin))
+  }
+
+  checkArgs("--test  -f= --rules=Foo", SkipWindows) { args =>
+    assert(args == Left("""Expected non-whitespace character
+                          |missing or invalid value
+                          | --test  -f= --rules=Foo
+                          |            ^""".stripMargin))
+  }
+
+  checkArgs("--test  -f --rules=Foo", SkipWindows) { args =>
+    assert(args == Left("""Expected non-whitespace character
+                          |missing or invalid value
+                          | --test  -f --rules=Foo
+                          |           ^""".stripMargin))
+  }
+
+  checkArgs("--test --rules=Foo -f", SkipWindows) { args =>
+    assert(args == Left("""-f
+                          |missing or invalid value
+                          | --test --rules=Foo -f
+                          |                      ^""".stripMargin))
   }
 
 }

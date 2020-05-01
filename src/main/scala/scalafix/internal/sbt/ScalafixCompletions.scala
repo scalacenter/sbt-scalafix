@@ -16,13 +16,20 @@ class ScalafixCompletions(
 
   private type P = Parser[String]
   private type ArgP = Parser[ShellArgs.Arg]
+  private type KVArgP = Parser[ArgP] // nested parser allows to match the key only
 
   private val equal: P = token("=").examples("=")
   private val string: P = StringBasic
-  private def argKey(key: String): P =
-    key <~ equal
-  private def argKey(key: String, shortKey: String): P =
-    (key | shortKey).examples(key) <~ equal
+  private def valueAfterKey(
+      key: String,
+      keyAliases: String*
+  )(
+      valueParser: ArgP
+  ): KVArgP = {
+    val keyParser = Parser.oneOf((key +: keyAliases).map(literal)).examples(key)
+    val sepValueParser = (equal ~> valueParser).!!!("missing or invalid value")
+    keyParser.^^^(sepValueParser)
+  }
 
   private def uri(protocol: String): Parser[ShellArgs.Rule] =
     token(protocol + ":") ~> NotQuoted.map(x => ShellArgs.Rule(s"$protocol:$x"))
@@ -147,13 +154,13 @@ class ScalafixCompletions(
         uri("dependency") |
         namedRule2
 
-    val keyValueArg: ArgP = {
-      val diffBase: Parser[ShellArgs.Extra] =
-        (argKey("--diff-base") ~ gitDiffParser)
-          .map { case (k, v) => ShellArgs.Extra(k, Some(v)) }
-      val files: Parser[ShellArgs.File] =
-        (argKey("--files", "-f") ~> pathParser.map(_.toString))
-          .map(ShellArgs.File)
+    val keyValueArg: KVArgP = {
+      val diffBase: KVArgP = valueAfterKey("--diff-base") {
+        gitDiffParser.map(v => ShellArgs.Extra("--diff-base", Some(v)))
+      }
+      val files: KVArgP = valueAfterKey("--files", "-f") {
+        pathParser.map(v => ShellArgs.File(v.toString))
+      }
 
       diffBase |
         files
@@ -161,8 +168,8 @@ class ScalafixCompletions(
 
     val shellArg: ArgP =
       rule |
-        keyValueArg |
-        keyOnlyArg
+        keyValueArg.flatMap(identity) |
+        keyOnlyArg.&(not(keyValueArg, ""))
 
     (token(Space) ~> shellArg).*.map { args =>
       ShellArgs(args)
