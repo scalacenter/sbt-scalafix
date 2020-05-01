@@ -17,7 +17,7 @@ class ScalafixCompletions(
   private type P = Parser[String]
   private type ArgP = Parser[ShellArgs.Arg]
 
-  private val equal: P = token("=").map(_.toString)
+  private val equal: P = token("=").examples("=")
   private val string: P = StringBasic
   private def argKey(key: String): P =
     key <~ equal

@@ -80,8 +80,8 @@ class SbtCompletionsSuite extends AnyFunSuite {
     val expected =
       """|--auto-suppress-linter-errors
          |--diff
-         |--diff-base
-         |--files
+         |--diff-base=
+         |--files=
          |--help
          |--verbose
          |DisableSyntax
@@ -115,6 +115,10 @@ class SbtCompletionsSuite extends AnyFunSuite {
       println("   |\"\"\"")
       fail("obtained != expected")
     }
+  }
+
+  checkCompletion("--fil") { (appends, _) =>
+    assert(appends == Seq("es="))
   }
 
   checkCompletion("--diff-base=", SkipWindows) { (appends, displays) =>
