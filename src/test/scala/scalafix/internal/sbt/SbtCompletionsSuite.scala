@@ -62,13 +62,13 @@ class SbtCompletionsSuite extends AnyFunSuite {
     }
   }
 
-  def checkArgs(name: String)(assertArgs: Seq[String] => Unit): Unit = {
+  def checkArgs(
+      name: String
+  )(assertArgs: Either[String, ShellArgs] => Unit): Unit = {
     test(name) {
       val input = name
-      val args = Parser.parse(" " + input, parser).right.get
-      val asStrings =
-        args.rules.flatMap(r => "-r" :: r :: Nil) ++ args.extra
-      assertArgs(asStrings)
+      val args = Parser.parse(" " + input, parser)
+      assertArgs(args)
     }
   }
 
@@ -144,11 +144,12 @@ class SbtCompletionsSuite extends AnyFunSuite {
 
   // shortcut for --rules
   checkArgs("ProcedureSyntax") { args =>
-    assert(args == Seq("-r", "ProcedureSyntax"))
+    assert(args == Right(ShellArgs(rules = List("ProcedureSyntax"))))
   }
 
   // consume extra
   checkArgs("--bash") { args =>
-    assert(args == Seq("--bash"))
+    assert(args == Right(ShellArgs(extra = List("--bash"))))
   }
+
 }

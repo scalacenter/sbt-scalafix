@@ -21,7 +21,7 @@ object ShellArgs {
 }
 
 case class ShellArgs(
-    rules: List[String],
-    files: List[String],
-    extra: List[String]
+    rules: List[String] = Nil,
+    files: List[String] = Nil,
+    extra: List[String] = Nil
 )
