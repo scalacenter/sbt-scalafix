@@ -255,9 +255,9 @@ object ScalafixPlugin extends AutoPlugin {
   ): Def.Initialize[Task[Seq[Path]]] =
     Def.taskDyn {
       // Dynamic task to avoid redundantly computing `unmanagedSources.value`
-      if (shellArgs.explicitFiles.nonEmpty) {
+      if (shellArgs.files.nonEmpty) {
         Def.task {
-          shellArgs.explicitFiles.map(file(_).toPath)
+          shellArgs.files.map(file(_).toPath)
         }
       } else {
         Def.task {

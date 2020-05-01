@@ -15,18 +15,17 @@ class ScalafixCompletions(
 ) {
 
   private type P = Parser[String]
+  private type ArgP = Parser[ShellArgs.Arg]
 
   private val equal: P = token("=").map(_.toString)
   private val string: P = StringBasic
-  private def arg(key: String, value: P): P =
-    (key ~ equal ~ value).map { case a ~ _ ~ c => a + "=" + c }
-  private def arg(key: String, shortKey: String, value: P): P =
-    ((key | shortKey).examples(key) ~ equal ~ value).map {
-      case a ~ _ ~ c => a + "=" + c
-    }
+  private def argKey(key: String): P =
+    key <~ equal
+  private def argKey(key: String, shortKey: String): P =
+    (key | shortKey).examples(key) <~ equal
 
-  private def uri(protocol: String): Parser[Rule] =
-    token(protocol + ":") ~> NotQuoted.map(x => Rule(s"$protocol:$x"))
+  private def uri(protocol: String): Parser[ShellArgs.Rule] =
+    token(protocol + ":") ~> NotQuoted.map(x => ShellArgs.Rule(s"$protocol:$x"))
 
   private val filepathParser: Parser[Path] = {
     def toAbsolutePath(path: Path, cwd: Path): Path = {
@@ -86,8 +85,8 @@ class ScalafixCompletions(
       })
     ).filter(!_.startsWith("-"), x => x)
   }
-  private val namedRule2: Parser[Rule] =
-    namedRule.map(s => Rule(s))
+  private val namedRule2: Parser[ShellArgs.Rule] =
+    namedRule.map(s => ShellArgs.Rule(s))
   private lazy val gitDiffParser: P = {
     val jgitCompletion = new JGitCompletion(workingDirectory())
     token(
@@ -125,36 +124,46 @@ class ScalafixCompletions(
 
   def parser: Parser[ShellArgs] = {
     val pathParser: Parser[Path] = token(filepathParser)
-    val fileRule: Parser[Rule] =
-      (token("file:") ~ pathParser).map {
-        case _ ~ path => Rule(path.toUri.toString)
-      }
+    val fileRule: Parser[ShellArgs.Rule] =
+      (token("file:") ~> pathParser)
+        .map(path => ShellArgs.Rule(path.toUri.toString))
 
-    val diff: P = "--diff"
-    val diffBase: P = arg("--diff-base", gitDiffParser)
-    val extra: P = hide(string)
-    val files: P = arg("--files", "-f", pathParser.map(_.toString))
-    val help: P = "--help"
-    val verbose: P = "--verbose"
-    val autoSuppressLinterErrors: P = "--auto-suppress-linter-errors"
-    val base =
-      help |
-        verbose |
-        files |
-        diff |
-        diffBase |
-        autoSuppressLinterErrors |
-        extra
-    val shellBase = base.map(Extra)
-    val rules: Parser[Rule] =
+    val keyOnlyArg: ArgP = {
+      val flags = Seq(
+        "--auto-suppress-linter-errors",
+        "--diff",
+        "--help",
+        "--verbose"
+      ).map(literal)
+      Parser.oneOf(flags) |
+        hide(string) // catch-all for all args not known to sbt-scalafix
+    }.map(ShellArgs.Extra(_))
+
+    val rule: ArgP =
       fileRule |
         uri("class") |
         uri("replace") |
         uri("github") |
         uri("dependency") |
         namedRule2
-    val shellArg: Parser[ShellArg] =
-      rules | shellBase
+
+    val keyValueArg: ArgP = {
+      val diffBase: Parser[ShellArgs.Extra] =
+        (argKey("--diff-base") ~ gitDiffParser)
+          .map { case (k, v) => ShellArgs.Extra(k, Some(v)) }
+      val files: Parser[ShellArgs.File] =
+        (argKey("--files", "-f") ~> pathParser.map(_.toString))
+          .map(ShellArgs.File)
+
+      diffBase |
+        files
+    }
+
+    val shellArg: ArgP =
+      rule |
+        keyValueArg |
+        keyOnlyArg
+
     (token(Space) ~> shellArg).*.map { args =>
       ShellArgs(args)
     }
