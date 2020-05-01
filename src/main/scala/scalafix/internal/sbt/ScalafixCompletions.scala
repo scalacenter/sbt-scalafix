@@ -161,9 +161,11 @@ class ScalafixCompletions(
       val files: KVArgP = valueAfterKey("--files", "-f") {
         pathParser.map(v => ShellArgs.File(v.toString))
       }
+      val rules: KVArgP = valueAfterKey("--rules", "-r")(rule)
 
       diffBase |
-        files
+        files |
+        rules
     }
 
     val shellArg: ArgP =

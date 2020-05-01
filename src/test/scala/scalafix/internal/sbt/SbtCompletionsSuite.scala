@@ -84,6 +84,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
          |--diff-base=
          |--files=
          |--help
+         |--rules=
          |--verbose
          |DisableSyntax
          |  Reports an error for disabled features such as var or XML literals.
@@ -141,6 +142,12 @@ class SbtCompletionsSuite extends AnyFunSuite {
         assert(isSha1(append))
         assert(display.endsWith("ago)"))
     }
+  }
+
+  checkCompletion("-r=") { (appends, _) =>
+    assert(appends.contains("DisableSyntax"))
+    assert(appends.contains("class:"))
+    assert(!appends.contains("--help"))
   }
 
   checkCompletion("--rules file:bar/../", SkipWindows) { (appends, displays) =>
