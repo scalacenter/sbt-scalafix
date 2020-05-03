@@ -21,5 +21,6 @@ val rules = project
 val service = project
   .dependsOn(rules % ScalafixConfig)
   .settings(
-    scalaVersion := Versions.scala213
+    scalaVersion := Versions.scala213,
+    libraryDependencies += "com.nequissimus" % "sort-imports_2.12" % "0.5.0" % ScalafixConfig
   )

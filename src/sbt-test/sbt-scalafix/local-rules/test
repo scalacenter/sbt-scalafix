@@ -8,3 +8,6 @@ $ delete rules/src/main/scala/local/NoOp.scala
 
 # make sure scalafixDependencies is also honored by running a rule from a remote JAR
 > service/scalafix SyntacticRule
+
+# run a rule included from a remote JAR referenced via the Scalafix ivy config
+> service/scalafix SortImports
