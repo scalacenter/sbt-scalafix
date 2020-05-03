@@ -1,6 +1,5 @@
 package scalafix.internal.sbt
 
-import java.net.URLClassLoader
 import java.nio.file.Path
 import java.util.function
 import java.{util => jutil}
@@ -33,19 +32,16 @@ object ScalafixCoursier {
 
   def scalafixToolClasspath(
       deps: Seq[ModuleID],
-      customResolvers: Seq[cs.Repository],
-      parent: ClassLoader
-  ): URLClassLoader = {
+      customResolvers: Seq[cs.Repository]
+  ): Seq[URL] = {
     if (deps.isEmpty) {
-      new URLClassLoader(Array(), parent)
+      Nil
     } else {
       val jars = dependencyCache.computeIfAbsent(
         deps,
         fetchScalafixDependencies(customResolvers)
       )
-      val urls = jars.map(_.toUri.toURL).toArray
-      val classloader = new URLClassLoader(urls, parent)
-      classloader
+      jars.map(_.toUri.toURL)
     }
   }
 

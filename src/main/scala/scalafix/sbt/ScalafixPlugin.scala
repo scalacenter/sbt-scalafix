@@ -21,6 +21,9 @@ object ScalafixPlugin extends AutoPlugin {
   object autoImport {
     val Scalafix = Tags.Tag("scalafix")
 
+    val ScalafixConfig = config("scalafix")
+      .describedAs("Dependencies required for rule execution.")
+
     val scalafix: InputKey[Unit] =
       inputKey[Unit](
         "Run scalafix rule in this project and configuration. " +
@@ -71,8 +74,13 @@ object ScalafixPlugin extends AutoPlugin {
 
   import autoImport._
 
+  override lazy val projectConfigurations: Seq[Configuration] =
+    Seq(ScalafixConfig)
+
   override lazy val projectSettings: Seq[Def.Setting[_]] =
-    Seq(Compile, Test).flatMap(c => inConfig(c)(scalafixConfigSettings(c)))
+    Seq(Compile, Test).flatMap(c => inConfig(c)(scalafixConfigSettings(c))) ++
+      inConfig(ScalafixConfig)(Defaults.configSettings) ++
+      Seq(ivyConfigurations += ScalafixConfig)
 
   override lazy val globalSettings: Seq[Def.Setting[_]] = Seq(
     initialize := {
@@ -102,33 +110,32 @@ object ScalafixPlugin extends AutoPlugin {
   private def scalafixArgs(): ScalafixArguments = scalafixInterface().args
   private def scalafixArgsFromShell(
       shell: ShellArgs,
-      baseDependencies: Seq[ModuleID],
-      baseResolvers: Seq[Repository]
-  ): (ShellArgs, ScalafixArguments) = {
+      projectDepsExternal: Seq[ModuleID],
+      baseResolvers: Seq[Repository],
+      projectDepsInternal: Seq[File]
+  ) = {
     val (dependencyRules, rules) =
       shell.rules.partition(_.startsWith("dependency:"))
-    if (dependencyRules.isEmpty) {
-      (shell, scalafixInterface().args)
-    } else {
-      val parsed = dependencyRules.map {
-        case DependencyRule.Parsed(ruleName, org, art, ver) =>
-          DependencyRule(ruleName, org %% art % ver)
-        case els =>
-          stdoutLogger.error(
-            s"""|Invalid rule:    $els
-                |Expected format: ${DependencyRule.format}
-                |""".stripMargin
-          )
-          throw new ScalafixFailed(List(ScalafixError.CommandLineError))
-      }
-      val extraDependencies = parsed.map(_.dependency)
-      val interface = ScalafixInterface.fromToolClasspath(
-        scalafixDependencies = extraDependencies ++ baseDependencies,
-        scalafixCustomResolvers = baseResolvers
-      )
-      val newShell = shell.copy(rules = rules ++ parsed.map(_.ruleName))
-      (newShell, interface().args)
+    val parsed = dependencyRules.map {
+      case DependencyRule.Parsed(ruleName, org, art, ver) =>
+        DependencyRule(ruleName, org %% art % ver)
+      case els =>
+        stdoutLogger.error(
+          s"""|Invalid rule:    $els
+              |Expected format: ${DependencyRule.format}
+              |""".stripMargin
+        )
+        throw new ScalafixFailed(List(ScalafixError.CommandLineError))
     }
+    val rulesDepsExternal = parsed.map(_.dependency)
+    val interface = scalafixInterface().addToolClasspath(
+      rulesDepsExternal ++ projectDepsExternal,
+      baseResolvers,
+      projectDepsInternal
+    )
+    val newShell = shell.copy(rules = rules ++ parsed.map(_.ruleName))
+    (newShell, interface.args)
+
   }
 
   private def scalafixInputTask(
@@ -137,17 +144,30 @@ object ScalafixPlugin extends AutoPlugin {
     Def.inputTaskDyn {
       val shell0 = new ScalafixCompletions(
         workingDirectory = () => workingDirectory,
+        // Unfortunately, local rules will not show up as completions in the parser, as that parser can only depend
+        // on global settings (see note in initialize), while local rules classpath must
+        // be looked up via tasks on projects
         loadedRules = () => scalafixArgs().availableRules().asScala,
         terminalWidth = Some(JLineAccess.terminalWidth)
       ).parser.parsed
+
+      val projectDepsInternal =
+        internalDependencyClasspath.in(ScalafixConfig).value.map(_.data)
+      val projectDepsExternal =
+        externalDependencyClasspath
+          .in(ScalafixConfig)
+          .value
+          .flatMap(_.get(moduleID.key))
+
       if (shell0.rules.isEmpty && shell0.extra == List("--help")) {
         scalafixHelp
       } else {
         val scalafixConf = scalafixConfig.value.map(_.toPath)
         val (shell, mainArgs0) = scalafixArgsFromShell(
           shell0,
-          scalafixDependencies.in(ThisBuild).value,
-          scalafixResolvers.in(ThisBuild).value
+          projectDepsExternal,
+          scalafixResolvers.in(ThisBuild).value,
+          projectDepsInternal
         )
         val mainArgs = mainArgs0
           .withConfig(jutil.Optional.ofNullable(scalafixConf.orNull))
