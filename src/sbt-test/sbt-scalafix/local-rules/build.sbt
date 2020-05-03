@@ -13,6 +13,7 @@ val rules = project
   .disablePlugins(ScalafixPlugin)
   .settings(
     scalaVersion := Versions.scala212,
+    crossPaths := false,
     libraryDependencies += "ch.epfl.scala" %% "scalafix-core" % Versions.scalafixVersion,
     libraryDependencies += "joda-time" % "joda-time" % "2.10.6"
   )
@@ -20,5 +21,5 @@ val rules = project
 val service = project
   .dependsOn(rules % ScalafixConfig)
   .settings(
-    scalaVersion := Versions.scala212
+    scalaVersion := Versions.scala213
   )
