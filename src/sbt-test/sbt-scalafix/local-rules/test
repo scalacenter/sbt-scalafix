@@ -1,1 +1,4 @@
 > service/scalafix LocalSyntacticRule
+
+# make sure scalafixDependencies is also honored by running a rule from a remote JAR
+> service/scalafix SyntacticRule

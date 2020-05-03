@@ -1,5 +1,14 @@
 import _root_.scalafix.sbt.{BuildInfo => Versions}
 
+inThisBuild(
+  List(
+    scalafixDependencies := List(
+      // Custom rule published to Maven Central https://github.com/olafurpg/example-scalafix-rule
+      "com.geirsson" %% "example-scalafix-rule" % "1.3.0"
+    )
+  )
+)
+
 val rules = project
   .disablePlugins(ScalafixPlugin)
   .settings(
