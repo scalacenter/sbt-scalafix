@@ -9,3 +9,6 @@
 
 > scalafix -f=explicit/src/main/scala/OK.scala
 > scalafix --files=explicit/src/main/scala/OK.scala
+
+> scalafix -f explicit/src/main/scala/OK.scala
+> scalafix --files explicit/src/main/scala/OK.scala

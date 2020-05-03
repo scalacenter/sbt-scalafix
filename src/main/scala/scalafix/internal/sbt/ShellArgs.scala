@@ -1,33 +1,27 @@
 package scalafix.internal.sbt
 
 object ShellArgs {
-  def apply(args: Seq[ShellArg]): ShellArgs = {
+
+  sealed abstract class Arg
+  case class Rule(value: String) extends Arg
+  case class File(value: String) extends Arg
+  case class Extra(key: String, value: Option[String] = None) extends Arg
+
+  def apply(args: Seq[Arg]): ShellArgs = {
     val rules = List.newBuilder[String]
+    val files = List.newBuilder[String]
     val extra = List.newBuilder[String]
     args.foreach {
-      case x: Rule => rules += x.rule
-      case x: Extra => extra += x.value
+      case x: Rule => rules += x.value
+      case x: File => files += x.value
+      case x: Extra => extra += x.value.foldLeft(x.key)((k, v) => s"$k=$v")
     }
-    ShellArgs(rules.result(), extra.result())
+    ShellArgs(rules.result(), files.result(), extra.result())
   }
 }
 
 case class ShellArgs(
-    rules: List[String],
-    extra: List[String]
-) {
-  private val filesArgsPrefixes = Seq("-f=", "--files=")
-
-  lazy val explicitFiles: List[String] =
-    extra.flatMap { e =>
-      filesArgsPrefixes.collectFirst {
-        case prefix if e.startsWith(prefix) =>
-          e.stripPrefix(prefix)
-      }
-    }
-
-}
-
-sealed abstract class ShellArg
-case class Rule(rule: String) extends ShellArg
-case class Extra(value: String) extends ShellArg
+    rules: List[String] = Nil,
+    files: List[String] = Nil,
+    extra: List[String] = Nil
+)

@@ -62,13 +62,14 @@ class SbtCompletionsSuite extends AnyFunSuite {
     }
   }
 
-  def checkArgs(name: String)(assertArgs: Seq[String] => Unit): Unit = {
-    test(name) {
+  def checkArgs(
+      name: String,
+      testTags: Tag*
+  )(assertArgs: Either[String, ShellArgs] => Unit): Unit = {
+    test(name, testTags: _*) {
       val input = name
-      val args = Parser.parse(" " + input, parser).right.get
-      val asStrings =
-        args.rules.flatMap(r => "-r" :: r :: Nil) ++ args.extra
-      assertArgs(asStrings)
+      val args = Parser.parse(" " + input, parser)
+      assertArgs(args)
     }
   }
 
@@ -79,11 +80,16 @@ class SbtCompletionsSuite extends AnyFunSuite {
     val obtained = displays.mkString("\n").trim
     val expected =
       """|--auto-suppress-linter-errors
+         |--check
          |--diff
-         |--diff-base
-         |--files
+         |--diff-base=
+         |--files=
          |--help
+         |--rules=
+         |--stdout
+         |--syntactic
          |--verbose
+         |--version
          |DisableSyntax
          |  Reports an error for disabled features such as var or XML literals.
          |ExplicitResultTypes
@@ -117,6 +123,16 @@ class SbtCompletionsSuite extends AnyFunSuite {
     }
   }
 
+  checkCompletion("--fil") { (appends, _) =>
+    assert(appends == Seq("es="))
+  }
+
+  // only provide values suggestion after the key of a key/value arg
+  checkCompletion("--diff-base ") { (appends, _) =>
+    assert(appends.nonEmpty)
+    assert(!appends.contains("--help"))
+  }
+
   checkCompletion("--diff-base=", SkipWindows) { (appends, displays) =>
     // branches
     assert(displays.contains("master"))
@@ -132,6 +148,12 @@ class SbtCompletionsSuite extends AnyFunSuite {
     }
   }
 
+  checkCompletion("-r=") { (appends, _) =>
+    assert(appends.contains("DisableSyntax"))
+    assert(appends.contains("class:"))
+    assert(!appends.contains("--help"))
+  }
+
   checkCompletion("--rules file:bar/../", SkipWindows) { (appends, displays) =>
     // resolve parent directories
     assert(appends.contains("foo"))
@@ -140,11 +162,45 @@ class SbtCompletionsSuite extends AnyFunSuite {
 
   // shortcut for --rules
   checkArgs("ProcedureSyntax") { args =>
-    assert(args == Seq("-r", "ProcedureSyntax"))
+    assert(args == Right(ShellArgs(rules = List("ProcedureSyntax"))))
   }
 
   // consume extra
   checkArgs("--bash") { args =>
-    assert(args == Seq("--bash"))
+    assert(args == Right(ShellArgs(extra = List("--bash"))))
   }
+
+  checkArgs("--files --test") { args =>
+    assert(args == Left("""missing or invalid value
+                          | --files --test
+                          |               ^""".stripMargin))
+  }
+
+  checkArgs("--test --rules=Foo --files=NotHere", SkipWindows) { args =>
+    assert(args == Left("""--files=NotHere
+                          |missing or invalid value
+                          | --test --rules=Foo --files=NotHere
+                          |                                   ^""".stripMargin))
+  }
+
+  checkArgs("--test  -f= --rules=Foo", SkipWindows) { args =>
+    assert(args == Left("""Expected non-whitespace character
+                          |missing or invalid value
+                          | --test  -f= --rules=Foo
+                          |            ^""".stripMargin))
+  }
+
+  checkArgs("--test  -f --rules=Foo", SkipWindows) { args =>
+    assert(args == Left("""missing or invalid value
+                          | --test  -f --rules=Foo
+                          |                       ^""".stripMargin))
+  }
+
+  checkArgs("--test --rules=Foo -f", SkipWindows) { args =>
+    assert(args == Left("""-f
+                          |missing or invalid value
+                          | --test --rules=Foo -f
+                          |                      ^""".stripMargin))
+  }
+
 }
