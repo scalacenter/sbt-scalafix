@@ -83,6 +83,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
          |--diff-base=
          |--files=
          |--help
+         |--no-cache
          |--rules=
          |--stdout
          |--syntactic

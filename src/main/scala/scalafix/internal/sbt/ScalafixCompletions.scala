@@ -145,10 +145,13 @@ class ScalafixCompletions(
         "--syntactic",
         "--verbose",
         "--version"
-      ).map(literal)
+      ).map(f => literal(f).map(ShellArgs.Extra(_))) ++ Seq(
+        "--no-cache".^^^(ShellArgs.NoCache)
+      )
       Parser.oneOf(flags) |
         hide(string) // catch-all for all args not known to sbt-scalafix
-    }.map(ShellArgs.Extra(_))
+          .map(ShellArgs.Extra(_))
+    }
 
     val rule: ArgP =
       fileRule |

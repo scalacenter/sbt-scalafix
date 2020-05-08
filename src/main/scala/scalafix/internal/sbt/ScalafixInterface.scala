@@ -18,45 +18,54 @@ sealed trait Arg extends (ScalafixArguments => ScalafixArguments)
 
 object Arg {
 
-  case class ToolClasspath(classLoader: URLClassLoader) extends Arg {
+  sealed trait CacheKey
+
+  case class ToolClasspath(classLoader: URLClassLoader)
+      extends Arg
+      with CacheKey {
     override def apply(sa: ScalafixArguments): ScalafixArguments =
       // this effectively overrides any previous URLClassLoader
       sa.withToolClasspath(classLoader)
   }
 
-  case class Rules(rules: Seq[String]) extends Arg {
+  case class Rules(rules: Seq[String]) extends Arg with CacheKey {
     override def apply(sa: ScalafixArguments): ScalafixArguments =
       sa.withRules(rules.asJava)
   }
 
-  case class Paths(paths: Seq[Path]) extends Arg {
+  case class Paths(paths: Seq[Path]) extends Arg { // this one is extracted/stamped directly
     override def apply(sa: ScalafixArguments): ScalafixArguments =
       sa.withPaths(paths.asJava)
   }
 
-  case class Config(file: Option[Path]) extends Arg {
+  case class Config(file: Option[Path]) extends Arg with CacheKey {
     override def apply(sa: ScalafixArguments): ScalafixArguments =
       sa.withConfig(jutil.Optional.ofNullable(file.orNull))
   }
 
-  case class ParsedArgs(args: Seq[String]) extends Arg {
+  case class ParsedArgs(args: Seq[String]) extends Arg with CacheKey {
     override def apply(sa: ScalafixArguments): ScalafixArguments =
       sa.withParsedArguments(args.asJava)
   }
 
-  case class ScalaVersion(version: String) extends Arg {
+  case class ScalaVersion(version: String) extends Arg { //FIXME: with CacheKey {
     override def apply(sa: ScalafixArguments): ScalafixArguments =
       sa.withScalaVersion(version)
   }
 
-  case class ScalacOptions(options: Seq[String]) extends Arg {
+  case class ScalacOptions(options: Seq[String]) extends Arg { //FIXME: with CacheKey {
     override def apply(sa: ScalafixArguments): ScalafixArguments =
       sa.withScalacOptions(options.asJava)
   }
 
-  case class Classpath(classpath: Seq[Path]) extends Arg {
+  case class Classpath(classpath: Seq[Path]) extends Arg { //FIXME: with CacheKey {
     override def apply(sa: ScalafixArguments): ScalafixArguments =
       sa.withClasspath(classpath.asJava)
+  }
+
+  case object NoCache extends Arg with CacheKey {
+    override def apply(sa: ScalafixArguments): ScalafixArguments =
+      sa // caching is currently implemented in sbt-scalafix itself
   }
 }
 
@@ -143,7 +152,7 @@ class ScalafixInterface private (
     catch { case NonFatal(e) => throw new InvalidArgument(e.getMessage) }
 
   def validate(): Option[ScalafixException] =
-    scalafixArguments.validate().asScala
+    Option(scalafixArguments.validate().orElse(null))
 
 }
 

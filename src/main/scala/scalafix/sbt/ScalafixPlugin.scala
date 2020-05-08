@@ -8,8 +8,12 @@ import sbt.Keys._
 import sbt._
 import sbt.internal.sbtscalafix.{Compat, JLineAccess}
 import sbt.plugins.JvmPlugin
+import sbt.internal.sbtscalafix.Caching._
 import scalafix.interfaces.ScalafixError
 import scalafix.internal.sbt._
+
+import scala.util.Try
+import scala.util.control.NoStackTrace
 
 object ScalafixPlugin extends AutoPlugin {
   override def trigger: PluginTrigger = allRequirements
@@ -26,6 +30,10 @@ object ScalafixPlugin extends AutoPlugin {
         "Run scalafix rule in this project and configuration. " +
           "For example: scalafix RemoveUnusedImports. " +
           "To run on test sources use test:scalafix."
+      )
+    val scalafixCaching: SettingKey[Boolean] =
+      settingKey[Boolean](
+        "Cache scalafix invocations (off by default, still experimental)."
       )
     val scalafixResolvers: SettingKey[Seq[Repository]] =
       settingKey[Seq[Repository]](
@@ -107,6 +115,7 @@ object ScalafixPlugin extends AutoPlugin {
       )
     },
     scalafixConfig := None, // let scalafix-cli try to infer $CWD/.scalafix.conf
+    scalafixCaching := false,
     scalafixResolvers := ScalafixCoursier.defaultResolvers,
     scalafixDependencies := Nil,
     commands += ScalafixEnable.command
@@ -178,11 +187,15 @@ object ScalafixPlugin extends AutoPlugin {
           scalafixResolvers.in(ThisBuild).value,
           projectDepsInternal
         )
-        val mainInterface = mainInterface0.withArgs(
-          Arg.Config(scalafixConf),
-          Arg.Rules(shell.rules),
-          Arg.ParsedArgs(shell.extra)
-        )
+        val maybeNoCache =
+          if (shell.noCache || !scalafixCaching.value) Seq(Arg.NoCache) else Nil
+        val mainInterface = mainInterface0
+          .withArgs(maybeNoCache: _*)
+          .withArgs(
+            Arg.Config(scalafixConf),
+            Arg.Rules(shell.rules),
+            Arg.ParsedArgs(shell.extra)
+          )
         val rulesThatWillRun = mainInterface.rulesThatWillRun()
         val isSemantic = rulesThatWillRun.exists(_.kind().isSemantic)
         if (isSemantic) {
@@ -205,7 +218,7 @@ object ScalafixPlugin extends AutoPlugin {
       config: Configuration
   ): Def.Initialize[Task[Unit]] = Def.task {
     val files = filesToFix(shellArgs, config).value
-    runArgs(mainInterface.withArgs(Arg.Paths(files)), streams.value.log)
+    runArgs(mainInterface.withArgs(Arg.Paths(files)), streams.value)
   }
 
   private def scalafixSemantic(
@@ -229,7 +242,7 @@ object ScalafixPlugin extends AutoPlugin {
           Arg.Paths(files),
           Arg.Classpath(fullClasspath.value.map(_.data.toPath))
         )
-        runArgs(semanticInterface, streams.value.log)
+        runArgs(semanticInterface, streams.value)
       }
     } else {
       Def.task {
@@ -247,18 +260,78 @@ object ScalafixPlugin extends AutoPlugin {
 
   private def runArgs(
       interface: ScalafixInterface,
-      logger: Logger
+      streams: TaskStreams
   ): Unit = {
     val paths = interface.args.collect { case Arg.Paths(paths) => paths }.flatten
     if (paths.nonEmpty) {
       if (paths.lengthCompare(1) > 0) {
-        logger.info(s"Running scalafix on ${paths.size} Scala sources")
+        streams.log.info(s"Running scalafix on ${paths.size} Scala sources")
       }
 
-      val errors = interface.run()
-      if (errors.nonEmpty) {
-        throw new ScalafixFailed(errors.toList)
+      val cacheKeyArgs = interface.args.collect {
+        case cacheKey: Arg.CacheKey => cacheKey
       }
+      val pathsFilesInfo = FilesInfo
+        .lastModified(paths.map(_.toFile).toSet)
+        .asInstanceOf[FilesInfo[ModifiedFileInfo]]
+
+      // used to signal that one of the argument cannot be reliably stamped
+      object StampingImpossible extends RuntimeException with NoStackTrace
+
+      implicit val stamper = new CacheKeysStamper {
+        override protected def stamp: Arg.CacheKey => Unit = {
+          case Arg.ToolClasspath(classLoader) =>
+            //FIXME: stamp content of files/directories, don't cache if remote
+            write(classLoader.getURLs)
+          case Arg.Rules(rules) =>
+            //FIXME: don't cache if remote
+            write(rules)
+          case Arg.Config(file) =>
+            //FIXME: stamp default conf file when not provided
+            write(file.map(p => FileInfo.lastModified(p.toFile)))
+          case Arg.ParsedArgs(args) =>
+            val cacheKeys = args.filter {
+              case "--check" | "--test" =>
+                // CHECK & IN_PLACE can share the same cache
+                false
+              case "--stdout" =>
+                // --stdout cannot be cached as we don't capture the output to replay it
+                throw StampingImpossible
+              case _ => true
+            }
+            write(cacheKeys)
+          case Arg.NoCache =>
+            throw StampingImpossible
+        }
+      }
+
+      def diffWithPreviousRun[T](f: Boolean => T): T = {
+        val tracker = Tracked.inputChanged(streams.cacheDirectory / "inputs") {
+          (inputChanged: Boolean, _: Seq[Arg.CacheKey]) =>
+            Tracked.outputChanged(streams.cacheDirectory / "outputs") {
+              (outputChanged: Boolean, _: FilesInfo[ModifiedFileInfo]) =>
+                f(inputChanged || outputChanged)
+            }
+        }
+        Try(tracker(cacheKeyArgs)(() => pathsFilesInfo)).recover {
+          // in sbt 1.x, this is not necessary as any exception thrown during stamping is already silently ignored,
+          // but having this here helps keeping code as common as possible
+          // https://github.com/sbt/util/blob/v1.0.0/util-tracking/src/main/scala/sbt/util/Tracked.scala#L180
+          case _ @StampingImpossible => f(true)
+        }.get
+      }
+
+      diffWithPreviousRun { changed =>
+        if (changed) {
+          //FIXME: only run on modified/new files, ignore deletions
+          val errors = interface.run()
+          if (errors.nonEmpty) throw new ScalafixFailed(errors.toList)
+        } else {
+          streams.log.debug(s"already ran on ${paths.length} files")
+        }
+        ()
+      }
+
     } else {
       () // do nothing
     }
