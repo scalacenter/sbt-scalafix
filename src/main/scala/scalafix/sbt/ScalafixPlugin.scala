@@ -190,11 +190,8 @@ object ScalafixPlugin extends AutoPlugin {
       shellArgs: ShellArgs,
       config: Configuration
   ): Def.Initialize[Task[Unit]] = Def.task {
-    runArgs(
-      filesToFix(shellArgs, config).value,
-      mainInterface,
-      streams.value.log
-    )
+    val files = filesToFix(shellArgs, config).value
+    runArgs(mainInterface.withArgs(Arg.Paths(files)), streams.value.log)
   }
 
   private def scalafixSemantic(
@@ -218,11 +215,7 @@ object ScalafixPlugin extends AutoPlugin {
           Arg.Paths(files),
           Arg.Classpath(fullClasspath.value.map(_.data.toPath))
         )
-        runArgs(
-          files,
-          semanticInterface,
-          streams.value.log
-        )
+        runArgs(semanticInterface, streams.value.log)
       }
     } else {
       Def.task {
@@ -239,20 +232,16 @@ object ScalafixPlugin extends AutoPlugin {
   }
 
   private def runArgs(
-      paths: Seq[Path],
       interface: ScalafixInterface,
       logger: Logger
   ): Unit = {
-    val finalInterface = interface.withArgs(
-      Arg.Paths(paths)
-    )
-
+    val paths = interface.args.collect { case Arg.Paths(paths) => paths }.flatten
     if (paths.nonEmpty) {
       if (paths.lengthCompare(1) > 0) {
         logger.info(s"Running scalafix on ${paths.size} Scala sources")
       }
 
-      val errors = finalInterface.run()
+      val errors = interface.run()
       if (errors.nonEmpty) {
         throw new ScalafixFailed(errors.toList)
       }
