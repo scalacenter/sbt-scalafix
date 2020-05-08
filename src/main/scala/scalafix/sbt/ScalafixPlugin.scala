@@ -1,18 +1,14 @@
 package scalafix.sbt
 
 import java.nio.file.Path
-import java.{util => jutil}
 
 import com.geirsson.coursiersmall.Repository
 import sbt.Keys._
+import sbt._
 import sbt.internal.sbtscalafix.{Compat, JLineAccess}
 import sbt.plugins.JvmPlugin
-import sbt.{Def, _}
-import scalafix.interfaces._
+import scalafix.interfaces.ScalafixError
 import scalafix.internal.sbt._
-
-import scala.collection.JavaConverters._
-import scala.util.control.NonFatal
 
 object ScalafixPlugin extends AutoPlugin {
   override def trigger: PluginTrigger = allRequirements
@@ -107,13 +103,12 @@ object ScalafixPlugin extends AutoPlugin {
   private var scalafixInterface: () => ScalafixInterface =
     () => throw new UninitializedError
 
-  private def scalafixArgs(): ScalafixArguments = scalafixInterface().args
   private def scalafixArgsFromShell(
       shell: ShellArgs,
       projectDepsExternal: Seq[ModuleID],
       baseResolvers: Seq[Repository],
       projectDepsInternal: Seq[File]
-  ) = {
+  ): (ShellArgs, ScalafixInterface) = {
     val (dependencyRules, rules) =
       shell.rules.partition(_.startsWith("dependency:"))
     val parsed = dependencyRules.map {
@@ -134,7 +129,7 @@ object ScalafixPlugin extends AutoPlugin {
       projectDepsInternal
     )
     val newShell = shell.copy(rules = rules ++ parsed.map(_.ruleName))
-    (newShell, interface.args)
+    (newShell, interface)
 
   }
 
@@ -147,7 +142,7 @@ object ScalafixPlugin extends AutoPlugin {
         // Unfortunately, local rules will not show up as completions in the parser, as that parser can only depend
         // on global settings (see note in initialize), while local rules classpath must
         // be looked up via tasks on projects
-        loadedRules = () => scalafixArgs().availableRules().asScala,
+        loadedRules = () => scalafixInterface().availableRules(),
         terminalWidth = Some(JLineAccess.terminalWidth)
       ).parser.parsed
 
@@ -163,66 +158,69 @@ object ScalafixPlugin extends AutoPlugin {
         scalafixHelp
       } else {
         val scalafixConf = scalafixConfig.value.map(_.toPath)
-        val (shell, mainArgs0) = scalafixArgsFromShell(
+        val (shell, mainInterface0) = scalafixArgsFromShell(
           shell0,
           projectDepsExternal,
           scalafixResolvers.in(ThisBuild).value,
           projectDepsInternal
         )
-        val mainArgs = mainArgs0
-          .withConfig(jutil.Optional.ofNullable(scalafixConf.orNull))
-          .withRules(shell.rules.asJava)
-          .safeWithArgs(shell.extra)
-        val rulesThatWillRun = mainArgs.safeRulesThatWillRun()
+        val mainInterface = mainInterface0.withArgs(
+          Arg.Config(scalafixConf),
+          Arg.Rules(shell.rules),
+          Arg.ParsedArgs(shell.extra)
+        )
+        val rulesThatWillRun = mainInterface.rulesThatWillRun()
         val isSemantic = rulesThatWillRun.exists(_.kind().isSemantic)
         if (isSemantic) {
           val names = rulesThatWillRun.map(_.name())
-          scalafixSemantic(names, mainArgs, shell, config)
+          scalafixSemantic(names, mainInterface, shell, config)
         } else {
-          scalafixSyntactic(mainArgs, shell, config)
+          scalafixSyntactic(mainInterface, shell, config)
         }
       }
     }
   private def scalafixHelp: Def.Initialize[Task[Unit]] =
     Def.task {
-      scalafixArgs().withParsedArguments(List("--help").asJava).run()
+      scalafixInterface().withArgs(Arg.ParsedArgs(List("--help"))).run()
       ()
     }
 
   private def scalafixSyntactic(
-      mainArgs: ScalafixArguments,
+      mainInterface: ScalafixInterface,
       shellArgs: ShellArgs,
       config: Configuration
   ): Def.Initialize[Task[Unit]] = Def.task {
     runArgs(
       filesToFix(shellArgs, config).value,
-      mainArgs,
+      mainInterface,
       streams.value.log
     )
   }
 
   private def scalafixSemantic(
       ruleNames: Seq[String],
-      mainArgs: ScalafixArguments,
+      mainArgs: ScalafixInterface,
       shellArgs: ShellArgs,
       config: Configuration
   ): Def.Initialize[Task[Unit]] = Def.taskDyn {
     val dependencies = allDependencies.value
     val files = filesToFix(shellArgs, config).value
-    val withScalaArgs = mainArgs
-      .withScalaVersion(scalaVersion.value)
-      .withScalacOptions(scalacOptions.value.asJava)
+    val withScalaInterface = mainArgs.withArgs(
+      Arg.ScalaVersion(scalaVersion.value),
+      Arg.ScalacOptions(scalacOptions.value)
+    )
     val errors = new SemanticRuleValidator(
       new SemanticdbNotFound(ruleNames, scalaVersion.value, sbtVersion.value)
-    ).findErrors(files, dependencies, withScalaArgs)
+    ).findErrors(files, dependencies, withScalaInterface)
     if (errors.isEmpty) {
       Def.task {
-        val args = withScalaArgs.withClasspath(
-          fullClasspath.value.map(_.data.toPath).asJava
+        val semanticInterface = withScalaInterface.withArgs(
+          Arg.Paths(files),
+          Arg.Classpath(fullClasspath.value.map(_.data.toPath))
         )
         runArgs(
           files,
-          args,
+          semanticInterface,
           streams.value.log
         )
       }
@@ -242,18 +240,19 @@ object ScalafixPlugin extends AutoPlugin {
 
   private def runArgs(
       paths: Seq[Path],
-      mainArgs: ScalafixArguments,
+      interface: ScalafixInterface,
       logger: Logger
   ): Unit = {
-    val finalArgs = mainArgs
-      .withPaths(paths.asJava)
+    val finalInterface = interface.withArgs(
+      Arg.Paths(paths)
+    )
 
     if (paths.nonEmpty) {
       if (paths.lengthCompare(1) > 0) {
         logger.info(s"Running scalafix on ${paths.size} Scala sources")
       }
 
-      val errors = finalArgs.run()
+      val errors = finalInterface.run()
       if (errors.nonEmpty) {
         throw new ScalafixFailed(errors.toList)
       }
@@ -287,23 +286,6 @@ object ScalafixPlugin extends AutoPlugin {
         }
       }
     }
-
-  implicit class XtensionArgs(mainArgs: ScalafixArguments) {
-    def safeRulesThatWillRun(): Seq[ScalafixRule] = {
-      try mainArgs.rulesThatWillRun().asScala
-      catch {
-        case NonFatal(e) =>
-          throw new InvalidArgument(e.getMessage)
-      }
-    }
-    def safeWithArgs(args: Seq[String]): ScalafixArguments = {
-      try mainArgs.withParsedArguments(args.asJava)
-      catch {
-        case NonFatal(e) =>
-          throw new InvalidArgument(e.getMessage)
-      }
-    }
-  }
 
   final class UninitializedError extends RuntimeException("uninitialized value")
 }

@@ -8,7 +8,6 @@ import sbt._
 import sbt.internal.sbtscalafix.Compat
 import scalafix.interfaces.ScalafixError
 
-import scala.collection.JavaConverters._
 import org.scalatest.funsuite.AnyFunSuite
 import scala.util.Properties
 
@@ -27,13 +26,13 @@ class ScalafixAPISuite extends AnyFunSuite {
     assume(!Properties.isWin)
     val baos = new ByteArrayOutputStream()
     val logger = Compat.ConsoleLogger(new PrintStream(baos))
-    val args = ScalafixInterface
+    val interface = ScalafixInterface
       .fromToolClasspath(
         List("com.geirsson" %% "example-scalafix-rule" % "1.3.0"),
         ScalafixCoursier.defaultResolvers,
-        logger
+        logger,
+        new PrintStream(baos)
       )()
-      .args
     val tmp = Files.createTempFile("scalafix", "Tmp.scala")
     tmp.toFile.deleteOnExit()
     Files.write(
@@ -45,25 +44,25 @@ class ScalafixAPISuite extends AnyFunSuite {
         |}
         |""".stripMargin.getBytes()
     )
-    val availableRules = args.availableRules().asScala.toList.map(_.name())
+    val availableRules = interface.availableRules().toList.map(_.name())
     assert(availableRules.contains("SyntacticRule"))
-    val mainArgs = args
-      .withPrintStream(new PrintStream(baos))
-      .withPaths(List(tmp).asJava)
-      .withRules(
+    val mainInterface = interface.withArgs(
+      Arg.Paths(List(tmp)),
+      Arg.Rules(
         List(
           "SyntacticRule", // from example-scalafix-rule
           "ProcedureSyntax",
           "DisableSyntax"
-        ).asJava
-      )
-      .withParsedArguments(
+        )
+      ),
+      Arg.ParsedArgs(
         List(
           "--settings.DisableSyntax.noSemicolons",
           "true"
-        ).asJava
+        )
       )
-    val obtainedError = mainArgs.run().toList
+    )
+    val obtainedError = mainInterface.run().toList
     val out = fansi.Str(baos.toString()).plainText
     assert(obtainedError == List(ScalafixError.LinterError), out)
     val obtained = new String(Files.readAllBytes(tmp))
