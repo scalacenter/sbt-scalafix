@@ -3,6 +3,7 @@ package scalafix.sbt
 import java.nio.file.Path
 
 import com.geirsson.coursiersmall.Repository
+import sbt.KeyRanks.Invisible
 import sbt.Keys._
 import sbt._
 import sbt.internal.sbtscalafix.{Compat, JLineAccess}
@@ -47,7 +48,13 @@ object ScalafixPlugin extends AutoPlugin {
 
     def scalafixConfigSettings(config: Configuration): Seq[Def.Setting[_]] =
       Seq(
-        scalafix := scalafixInputTask(config).evaluated
+        scalafix := scalafixInputTask(config).evaluated,
+        // In some cases (I haven't been able to understand when/why, but this also happens for bgRunMain while
+        // fgRunMain is fine), there is no specific streams attached to InputTasks, so  we they end up sharing the
+        // global streams, causing issues for cache storage. This does not happen for Tasks, so we define a dummy one
+        // to acquire a distinct streams instance for each InputTask.
+        scalafixDummyTask := (()),
+        streams.in(scalafix) := streams.in(scalafixDummyTask).value
       )
 
     @deprecated("This setting is no longer used", "0.6.0")
@@ -69,6 +76,13 @@ object ScalafixPlugin extends AutoPlugin {
   }
 
   import autoImport._
+
+  private val scalafixDummyTask: TaskKey[Unit] =
+    TaskKey(
+      "scalafixDummyTask",
+      "Implementation detail - do not use",
+      Invisible
+    )
 
   override lazy val projectConfigurations: Seq[Configuration] =
     Seq(ScalafixConfig)
