@@ -102,6 +102,33 @@ $ exec chmod 000 src/main/scala/Valid.scala
 -> scalafix --tool-classpath=target/scala-2.12/classes RemoveUnused
 $ delete src/main/scala
 
+# files should be re-checked if a local source rule is used
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/Null.scala src/main/scala/Null.scala
+> scalafix --rules=file:files/NamedLiteralArguments.scala
+$ exec chmod 000 src/main/scala/Null.scala
+-> scalafix --rules=file:files/NamedLiteralArguments.scala
+$ delete src/main/scala
+
+# files should be re-checked if a https source rule is used
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/Null.scala src/main/scala/Null.scala
+> scalafix --rules=https://gist.githubusercontent.com/olafurpg/eeccf32f035d13f0728bc94d8ec0a776/raw/78c81bb7f390eb98178dd26ea03c42bd5a998666/NamedLiteralArguments.scala
+$ exec chmod 000 src/main/scala/Null.scala
+-> scalafix --rules=https://gist.githubusercontent.com/olafurpg/eeccf32f035d13f0728bc94d8ec0a776/raw/78c81bb7f390eb98178dd26ea03c42bd5a998666/NamedLiteralArguments.scala
+$ delete src/main/scala
+
+# files should be re-checked if a github source rule is used
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/Null.scala src/main/scala/Null.scala
+> scalafix --rules=github:olafurpg/named-literal-arguments
+$ exec chmod 000 src/main/scala/Null.scala
+-> scalafix --rules=github:olafurpg/named-literal-arguments
+$ delete src/main/scala
+
 # a re-run after a run failing because of a lint error should fail
 > set scalafixConfig := None
 $ mkdir src/main/scala

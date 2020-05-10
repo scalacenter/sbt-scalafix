@@ -287,7 +287,16 @@ object ScalafixPlugin extends AutoPlugin {
             // and assume JARs are stable (a new version would have a different URL)
             write(classLoader.getURLs)
           case Arg.Rules(rules) =>
-            //FIXME: don't cache if remote
+            rules.foreach {
+              case source
+                  if source.startsWith("file:") ||
+                    source.startsWith("github:") ||
+                    source.startsWith("http:") ||
+                    source.startsWith("https:") =>
+                // don't bother stamping the source files
+                throw StampingImpossible
+              case _ =>
+            }
             write(rules)
           case Arg.Config(file) =>
             //FIXME: stamp default conf file when not provided
