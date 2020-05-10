@@ -264,16 +264,9 @@ object ScalafixPlugin extends AutoPlugin {
   ): Unit = {
     val paths = interface.args.collect { case Arg.Paths(paths) => paths }.flatten
     if (paths.nonEmpty) {
-      if (paths.lengthCompare(1) > 0) {
-        streams.log.info(s"Running scalafix on ${paths.size} Scala sources")
-      }
-
       val cacheKeyArgs = interface.args.collect {
         case cacheKey: Arg.CacheKey => cacheKey
       }
-      val pathsFilesInfo = FilesInfo
-        .lastModified(paths.map(_.toFile).toSet)
-        .asInstanceOf[FilesInfo[ModifiedFileInfo]]
 
       // used to signal that one of the argument cannot be reliably stamped
       object StampingImpossible extends RuntimeException with NoStackTrace
@@ -326,30 +319,45 @@ object ScalafixPlugin extends AutoPlugin {
         }
       }
 
-      def diffWithPreviousRun[T](f: Boolean => T): T = {
+      def diffWithPreviousRun[T](f: (Boolean, ChangeReport[File]) => T): T = {
         val tracker = Tracked.inputChanged(streams.cacheDirectory / "inputs") {
           (inputChanged: Boolean, _: Seq[Arg.CacheKey]) =>
-            Tracked.outputChanged(streams.cacheDirectory / "outputs") {
-              (outputChanged: Boolean, _: FilesInfo[ModifiedFileInfo]) =>
-                f(inputChanged || outputChanged)
+            val diffOutputs: Difference = Tracked.diffOutputs(
+              streams.cacheDirectory / "outputs",
+              lastModifiedStyle
+            )
+            diffOutputs(paths.map(_.toFile).toSet) {
+              diffTargets: ChangeReport[File] =>
+                f(inputChanged, diffTargets)
             }
         }
-        Try(tracker(cacheKeyArgs)(() => pathsFilesInfo)).recover {
+        Try(tracker(cacheKeyArgs)).recover {
           // in sbt 1.x, this is not necessary as any exception thrown during stamping is already silently ignored,
           // but having this here helps keeping code as common as possible
           // https://github.com/sbt/util/blob/v1.0.0/util-tracking/src/main/scala/sbt/util/Tracked.scala#L180
-          case _ @StampingImpossible => f(true)
+          case _ @StampingImpossible => f(true, new EmptyChangeReport())
         }.get
       }
 
-      diffWithPreviousRun { changed =>
-        if (changed) {
-          //FIXME: only run on modified/new files, ignore deletions
-          val errors = interface.run()
-          if (errors.nonEmpty) throw new ScalafixFailed(errors.toList)
+      diffWithPreviousRun { (cacheKeyArgsChanged, diffTargets) =>
+        val errors = if (cacheKeyArgsChanged) {
+          streams.log.info(s"Running scalafix on ${paths.size} Scala sources")
+          interface.run()
         } else {
-          streams.log.debug(s"already ran on ${paths.length} files")
+          val dirtyTargets = diffTargets.modified -- diffTargets.removed
+          if (dirtyTargets.nonEmpty) {
+            streams.log.info(
+              s"Running scalafix on ${dirtyTargets.size} Scala sources (incremental)"
+            )
+            interface
+              .withArgs(Arg.Paths(dirtyTargets.map(_.toPath).toSeq))
+              .run()
+          } else {
+            streams.log.debug(s"already ran on ${paths.length} files")
+            Nil
+          }
         }
+        if (errors.nonEmpty) throw new ScalafixFailed(errors.toList)
         ()
       }
 

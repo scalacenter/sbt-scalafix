@@ -1,11 +1,14 @@
 package sbt.internal.sbtscalafix
 
+import sbt.FileInfo
 import scalafix.internal.sbt.Arg
 import sjsonnew._
 
 import scala.util.DynamicVariable
 
 object Caching {
+
+  val lastModifiedStyle = FileInfo.lastModified
 
   trait CacheKeysStamper
       extends JsonFormat[Seq[Arg.CacheKey]]

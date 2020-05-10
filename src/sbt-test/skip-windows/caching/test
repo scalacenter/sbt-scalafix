@@ -66,6 +66,27 @@ $ copy-file files/UnusedImports.scala src/main/scala/InitiallyValid.scala
 -> scalafix --check RemoveUnused
 $ delete src/main/scala
 
+# updating a source file should trigger a re-run on that file only
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/Valid.scala src/main/scala/StaticValid.scala
+$ copy-file files/Null.scala src/main/scala/DynamicValid.scala
+> scalafix --check ProcedureSyntax
+$ copy-file files/UnusedImports.scala src/main/scala/DynamicValid.scala
+$ exec chmod 000 src/main/scala/StaticValid.scala
+> scalafix --check ProcedureSyntax
+$ delete src/main/scala
+
+# adding a source file should trigger a run on that file only
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/Null.scala src/main/scala/Valid.scala
+> scalafix --check ProcedureSyntax
+$ copy-file files/Null.scala src/main/scala/NewValidFile.scala
+$ exec chmod 000 src/main/scala/Valid.scala
+> scalafix --check ProcedureSyntax
+$ delete src/main/scala
+
 # files should be re-checked after adding an extra rule
 > set scalafixConfig := None
 $ mkdir src/test/scala
