@@ -298,9 +298,14 @@ object ScalafixPlugin extends AutoPlugin {
               case _ =>
             }
             write(rules)
-          case Arg.Config(file) =>
-            //FIXME: stamp default conf file when not provided
-            write(file.map(p => FileInfo.lastModified(p.toFile)))
+          case Arg.Config(maybeFile) =>
+            maybeFile match {
+              case Some(path) =>
+                write(FileInfo.lastModified(path.toFile))
+              case None =>
+                val defaultConfigFile = file(".scalafix.conf")
+                write(FileInfo.lastModified(defaultConfigFile))
+            }
           case Arg.ParsedArgs(args) =>
             val cacheKeys = args.filter {
               case "--check" | "--test" =>

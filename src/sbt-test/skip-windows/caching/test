@@ -83,6 +83,17 @@ $ copy-file files/Null.scala src/main/scala/InitiallyValid.scala
 -> scalafix --check
 $ delete src/main/scala
 
+# files should be re-checked after updating the default configuration (even if the rule is the same)
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/DisableSyntaxVar.scalafix.conf .scalafix.conf
+$ copy-file files/Null.scala src/main/scala/InitiallyValid.scala
+> scalafix --check
+$ copy-file files/DisableSyntaxNull.scalafix.conf .scalafix.conf
+-> scalafix --check
+$ delete src/main/scala
+$ delete .scalafix.conf
+
 # files should be re-checked if something changed in the dependencies (even if the rule is the same)
 > set scalafixConfig := None
 $ mkdir src/main/scala
