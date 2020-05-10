@@ -281,7 +281,10 @@ object ScalafixPlugin extends AutoPlugin {
       implicit val stamper = new CacheKeysStamper {
         override protected def stamp: Arg.CacheKey => Unit = {
           case Arg.ToolClasspath(classLoader) =>
-            //FIXME: stamp content of files/directories, don't cache if remote
+            val urls = classLoader.getURLs
+            // to keep it simple, don't support caching when dealing with directories
+            if (urls.exists(_.toString.endsWith("/"))) throw StampingImpossible
+            // and assume JARs are stable (a new version would have a different URL)
             write(classLoader.getURLs)
           case Arg.Rules(rules) =>
             //FIXME: don't cache if remote
@@ -296,6 +299,10 @@ object ScalafixPlugin extends AutoPlugin {
                 false
               case "--stdout" =>
                 // --stdout cannot be cached as we don't capture the output to replay it
+                throw StampingImpossible
+              case "--tool-classpath" =>
+                // custom tool classpaths might contain directories for which we would need to stamp all files, so
+                // just disable caching for now to keep it simple and to be safe
                 throw StampingImpossible
               case _ => true
             }

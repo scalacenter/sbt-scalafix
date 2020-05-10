@@ -6,6 +6,7 @@ inThisBuild(
     addCompilerPlugin(scalafixSemanticdb),
     scalacOptions += "-Yrangepos",
     scalacOptions += "-Ywarn-unused", // for RemoveUnused
-    scalafixCaching := true
+    scalafixCaching := true,
+    scalafixDependencies += "com.geirsson" %% "example-scalafix-rule" % "1.2.0"
   )
 )

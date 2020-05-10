@@ -83,6 +83,25 @@ $ copy-file files/Null.scala src/main/scala/InitiallyValid.scala
 -> scalafix --check
 $ delete src/main/scala
 
+# files should be re-checked if something changed in the dependencies (even if the rule is the same)
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/Valid.scala src/main/scala/Valid.scala
+> scalafix SyntacticRule
+> 'set scalafixDependencies in ThisBuild := Seq("com.geirsson" %% "example-scalafix-rule" % "1.3.0")'
+$ exec chmod 000 src/main/scala/Valid.scala
+-> scalafix SyntacticRule
+$ delete src/main/scala
+
+# files should be re-checked if a custom tool classpath is used (even if the rule is the same)
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/Valid.scala src/main/scala/Valid.scala
+> scalafix --tool-classpath=target/scala-2.12/classes RemoveUnused
+$ exec chmod 000 src/main/scala/Valid.scala
+-> scalafix --tool-classpath=target/scala-2.12/classes RemoveUnused
+$ delete src/main/scala
+
 # a re-run after a run failing because of a lint error should fail
 > set scalafixConfig := None
 $ mkdir src/main/scala
