@@ -290,7 +290,8 @@ object ScalafixPlugin extends AutoPlugin {
                 throw StampingImpossible
               case _ =>
             }
-            write(rules)
+            // don't stamp rules explicitly requested on the CLI but those which will actually run
+            write(interface.rulesThatWillRun().map(_.name()))
           case Arg.Config(maybeFile) =>
             maybeFile match {
               case Some(path) =>
@@ -303,6 +304,9 @@ object ScalafixPlugin extends AutoPlugin {
             val cacheKeys = args.filter {
               case "--check" | "--test" =>
                 // CHECK & IN_PLACE can share the same cache
+                false
+              case "--syntactic" =>
+                // this only affects rules selection, already accounted for in Arg.Rules
                 false
               case "--stdout" =>
                 // --stdout cannot be cached as we don't capture the output to replay it

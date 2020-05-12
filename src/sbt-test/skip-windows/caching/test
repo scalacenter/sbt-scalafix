@@ -95,6 +95,18 @@ $ copy-file files/ProcedureSyntax.scala src/test/scala/InitiallyValid.scala
 -> test:scalafix --check RemoveUnused ProcedureSyntax
 $ delete src/test/scala
 
+# updating the rule-related flags should not invalidate the cache as long as rules that will run do not change
+> set scalafixConfig := Some(file("files/DisableSyntaxVar.scalafix.conf"))
+$ mkdir src/main/scala
+$ copy-file files/ProcedureSyntax.scala src/main/scala/InitiallyValid.scala
+> scalafix --check
+$ exec chmod 000 src/main/scala/InitiallyValid.scala
+> scalafix --check DisableSyntax
+> scalafix --check --syntactic DisableSyntax
+> scalafix --check --syntactic DisableSyntax RemoveUnused
+-> scalafix --check ProcedureSyntax
+$ delete src/main/scala
+
 # files should be re-checked after updating the configuration (even if the rule is the same)
 > set scalafixConfig := Some(file("files/DisableSyntaxVar.scalafix.conf"))
 $ mkdir src/main/scala
