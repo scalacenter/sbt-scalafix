@@ -202,13 +202,14 @@ $ exec chmod 000 src/main/scala/ToPatch.scala
 -> scalafix --stdout RemoveUnused
 $ delete src/main/scala
 
-# make sure the cache can be disabled via a CLI arg after a caching run
+# make sure the cache can be temporarily disabled via a CLI arg after a caching run, without losing the cache for further invocations
 > set scalafixConfig := None
 $ mkdir src/main/scala
 $ copy-file files/Valid.scala src/main/scala/Valid.scala
 > scalafix ProcedureSyntax
 $ exec chmod 000 src/main/scala/Valid.scala
 -> scalafix --no-cache ProcedureSyntax
+> scalafix ProcedureSyntax
 $ delete src/main/scala
 
 # make sure the cache can be disabled via a CLI arg, for successive uncached runs
