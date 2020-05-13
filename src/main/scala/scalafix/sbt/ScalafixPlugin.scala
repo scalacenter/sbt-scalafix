@@ -143,12 +143,14 @@ object ScalafixPlugin extends AutoPlugin {
       if (shell0.rules.isEmpty && shell0.extra == List("--help")) {
         scalafixHelp
       } else {
+        val scalafixConf = scalafixConfig.value.map(_.toPath)
         val (shell, mainArgs0) = scalafixArgsFromShell(
           shell0,
           scalafixDependencies.in(ThisBuild).value,
           scalafixResolvers.in(ThisBuild).value
         )
         val mainArgs = mainArgs0
+          .withConfig(jutil.Optional.ofNullable(scalafixConf.orNull))
           .withRules(shell.rules.asJava)
           .safeWithArgs(shell.extra)
         val rulesThatWillRun = mainArgs.safeRulesThatWillRun()
@@ -175,8 +177,7 @@ object ScalafixPlugin extends AutoPlugin {
     runArgs(
       filesToFix(shellArgs, config).value,
       mainArgs,
-      streams.value.log,
-      scalafixConfig.value
+      streams.value.log
     )
   }
 
@@ -202,8 +203,7 @@ object ScalafixPlugin extends AutoPlugin {
         runArgs(
           files,
           args,
-          streams.value.log,
-          scalafixConfig.value
+          streams.value.log
         )
       }
     } else {
@@ -223,11 +223,9 @@ object ScalafixPlugin extends AutoPlugin {
   private def runArgs(
       paths: Seq[Path],
       mainArgs: ScalafixArguments,
-      logger: Logger,
-      config: Option[File]
+      logger: Logger
   ): Unit = {
     val finalArgs = mainArgs
-      .withConfig(jutil.Optional.ofNullable(config.map(_.toPath).orNull))
       .withPaths(paths.asJava)
 
     if (paths.nonEmpty) {
