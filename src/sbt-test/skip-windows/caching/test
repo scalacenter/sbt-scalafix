@@ -252,3 +252,31 @@ $ copy-file files/Valid.scala src/main/scala/Valid.scala
 $ exec chmod 000 src/main/scala/Valid.scala
 -> scalafix ProcedureSyntax
 $ delete src/main/scala
+
+# make sure cache is invalidated after changing scalafix version
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/Valid.scala src/main/scala/Valid.scala
+> scalafix --check ProcedureSyntax
+> reload plugins
+> 'set dependencyOverrides += "ch.epfl.scala" % "scalafix-interfaces" % "0.9.14"' // anything else than above
+> session save
+> reload return
+$ exec chmod 000 src/main/scala/Valid.scala
+-> scalafix --check ProcedureSyntax
+$ delete src/main/scala
+
+# make sure cache is invalidated after changing scalafix version when no custom dependency is set
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/Valid.scala src/main/scala/Valid.scala
+> set scalafixDependencies in ThisBuild := Nil
+> scalafix --check ProcedureSyntax
+> reload plugins
+> 'set dependencyOverrides += "ch.epfl.scala" % "scalafix-interfaces" % "0.9.13"' // anything else than current
+> session save
+> reload return
+> set scalafixDependencies in ThisBuild := Nil
+$ exec chmod 000 src/main/scala/Valid.scala
+-> scalafix --check ProcedureSyntax
+$ delete src/main/scala
