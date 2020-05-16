@@ -24,3 +24,9 @@ val service = project
     scalaVersion := Versions.scala213,
     libraryDependencies += "com.nequissimus" % "sort-imports_2.12" % "0.5.0" % ScalafixConfig
   )
+
+val sameproject = project
+  .settings(
+    scalaVersion := Versions.scala212, // the project scala version MUST match the one used by Scalafix
+    libraryDependencies += "ch.epfl.scala" %% "scalafix-core" % Versions.scalafixVersion % ScalafixConfig
+  )

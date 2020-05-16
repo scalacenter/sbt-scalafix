@@ -151,7 +151,7 @@ object ScalafixPlugin extends AutoPlugin {
         terminalWidth = Some(JLineAccess.terminalWidth)
       ).parser.parsed
 
-      val projectDepsInternal =
+      val projectDepsInternal = products.in(ScalafixConfig).value ++
         internalDependencyClasspath.in(ScalafixConfig).value.map(_.data)
       val projectDepsExternal =
         externalDependencyClasspath

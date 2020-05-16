@@ -11,3 +11,5 @@ $ delete rules/src/main/scala/local/NoOp.scala
 
 # run a rule included from a remote JAR referenced via the Scalafix ivy config
 > service/scalafix SortImports
+
+> sameproject/scalafix SameProjectSyntacticRule
