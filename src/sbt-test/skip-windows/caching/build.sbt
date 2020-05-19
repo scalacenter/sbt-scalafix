@@ -10,3 +10,13 @@ inThisBuild(
     scalafixDependencies += "com.geirsson" %% "example-scalafix-rule" % "1.2.0"
   )
 )
+
+val rules = project
+  .disablePlugins(ScalafixPlugin)
+  .settings(
+    libraryDependencies += "ch.epfl.scala" %% "scalafix-core" % Versions.scalafixVersion
+  )
+
+val root = project
+  .in(file("."))
+  .dependsOn(rules % ScalafixConfig)

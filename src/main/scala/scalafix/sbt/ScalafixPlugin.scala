@@ -1,6 +1,6 @@
 package scalafix.sbt
 
-import java.nio.file.Path
+import java.nio.file.{Path, Paths}
 
 import com.geirsson.coursiersmall.Repository
 import sbt.KeyRanks.Invisible
@@ -274,11 +274,15 @@ object ScalafixPlugin extends AutoPlugin {
       implicit val stamper = new CacheKeysStamper {
         override protected def stamp: Arg.CacheKey => Unit = {
           case Arg.ToolClasspath(classLoader) =>
-            val urls = classLoader.getURLs
-            // to keep it simple, don't support caching when dealing with directories
-            if (urls.exists(_.toString.endsWith("/"))) throw StampingImpossible
-            // and assume JARs are stable (a new version would have a different URL)
-            write(classLoader.getURLs)
+            val files = classLoader.getURLs
+              .map(url => Paths.get(url.toURI).toFile)
+              .flatMap {
+                case classDirectory if classDirectory.isDirectory =>
+                  classDirectory.**(AllPassFilter).get
+                case jar =>
+                  Seq(jar)
+              }
+            write(files.map(FileInfo.lastModified.apply))
           case Arg.Rules(rules) =>
             rules.foreach {
               case source

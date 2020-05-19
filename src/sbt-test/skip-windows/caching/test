@@ -253,6 +253,17 @@ $ exec chmod 000 src/main/scala/Valid.scala
 -> scalafix ProcedureSyntax
 $ delete src/main/scala
 
+# make sure cache is invalidated after updating a local rule definition
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/Valid.scala src/main/scala/InitiallyValid.scala
+> scalafix LocalSyntacticRule
+> rules/test:compile
+$ copy-file rules/src/test/scala/local/Boom.scala rules/src/main/scala/local/Boom.scala
+$ delete rules/src/main/scala/local/NoOp.scala
+-> scalafix LocalSyntacticRule
+$ delete src/main/scala
+
 # make sure cache is invalidated after changing scalafix version
 > set scalafixConfig := None
 $ mkdir src/main/scala
