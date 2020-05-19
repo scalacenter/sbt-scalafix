@@ -3,7 +3,6 @@ package scalafix.internal.sbt
 import java.nio.file.Path
 
 import sbt.{CrossVersion, ModuleID}
-import scalafix.interfaces.ScalafixArguments
 
 import scala.collection.mutable.ListBuffer
 
@@ -11,7 +10,7 @@ class SemanticRuleValidator(ifNotFound: SemanticdbNotFound) {
   def findErrors(
       files: Seq[Path],
       dependencies: Seq[ModuleID],
-      args: ScalafixArguments
+      interface: ScalafixInterface
   ): Seq[String] = {
     if (files.isEmpty) Nil
     else {
@@ -20,9 +19,10 @@ class SemanticRuleValidator(ifNotFound: SemanticdbNotFound) {
         dependencies.exists(_.name.startsWith("semanticdb-scalac"))
       if (!hasSemanticdb)
         errors += ifNotFound.message
-      val invalidArguments = args.validate()
-      if (invalidArguments.isPresent)
-        errors += invalidArguments.get().getMessage
+      val invalidArguments = interface.validate()
+      invalidArguments.foreach { invalidArgument =>
+        errors += invalidArgument.getMessage
+      }
       errors
     }
   }

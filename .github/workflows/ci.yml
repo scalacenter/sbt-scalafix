@@ -13,7 +13,7 @@ jobs:
       matrix:
         command:
           - "++2.12.11 test scripted"
-          - "++2.10.7 test 'scripted sbt-scalafix/*'"
+          - "++2.10.7 test 'scripted sbt-scalafix/* skip-windows/*'"
     steps:
       - uses: actions/checkout@v2
       - uses: olafurpg/setup-scala@v7

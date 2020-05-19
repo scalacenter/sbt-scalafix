@@ -1,0 +1,293 @@
+# a re-run after a no-op, successful run should be cached
+> set scalafixConfig := Some(file("files/DisableSyntaxNull.scalafix.conf"))
+$ mkdir src/main/scala
+$ copy-file files/Valid.scala src/main/scala/Valid.scala
+> scalafix
+$ exec chmod 000 src/main/scala/Valid.scala
+> scalafix
+$ delete src/main/scala
+
+# a check run after a no-op, successful run should be cached
+> set scalafixConfig := Some(file("files/DisableSyntaxNull.scalafix.conf"))
+$ mkdir src/main/scala
+$ copy-file files/Valid.scala src/main/scala/Valid.scala
+> scalafix
+$ exec chmod 000 src/main/scala/Valid.scala
+> scalafix --check
+$ delete src/main/scala
+
+# a re-run after a successful check run should be cached
+> set scalafixConfig := Some(file("files/DisableSyntaxNull.scalafix.conf"))
+$ mkdir src/main/scala
+$ copy-file files/Valid.scala src/main/scala/Valid.scala
+> scalafix --check
+$ exec chmod 000 src/main/scala/Valid.scala
+> scalafix
+$ delete src/main/scala
+
+# a check run after a successful check run should be cached
+> set scalafixConfig := Some(file("files/DisableSyntaxNull.scalafix.conf"))
+$ mkdir src/main/scala
+$ copy-file files/Valid.scala src/main/scala/Valid.scala
+> scalafix --check
+$ exec chmod 000 src/main/scala/Valid.scala
+> scalafix --check
+$ delete src/main/scala
+
+# a file patched during the last run should be cached
+> set scalafixConfig := None
+$ mkdir src/test/scala
+$ copy-file files/ProcedureSyntax.scala src/test/scala/ToPatch.scala
+$ copy-file files/Valid.scala src/test/scala/Valid.scala
+# avoid rounding in mtime that could cause false negatives in `newer`
+$ sleep 1000
+> test:scalafix ProcedureSyntax
+$ newer src/test/scala/ToPatch.scala src/test/scala/Valid.scala
+$ exec chmod 000 src/test/scala/ToPatch.scala
+$ exec chmod 000 src/test/scala/Valid.scala
+> test:scalafix ProcedureSyntax
+$ delete src/test/scala
+
+# an added file after a successful run should be checked
+> set scalafixConfig := Some(file("files/DisableSyntaxNull.scalafix.conf"))
+$ mkdir src/main/scala
+$ copy-file files/Valid.scala src/main/scala/Valid.scala
+> scalafix
+$ copy-file files/Null.scala src/main/scala/NewInvalidFile.scala
+-> scalafix
+$ delete src/main/scala
+
+# updating a source file should invalidate the cache
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/Valid.scala src/main/scala/InitiallyValid.scala
+> scalafix --check RemoveUnused
+$ copy-file files/UnusedImports.scala src/main/scala/InitiallyValid.scala
+-> scalafix --check RemoveUnused
+$ delete src/main/scala
+
+# updating a source file should trigger a re-run on that file only
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/Valid.scala src/main/scala/StaticValid.scala
+$ copy-file files/Null.scala src/main/scala/DynamicValid.scala
+> scalafix --check ProcedureSyntax
+$ copy-file files/UnusedImports.scala src/main/scala/DynamicValid.scala
+$ exec chmod 000 src/main/scala/StaticValid.scala
+> scalafix --check ProcedureSyntax
+$ delete src/main/scala
+
+# adding a source file should trigger a run on that file only
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/Null.scala src/main/scala/Valid.scala
+> scalafix --check ProcedureSyntax
+$ copy-file files/Null.scala src/main/scala/NewValidFile.scala
+$ exec chmod 000 src/main/scala/Valid.scala
+> scalafix --check ProcedureSyntax
+$ delete src/main/scala
+
+# files should be re-checked after adding an extra rule
+> set scalafixConfig := None
+$ mkdir src/test/scala
+$ copy-file files/ProcedureSyntax.scala src/test/scala/InitiallyValid.scala
+> test:scalafix --check RemoveUnused
+-> test:scalafix --check RemoveUnused ProcedureSyntax
+$ delete src/test/scala
+
+# updating the rule-related flags should not invalidate the cache as long as rules that will run do not change
+> set scalafixConfig := Some(file("files/DisableSyntaxVar.scalafix.conf"))
+$ mkdir src/main/scala
+$ copy-file files/ProcedureSyntax.scala src/main/scala/InitiallyValid.scala
+> scalafix --check
+$ exec chmod 000 src/main/scala/InitiallyValid.scala
+> scalafix --check DisableSyntax
+> scalafix --check --syntactic DisableSyntax
+> scalafix --check --syntactic DisableSyntax RemoveUnused
+-> scalafix --check ProcedureSyntax
+$ delete src/main/scala
+
+# files should be re-checked after updating the configuration (even if the rule is the same)
+> set scalafixConfig := Some(file("files/DisableSyntaxVar.scalafix.conf"))
+$ mkdir src/main/scala
+$ copy-file files/Null.scala src/main/scala/InitiallyValid.scala
+> scalafix --check
+> set scalafixConfig := Some(file("files/DisableSyntaxNull.scalafix.conf"))
+-> scalafix --check
+$ delete src/main/scala
+
+# files should be re-checked after updating the default configuration (even if the rule is the same)
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/DisableSyntaxVar.scalafix.conf .scalafix.conf
+$ copy-file files/Null.scala src/main/scala/InitiallyValid.scala
+> scalafix --check
+$ copy-file files/DisableSyntaxNull.scalafix.conf .scalafix.conf
+-> scalafix --check
+$ delete src/main/scala
+$ delete .scalafix.conf
+
+# files should be re-checked if something changed in the dependencies (even if the rule is the same)
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/Valid.scala src/main/scala/Valid.scala
+> scalafix SyntacticRule
+> 'set scalafixDependencies in ThisBuild := Seq("com.geirsson" %% "example-scalafix-rule" % "1.3.0")'
+$ exec chmod 000 src/main/scala/Valid.scala
+-> scalafix SyntacticRule
+$ delete src/main/scala
+
+# files should be re-checked if a custom tool classpath is used (even if the rule is the same)
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/Valid.scala src/main/scala/Valid.scala
+> scalafix --tool-classpath=target/scala-2.12/classes RemoveUnused
+$ exec chmod 000 src/main/scala/Valid.scala
+-> scalafix --tool-classpath=target/scala-2.12/classes RemoveUnused
+$ delete src/main/scala
+
+# files should be re-checked if a local source rule is used
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/Null.scala src/main/scala/Null.scala
+> scalafix --rules=file:files/NamedLiteralArguments.scala
+$ exec chmod 000 src/main/scala/Null.scala
+-> scalafix --rules=file:files/NamedLiteralArguments.scala
+$ delete src/main/scala
+
+# files should be re-checked if a https source rule is used
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/Null.scala src/main/scala/Null.scala
+> scalafix --rules=https://gist.githubusercontent.com/olafurpg/eeccf32f035d13f0728bc94d8ec0a776/raw/78c81bb7f390eb98178dd26ea03c42bd5a998666/NamedLiteralArguments.scala
+$ exec chmod 000 src/main/scala/Null.scala
+-> scalafix --rules=https://gist.githubusercontent.com/olafurpg/eeccf32f035d13f0728bc94d8ec0a776/raw/78c81bb7f390eb98178dd26ea03c42bd5a998666/NamedLiteralArguments.scala
+$ delete src/main/scala
+
+# files should be re-checked if a github source rule is used
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/Null.scala src/main/scala/Null.scala
+> scalafix --rules=github:olafurpg/named-literal-arguments
+$ exec chmod 000 src/main/scala/Null.scala
+-> scalafix --rules=github:olafurpg/named-literal-arguments
+$ delete src/main/scala
+
+# a re-run after a run failing because of a lint error should fail
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/Null.scala src/main/scala/Invalid.scala
+> set scalafixConfig := Some(file("files/DisableSyntaxNull.scalafix.conf"))
+-> scalafix
+-> scalafix
+$ delete src/main/scala
+
+# a re-run after a run failing because of a check error should fail
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/UnusedImports.scala src/main/scala/Invalid.scala
+-> scalafix --check RemoveUnused
+-> scalafix --check RemoveUnused
+$ delete src/main/scala
+
+# compile and test caches should be independent
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ mkdir src/test/scala
+$ copy-file files/UnusedImports.scala src/main/scala/Valid.scala
+$ copy-file files/Null.scala src/test/scala/Valid.scala
+> scalafix --check ProcedureSyntax
+> test:scalafix --check ProcedureSyntax
+$ exec chmod 000 src/main/scala/Valid.scala
+$ exec chmod 000 src/test/scala/Valid.scala
+> scalafix --check ProcedureSyntax
+> test:scalafix --check ProcedureSyntax
+$ delete src/main/scala
+$ delete src/test/scala
+
+# make sure the cache is disabled when using `--stdout`
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/UnusedImports.scala src/main/scala/ToPatch.scala
+> scalafix --stdout RemoveUnused
+$ exec chmod 000 src/main/scala/ToPatch.scala
+-> scalafix --stdout RemoveUnused
+$ delete src/main/scala
+
+# make sure the cache can be temporarily disabled via a CLI arg after a caching run, without losing the cache for further invocations
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/Valid.scala src/main/scala/Valid.scala
+> scalafix ProcedureSyntax
+$ exec chmod 000 src/main/scala/Valid.scala
+-> scalafix --no-cache ProcedureSyntax
+> scalafix ProcedureSyntax
+$ delete src/main/scala
+
+# make sure the cache can be disabled via a CLI arg, for successive uncached runs
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/Valid.scala src/main/scala/Valid.scala
+> scalafix --no-cache ProcedureSyntax
+$ exec chmod 000 src/main/scala/Valid.scala
+-> scalafix --no-cache ProcedureSyntax
+$ delete src/main/scala
+
+# make sure the cache can be disabled via a setting after a caching run
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/Valid.scala src/main/scala/Valid.scala
+> scalafix ProcedureSyntax
+> set scalafixCaching := false
+$ exec chmod 000 src/main/scala/Valid.scala
+-> scalafix ProcedureSyntax
+$ delete src/main/scala
+
+# make sure the cache can be disabled via a setting, for successive uncached runs
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/Valid.scala src/main/scala/Valid.scala
+> set scalafixCaching := false
+> scalafix ProcedureSyntax
+$ exec chmod 000 src/main/scala/Valid.scala
+-> scalafix ProcedureSyntax
+$ delete src/main/scala
+
+# make sure cache is invalidated after updating a local rule definition
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/Valid.scala src/main/scala/InitiallyValid.scala
+> scalafix LocalSyntacticRule
+> rules/test:compile
+$ copy-file rules/src/test/scala/local/Boom.scala rules/src/main/scala/local/Boom.scala
+$ delete rules/src/main/scala/local/NoOp.scala
+-> scalafix LocalSyntacticRule
+$ delete src/main/scala
+
+# make sure cache is invalidated after changing scalafix version
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/Valid.scala src/main/scala/Valid.scala
+> scalafix --check ProcedureSyntax
+> reload plugins
+> 'set dependencyOverrides += "ch.epfl.scala" % "scalafix-interfaces" % "0.9.14"' // anything else than above
+> session save
+> reload return
+$ exec chmod 000 src/main/scala/Valid.scala
+-> scalafix --check ProcedureSyntax
+$ delete src/main/scala
+
+# make sure cache is invalidated after changing scalafix version when no custom dependency is set
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ copy-file files/Valid.scala src/main/scala/Valid.scala
+> set scalafixDependencies in ThisBuild := Nil
+> scalafix --check ProcedureSyntax
+> reload plugins
+> 'set dependencyOverrides += "ch.epfl.scala" % "scalafix-interfaces" % "0.9.13"' // anything else than current
+> session save
+> reload return
+> set scalafixDependencies in ThisBuild := Nil
+$ exec chmod 000 src/main/scala/Valid.scala
+-> scalafix --check ProcedureSyntax
+$ delete src/main/scala

@@ -27,7 +27,7 @@ developers := List(
 
 commands += Command.command("ci-windows") { s =>
   "testOnly -- -l SkipWindows" ::
-    "scripted" ::
+    "scripted sbt-*/*" ::
     s
 }
 

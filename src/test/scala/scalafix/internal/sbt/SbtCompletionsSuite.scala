@@ -3,7 +3,6 @@ package scalafix.internal.sbt
 import org.eclipse.jgit.lib.AbbreviatedObjectId
 import org.scalatest.Tag
 import sbt.complete.Parser
-import scala.collection.JavaConverters._
 import org.scalatest.funsuite.AnyFunSuite
 
 class SbtCompletionsSuite extends AnyFunSuite {
@@ -33,8 +32,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
         Seq(exampleDependency),
         ScalafixCoursier.defaultResolvers
       )()
-      .args
-  val loadedRules = mainArgs.availableRules.asScala.toList
+  val loadedRules = mainArgs.availableRules.toList
 
   val parser = new ScalafixCompletions(
     workingDirectory = () => fs.workingDirectory.toAbsolutePath,
@@ -85,6 +83,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
          |--diff-base=
          |--files=
          |--help
+         |--no-cache
          |--rules=
          |--stdout
          |--syntactic
