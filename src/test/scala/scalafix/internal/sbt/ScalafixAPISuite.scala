@@ -27,11 +27,13 @@ class ScalafixAPISuite extends AnyFunSuite {
     assume(!Properties.isWin)
     val baos = new ByteArrayOutputStream()
     val logger = Compat.ConsoleLogger(new PrintStream(baos))
-    val ScalafixInterface(_, args) = ScalafixInterface.fromToolClasspath(
-      List("com.geirsson" %% "example-scalafix-rule" % "1.3.0"),
-      ScalafixCoursier.defaultResolvers,
-      logger
-    )()
+    val args = ScalafixInterface
+      .fromToolClasspath(
+        List("com.geirsson" %% "example-scalafix-rule" % "1.3.0"),
+        ScalafixCoursier.defaultResolvers,
+        logger
+      )()
+      .args
     val tmp = Files.createTempFile("scalafix", "Tmp.scala")
     tmp.toFile.deleteOnExit()
     Files.write(
