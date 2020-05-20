@@ -1,4 +1,5 @@
 -> example/scalafix --test
+$ sleep 2000
 > checkLogs
 > example/scalafix
 > example/scalafix --test
