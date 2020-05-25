@@ -18,6 +18,12 @@ licenses := List(
 )
 developers := List(
   Developer(
+    "bjaglin",
+    "Brice Jaglin",
+    "bjaglin@teads.tv",
+    url("https://github.com/bjaglin")
+  ),
+  Developer(
     "olafurpg",
     "Ólafur Páll Geirsson",
     "olafurpg@gmail.com",
