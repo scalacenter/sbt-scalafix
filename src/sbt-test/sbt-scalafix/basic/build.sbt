@@ -25,3 +25,19 @@ lazy val example = project
   )
 
 lazy val tests = project
+
+lazy val checkLogs = taskKey[Unit]("Check that diffs are logged as errors")
+
+checkLogs := {
+  val taskStreams = streams.in(scalafix).in(Compile).in(example).value
+  val reader = taskStreams.readText(taskStreams.key)
+  val logLines = Stream
+    .continually(reader.readLine())
+    .takeWhile(_ != null)
+    .map(_.replaceAll("\u001B\\[[;\\d]*m", "")) // remove control chars (colors)
+    .force
+  assert(
+    logLines.exists(_ == "[error] -import scala.concurrent.Future"),
+    "diff should be logged as error"
+  )
+}

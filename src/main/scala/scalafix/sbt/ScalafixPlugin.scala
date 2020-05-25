@@ -1,5 +1,6 @@
 package scalafix.sbt
 
+import java.io.PrintStream
 import java.nio.file.{Path, Paths}
 
 import com.geirsson.coursiersmall.Repository
@@ -168,7 +169,8 @@ object ScalafixPlugin extends AutoPlugin {
         loadedRules = () => scalafixInterface().availableRules(),
         terminalWidth = Some(JLineAccess.terminalWidth)
       ).parser.parsed
-
+      val errorLogger =
+        new PrintStream(LoggingOutputStream(streams.value.log, Level.Error))
       val projectDepsInternal = products.in(ScalafixConfig).value ++
         internalDependencyClasspath.in(ScalafixConfig).value.map(_.data)
       val projectDepsExternal =
@@ -192,6 +194,7 @@ object ScalafixPlugin extends AutoPlugin {
         val mainInterface = mainInterface0
           .withArgs(maybeNoCache: _*)
           .withArgs(
+            Arg.PrintStream(errorLogger),
             Arg.Config(scalafixConf),
             Arg.Rules(shell.rules),
             Arg.ParsedArgs(shell.extra)

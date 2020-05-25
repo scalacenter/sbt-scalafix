@@ -1,6 +1,5 @@
 package scalafix.internal.sbt
 
-import java.io.PrintStream
 import java.net.URLClassLoader
 import java.nio.file.Path
 import java.{util => jutil}
@@ -67,6 +66,11 @@ object Arg {
     override def apply(sa: ScalafixArguments): ScalafixArguments =
       sa // caching is currently implemented in sbt-scalafix itself
   }
+
+  case class PrintStream(printStream: java.io.PrintStream) extends Arg {
+    override def apply(sa: ScalafixArguments): ScalafixArguments =
+      sa.withPrintStream(printStream)
+  }
 }
 
 class ScalafixInterface private (
@@ -86,13 +90,11 @@ class ScalafixInterface private (
   private def this(
       api: ScalafixAPI,
       toolClasspath: URLClassLoader,
-      mainCallback: ScalafixMainCallback,
-      printStream: PrintStream
+      mainCallback: ScalafixMainCallback
   ) = this(
     api
       .newArguments()
       .withMainCallback(mainCallback)
-      .withPrintStream(printStream)
       .withToolClasspath(toolClasspath),
     Seq(Arg.ToolClasspath(toolClasspath))
   )
@@ -164,8 +166,7 @@ object ScalafixInterface {
   def fromToolClasspath(
       scalafixDependencies: Seq[ModuleID],
       scalafixCustomResolvers: Seq[Repository],
-      logger: Logger = Compat.ConsoleLogger(System.out),
-      printStream: PrintStream = System.out
+      logger: Logger = Compat.ConsoleLogger(System.out)
   ): () => ScalafixInterface =
     new LazyValue({ () =>
       val jars = ScalafixCoursier.scalafixCliJars(scalafixCustomResolvers)
@@ -175,7 +176,7 @@ object ScalafixInterface {
       val classloader = new URLClassLoader(urls, interfacesParent)
       val api = ScalafixAPI.classloadInstance(classloader)
       val callback = new ScalafixLogger(logger)
-      new ScalafixInterface(api, classloader, callback, printStream)
+      new ScalafixInterface(api, classloader, callback)
         .addToolClasspath(
           scalafixDependencies,
           scalafixCustomResolvers,

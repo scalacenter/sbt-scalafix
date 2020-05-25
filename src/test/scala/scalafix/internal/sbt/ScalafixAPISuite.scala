@@ -30,9 +30,9 @@ class ScalafixAPISuite extends AnyFunSuite {
       .fromToolClasspath(
         List("com.geirsson" %% "example-scalafix-rule" % "1.3.0"),
         ScalafixCoursier.defaultResolvers,
-        logger,
-        new PrintStream(baos)
+        logger
       )()
+      .withArgs(Arg.PrintStream(new PrintStream(baos)))
     val tmp = Files.createTempFile("scalafix", "Tmp.scala")
     tmp.toFile.deleteOnExit()
     Files.write(
