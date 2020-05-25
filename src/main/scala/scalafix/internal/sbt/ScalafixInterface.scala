@@ -91,13 +91,14 @@ class ScalafixInterface private (
       api: ScalafixAPI,
       toolClasspath: URLClassLoader,
       mainCallback: ScalafixMainCallback
-  ) = this(
-    api
-      .newArguments()
-      .withMainCallback(mainCallback)
-      .withToolClasspath(toolClasspath),
-    Seq(Arg.ToolClasspath(toolClasspath))
-  )
+  ) =
+    this(
+      api
+        .newArguments()
+        .withMainCallback(mainCallback)
+        .withToolClasspath(toolClasspath),
+      Seq(Arg.ToolClasspath(toolClasspath))
+    )
 
   // Accumulates the classpath via classloader delegation, as only the last Arg.ToolClasspath is considered
   //

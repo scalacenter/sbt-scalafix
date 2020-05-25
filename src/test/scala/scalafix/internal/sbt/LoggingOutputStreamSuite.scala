@@ -121,7 +121,8 @@ class LoggingOutputStreamSuite extends AnyFunSuite with Matchers {
 
   test("capture very long messages") {
     withStubLogger(Level.Warn) { (outputStream, logs) =>
-      val veryLongMessage = "a" * 1000000 // this would exhaust memory on quadratic implementations
+      val veryLongMessage =
+        "a" * 1000000 // this would exhaust memory on quadratic implementations
       outputStream.write(s"$veryLongMessage$sep".getBytes)
       logs.map(_._2) must be(mutable.Seq(veryLongMessage))
     }

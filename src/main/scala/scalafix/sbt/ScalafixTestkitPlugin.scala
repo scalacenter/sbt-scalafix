@@ -19,33 +19,34 @@ object ScalafixTestkitPlugin extends AutoPlugin {
   }
   import autoImport._
 
-  override def projectSettings: Seq[Def.Setting[_]] = List(
-    resourceGenerators.in(Test) += Def.task {
-      val props = new java.util.Properties()
-      val values = Map[String, Seq[File]](
-        "sourceroot" ->
-          List(baseDirectory.in(ThisBuild).value),
-        "inputClasspath" ->
-          scalafixTestkitInputClasspath.value.map(_.data),
-        "inputSourceDirectories" ->
-          scalafixTestkitInputSourceDirectories.value,
-        "outputSourceDirectories" ->
-          scalafixTestkitOutputSourceDirectories.value
-      )
-      values.foreach {
-        case (key, files) =>
-          props.put(
-            key,
-            files.iterator.filter(_.exists()).mkString(pathSeparator)
-          )
+  override def projectSettings: Seq[Def.Setting[_]] =
+    List(
+      resourceGenerators.in(Test) += Def.task {
+        val props = new java.util.Properties()
+        val values = Map[String, Seq[File]](
+          "sourceroot" ->
+            List(baseDirectory.in(ThisBuild).value),
+          "inputClasspath" ->
+            scalafixTestkitInputClasspath.value.map(_.data),
+          "inputSourceDirectories" ->
+            scalafixTestkitInputSourceDirectories.value,
+          "outputSourceDirectories" ->
+            scalafixTestkitOutputSourceDirectories.value
+        )
+        values.foreach {
+          case (key, files) =>
+            props.put(
+              key,
+              files.iterator.filter(_.exists()).mkString(pathSeparator)
+            )
+        }
+        props.put("scalaVersion", scalaVersion.value)
+        props.put("scalacOptions", scalacOptions.value.mkString("|"))
+        val out =
+          managedResourceDirectories.in(Test).value.head /
+            "scalafix-testkit.properties"
+        IO.write(props, "Input data for scalafix testkit", out)
+        List(out)
       }
-      props.put("scalaVersion", scalaVersion.value)
-      props.put("scalacOptions", scalacOptions.value.mkString("|"))
-      val out =
-        managedResourceDirectories.in(Test).value.head /
-          "scalafix-testkit.properties"
-      IO.write(props, "Input data for scalafix testkit", out)
-      List(out)
-    }
-  )
+    )
 }

@@ -78,39 +78,39 @@ class SbtCompletionsSuite extends AnyFunSuite {
     val obtained = displays.mkString("\n").trim
     val expected =
       """|--auto-suppress-linter-errors
-         |--check
-         |--diff
-         |--diff-base=
-         |--files=
-         |--help
-         |--no-cache
-         |--rules=
-         |--stdout
-         |--syntactic
-         |--verbose
-         |--version
-         |DisableSyntax
-         |  Reports an error for disabled features such as var or XML literals.
-         |ExplicitResultTypes
-         |  Inserts type annotations for inferred public members. Only compatible with Scala 2.12.11.
-         |LeakingImplicitClassVal
-         |  Adds 'private' to val parameters of implicit value classes
-         |NoAutoTupling
-         |  Inserts explicit tuples for adapted argument lists for compatibility with -Yno-adapted-args
-         |NoValInForComprehension
-         |  Removes deprecated val inside for-comprehension binders
-         |ProcedureSyntax
-         |  Replaces deprecated procedure syntax with explicit ': Unit ='
-         |RemoveUnused
-         |  Removes unused imports and terms that reported by the compiler under -Ywarn-unused
-         |SemanticRule
-         |SyntacticRule
-         |class:
-         |dependency:
-         |file:
-         |github:
-         |replace:
-         |""".stripMargin.trim.replaceAll("\r\n", "\n")
+        |--check
+        |--diff
+        |--diff-base=
+        |--files=
+        |--help
+        |--no-cache
+        |--rules=
+        |--stdout
+        |--syntactic
+        |--verbose
+        |--version
+        |DisableSyntax
+        |  Reports an error for disabled features such as var or XML literals.
+        |ExplicitResultTypes
+        |  Inserts type annotations for inferred public members. Only compatible with Scala 2.12.11.
+        |LeakingImplicitClassVal
+        |  Adds 'private' to val parameters of implicit value classes
+        |NoAutoTupling
+        |  Inserts explicit tuples for adapted argument lists for compatibility with -Yno-adapted-args
+        |NoValInForComprehension
+        |  Removes deprecated val inside for-comprehension binders
+        |ProcedureSyntax
+        |  Replaces deprecated procedure syntax with explicit ': Unit ='
+        |RemoveUnused
+        |  Removes unused imports and terms that reported by the compiler under -Ywarn-unused
+        |SemanticRule
+        |SyntacticRule
+        |class:
+        |dependency:
+        |file:
+        |github:
+        |replace:
+        |""".stripMargin.trim.replaceAll("\r\n", "\n")
     if (obtained != expected) {
       println("\"\"\"|")
       obtained.lines.foreach { line =>
@@ -171,35 +171,35 @@ class SbtCompletionsSuite extends AnyFunSuite {
 
   checkArgs("--files --test") { args =>
     assert(args == Left("""missing or invalid value
-                          | --files --test
-                          |               ^""".stripMargin))
+      | --files --test
+      |               ^""".stripMargin))
   }
 
   checkArgs("--test --rules=Foo --files=NotHere", SkipWindows) { args =>
     assert(args == Left("""--files=NotHere
-                          |missing or invalid value
-                          | --test --rules=Foo --files=NotHere
-                          |                                   ^""".stripMargin))
+      |missing or invalid value
+      | --test --rules=Foo --files=NotHere
+      |                                   ^""".stripMargin))
   }
 
   checkArgs("--test  -f= --rules=Foo", SkipWindows) { args =>
     assert(args == Left("""Expected non-whitespace character
-                          |missing or invalid value
-                          | --test  -f= --rules=Foo
-                          |            ^""".stripMargin))
+      |missing or invalid value
+      | --test  -f= --rules=Foo
+      |            ^""".stripMargin))
   }
 
   checkArgs("--test  -f --rules=Foo", SkipWindows) { args =>
     assert(args == Left("""missing or invalid value
-                          | --test  -f --rules=Foo
-                          |                       ^""".stripMargin))
+      | --test  -f --rules=Foo
+      |                       ^""".stripMargin))
   }
 
   checkArgs("--test --rules=Foo -f", SkipWindows) { args =>
     assert(args == Left("""-f
-                          |missing or invalid value
-                          | --test --rules=Foo -f
-                          |                      ^""".stripMargin))
+      |missing or invalid value
+      | --test --rules=Foo -f
+      |                      ^""".stripMargin))
   }
 
 }

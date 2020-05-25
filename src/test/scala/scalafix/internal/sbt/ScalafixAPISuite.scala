@@ -13,8 +13,8 @@ import scala.util.Properties
 
 class ScalafixAPISuite extends AnyFunSuite {
 
-  def assertNoDiff(obtained: String, expected: String)(
-      implicit pos: Position
+  def assertNoDiff(obtained: String, expected: String)(implicit
+      pos: Position
   ): Unit = {
     def strip(s: String) = s.trim.replaceAll("\r\n", "\n")
     val obtainedStrip = strip(obtained)
@@ -72,9 +72,9 @@ class ScalafixAPISuite extends AnyFunSuite {
     assertNoDiff(
       obtainedOut,
       """|[error] Tmp.scala:3:12: error: [DisableSyntax.noSemicolons] semicolons are disabled
-         |[error]   val x = 1;
-         |[error]            ^
-         |""".stripMargin
+        |[error]   val x = 1;
+        |[error]            ^
+        |""".stripMargin
     )
   }
 }

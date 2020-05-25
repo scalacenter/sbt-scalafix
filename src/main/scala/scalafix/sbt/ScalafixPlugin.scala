@@ -141,8 +141,8 @@ object ScalafixPlugin extends AutoPlugin {
       case els =>
         stdoutLogger.error(
           s"""|Invalid rule:    $els
-              |Expected format: ${DependencyRule.format}
-              |""".stripMargin
+            |Expected format: ${DependencyRule.format}
+            |""".stripMargin
         )
         throw new ScalafixFailed(List(ScalafixError.CommandLineError))
     }
@@ -219,53 +219,57 @@ object ScalafixPlugin extends AutoPlugin {
       mainInterface: ScalafixInterface,
       shellArgs: ShellArgs,
       config: Configuration
-  ): Def.Initialize[Task[Unit]] = Def.task {
-    val files = filesToFix(shellArgs, config).value
-    runArgs(mainInterface.withArgs(Arg.Paths(files)), streams.value)
-  }
+  ): Def.Initialize[Task[Unit]] =
+    Def.task {
+      val files = filesToFix(shellArgs, config).value
+      runArgs(mainInterface.withArgs(Arg.Paths(files)), streams.value)
+    }
 
   private def scalafixSemantic(
       ruleNames: Seq[String],
       mainArgs: ScalafixInterface,
       shellArgs: ShellArgs,
       config: Configuration
-  ): Def.Initialize[Task[Unit]] = Def.taskDyn {
-    val dependencies = allDependencies.value
-    val files = filesToFix(shellArgs, config).value
-    val withScalaInterface = mainArgs.withArgs(
-      Arg.ScalaVersion(scalaVersion.value),
-      Arg.ScalacOptions(scalacOptions.value)
-    )
-    val errors = new SemanticRuleValidator(
-      new SemanticdbNotFound(ruleNames, scalaVersion.value, sbtVersion.value)
-    ).findErrors(files, dependencies, withScalaInterface)
-    if (errors.isEmpty) {
-      Def.task {
-        val semanticInterface = withScalaInterface.withArgs(
-          Arg.Paths(files),
-          Arg.Classpath(fullClasspath.value.map(_.data.toPath))
-        )
-        runArgs(semanticInterface, streams.value)
-      }
-    } else {
-      Def.task {
-        if (errors.length == 1) {
-          throw new InvalidArgument(errors.head)
-        } else {
-          val message = errors.zipWithIndex
-            .map { case (msg, i) => s"[E${i + 1}] $msg" }
-            .mkString(s"${errors.length} errors\n", "\n", "")
-          throw new InvalidArgument(message)
+  ): Def.Initialize[Task[Unit]] =
+    Def.taskDyn {
+      val dependencies = allDependencies.value
+      val files = filesToFix(shellArgs, config).value
+      val withScalaInterface = mainArgs.withArgs(
+        Arg.ScalaVersion(scalaVersion.value),
+        Arg.ScalacOptions(scalacOptions.value)
+      )
+      val errors = new SemanticRuleValidator(
+        new SemanticdbNotFound(ruleNames, scalaVersion.value, sbtVersion.value)
+      ).findErrors(files, dependencies, withScalaInterface)
+      if (errors.isEmpty) {
+        Def.task {
+          val semanticInterface = withScalaInterface.withArgs(
+            Arg.Paths(files),
+            Arg.Classpath(fullClasspath.value.map(_.data.toPath))
+          )
+          runArgs(semanticInterface, streams.value)
+        }
+      } else {
+        Def.task {
+          if (errors.length == 1) {
+            throw new InvalidArgument(errors.head)
+          } else {
+            val message = errors.zipWithIndex
+              .map { case (msg, i) => s"[E${i + 1}] $msg" }
+              .mkString(s"${errors.length} errors\n", "\n", "")
+            throw new InvalidArgument(message)
+          }
         }
       }
     }
-  }
 
   private def runArgs(
       interface: ScalafixInterface,
       streams: TaskStreams
   ): Unit = {
-    val paths = interface.args.collect { case Arg.Paths(paths) => paths }.flatten
+    val paths = interface.args.collect {
+      case Arg.Paths(paths) => paths
+    }.flatten
     if (paths.nonEmpty) {
       val cacheKeyArgs = interface.args.collect {
         case cacheKey: Arg.CacheKey => cacheKey

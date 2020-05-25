@@ -11,14 +11,16 @@ import scalafix.sbt.BuildInfo
 import scala.collection.JavaConverters._
 
 object ScalafixCoursier {
-  private def scalafixCliModule: Module = Module.of(
-    "ch.epfl.scala",
-    s"scalafix-cli_${BuildInfo.scala212}"
-  )
-  private def scalafixCli: Dependency = Dependency.of(
-    scalafixCliModule,
-    BuildInfo.scalafixVersion
-  )
+  private def scalafixCliModule: Module =
+    Module.of(
+      "ch.epfl.scala",
+      s"scalafix-cli_${BuildInfo.scala212}"
+    )
+  private def scalafixCli: Dependency =
+    Dependency.of(
+      scalafixCliModule,
+      BuildInfo.scalafixVersion
+    )
 
   def scalafixCliJars(
       repositories: Seq[cs.Repository]
