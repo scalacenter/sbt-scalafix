@@ -35,16 +35,17 @@ object ScalafixEnable {
     briefHelp =
       "Configure libraryDependencies, scalaVersion and scalacOptions for scalafix.",
     detail = """1. enables the semanticdb-scalac compiler plugin
-               |2. sets scalaVersion to latest Scala version supported by scalafix
-               |3. add -Yrangepos to scalacOptions""".stripMargin
+      |2. sets scalaVersion to latest Scala version supported by scalafix
+      |3. add -Yrangepos to scalacOptions""".stripMargin
   ) { s =>
     val extracted = Project.extract(s)
     val settings: Seq[Setting[_]] = for {
       (p, fullVersion) <- projectsWithMatchingScalaVersion(s)
-      isEnabled = libraryDependencies
-        .in(p)
-        .get(extracted.structure.data)
-        .exists(_.exists(_.name == "semanticdb-scalac"))
+      isEnabled =
+        libraryDependencies
+          .in(p)
+          .get(extracted.structure.data)
+          .exists(_.exists(_.name == "semanticdb-scalac"))
       if !isEnabled
       setting <- List(
         scalaVersion.in(p) := fullVersion,

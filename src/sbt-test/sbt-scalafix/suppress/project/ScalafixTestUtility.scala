@@ -42,15 +42,15 @@ object ScalafixTestUtility {
       .map { diff =>
         val msg =
           s"""File: $file
-             |Obtained output:
-             |----------------
-             |$obtained
-             |Expected:
-             |---------
-             |$expected
-             |Diff:
-             |-----
-             |$diff""".stripMargin
+            |Obtained output:
+            |----------------
+            |$obtained
+            |Expected:
+            |---------
+            |$expected
+            |Diff:
+            |-----
+            |$diff""".stripMargin
 
         streams.log.error(file)
         streams.log.error(msg)

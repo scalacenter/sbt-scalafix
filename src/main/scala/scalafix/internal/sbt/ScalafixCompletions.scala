@@ -16,7 +16,8 @@ class ScalafixCompletions(
 
   private type P = Parser[String]
   private type ArgP = Parser[ShellArgs.Arg]
-  private type KVArgP = Parser[ArgP] // nested parser allows to match the key only
+  private type KVArgP =
+    Parser[ArgP] // nested parser allows to match the key only
 
   private val sep: P = token("=" | " ").examples("=")
   private val string: P = StringBasic

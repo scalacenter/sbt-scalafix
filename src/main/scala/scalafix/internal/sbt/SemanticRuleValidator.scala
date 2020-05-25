@@ -43,25 +43,25 @@ class SemanticdbNotFound(
     }
 
     s"""|The semanticdb-scalac compiler plugin is required to run semantic rules like $names.
-        |To fix this problem for this sbt shell session, run `scalafixEnable` and try again.
-        |To fix this problem permanently for your build, add the following settings to build.sbt:
-        |
-        |$recommendedSetting
-        |""".stripMargin
+      |To fix this problem for this sbt shell session, run `scalafixEnable` and try again.
+      |To fix this problem permanently for your build, add the following settings to build.sbt:
+      |
+      |$recommendedSetting
+      |""".stripMargin
   }
 
   private def atLeastSbt13(scalaVersion: String) =
     s"""inThisBuild(
-       |  List(
-       |    scalaVersion := "$scalaVersion",
-       |    semanticdbEnabled := true,
-       |    semanticdbVersion := scalafixSemanticdb.revision
-       |  )
-       |)
-       |""".stripMargin
+      |  List(
+      |    scalaVersion := "$scalaVersion",
+      |    semanticdbEnabled := true,
+      |    semanticdbVersion := scalafixSemanticdb.revision
+      |  )
+      |)
+      |""".stripMargin
 
   private val atMostSbt12 =
     s"""addCompilerPlugin(scalafixSemanticdb)
-       |scalacOptions += "-Yrangepos"
-       |""".stripMargin
+      |scalacOptions += "-Yrangepos"
+      |""".stripMargin
 }
