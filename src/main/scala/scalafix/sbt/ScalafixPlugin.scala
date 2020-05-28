@@ -20,6 +20,7 @@ object ScalafixPlugin extends AutoPlugin {
   override def requires: Plugins = JvmPlugin
 
   object autoImport {
+    @deprecated("not used internally, use your own tag")
     val Scalafix = Tags.Tag("scalafix")
 
     val scalafix: InputKey[Unit] =
