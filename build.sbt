@@ -73,7 +73,9 @@ scalacOptions ++= {
   }
 }
 scalacOptions ++= List(
-  "-target:jvm-1.8"
+  "-target:jvm-1.8",
+  "-Xfatal-warnings",
+  "-Xlint"
 )
 
 // Scripted

@@ -11,7 +11,7 @@ class LoggingOutputStream(
     separator: String
 ) extends OutputStream {
 
-  private val baos = new ByteArrayOutputStream {
+  class LinesExtractorOutputStream extends ByteArrayOutputStream {
     def maybeStripSuffix(suffix: Array[Byte]): Option[String] = {
       def endsWithSuffix: Boolean =
         count >= suffix.length && suffix.zipWithIndex.forall {
@@ -24,6 +24,8 @@ class LoggingOutputStream(
       else None
     }
   }
+
+  private val baos = new LinesExtractorOutputStream
 
   private val separatorBytes = separator.getBytes
   require(separatorBytes.length > 0)
