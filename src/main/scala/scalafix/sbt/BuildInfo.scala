@@ -13,7 +13,7 @@ object BuildInfo {
   def scalafixStableVersion: String =
     property("scalafixStableVersion", "0.9.10")
   def scalametaVersion: String =
-    property("scalametaVersion", "4.3.10")
+    property("scalametaVersion", "4.3.13")
   def scala213: String =
     property("scala213", "2.13.1")
   def scala212: String =
