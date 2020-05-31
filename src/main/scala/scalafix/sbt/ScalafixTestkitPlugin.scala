@@ -13,9 +13,9 @@ object ScalafixTestkitPlugin extends AutoPlugin {
     val scalafixTestkitInputClasspath =
       taskKey[Classpath]("Classpath of input project")
     val scalafixTestkitInputSourceDirectories =
-      taskKey[Seq[File]]("Source directory of output projects")
+      taskKey[Seq[File]]("Source directories of input project")
     val scalafixTestkitOutputSourceDirectories =
-      taskKey[Seq[File]]("Source directories of output projects")
+      taskKey[Seq[File]]("Source directories of output project")
   }
   import autoImport._
 
