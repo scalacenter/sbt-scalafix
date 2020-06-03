@@ -21,7 +21,8 @@ class JGitCompletion(cwd: Path) {
     if (isGitRepository) {
       val builder = new FileRepositoryBuilder()
       val repo = builder.readEnvironment().setWorkTree(cwd.toFile).build()
-      val refList0 = repo.getRefDatabase().getRefs(RefDatabase.ALL).asScala
+      val refList0 =
+        repo.getRefDatabase().getRefsByPrefix(RefDatabase.ALL).asScala
       val git = new Git(repo)
       val refs0 = git.log().setMaxCount(20).call().asScala.toList
       (refList0, refs0)
@@ -30,7 +31,7 @@ class JGitCompletion(cwd: Path) {
     }
 
   val branchesAndTags: List[String] =
-    refList.map { case (a, _) => Repository.shortenRefName(a) }.toList
+    refList.map { ref => Repository.shortenRefName(ref.getName) }.toList
 
   private val dateFormatter = new GitDateFormatter(
     GitDateFormatter.Format.RELATIVE
