@@ -43,7 +43,7 @@ object BuildInfo {
     Option(props.getProperty(key)).getOrElse {
       sys.error(
         s"sbt-scalafix property '$key' missing in $propertiesPath; " +
-          "try to bring a more recent scalafix-interfaces into the plugins classpath?"
+          "to fix this problem, upgrade to the latest version of Scalafix."
       )
     }
 }
