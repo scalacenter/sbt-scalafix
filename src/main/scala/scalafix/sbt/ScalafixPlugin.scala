@@ -21,6 +21,7 @@ object ScalafixPlugin extends AutoPlugin {
   override def requires: Plugins = JvmPlugin
 
   object autoImport {
+    @deprecated("not used internally, use your own tag", "0.9.17")
     val Scalafix = Tags.Tag("scalafix")
 
     val ScalafixConfig = config("scalafix")
