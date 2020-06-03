@@ -33,7 +33,7 @@ object BuildInfo {
         props.load(stream)
       case None =>
         sys.error(
-          s"failed to load $propertiesPath; is scalafix-interfaces in the plugins classpath?"
+          s"failed to load the resource file '$propertiesPath'. To fix this problem, make sure to enable the sbt-scalafix in 'project/plugins.sbt' and validate that the scalafix-interfaces jar is available on the classpath of the sbt build."
         )
     }
     props
