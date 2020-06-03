@@ -2,11 +2,7 @@ package scalafix.sbt
 
 import java.util.Properties
 
-import sbt.internal.sbtscalafix.Compat
-
 object BuildInfo {
-  private[this] val Logger = Compat.ConsoleLogger(System.out)
-
   def scalafixVersion: String =
     property("scalafixVersion")
   @deprecated("Use scalafixVersion", "0.9.7")
