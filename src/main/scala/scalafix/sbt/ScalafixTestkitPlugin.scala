@@ -12,15 +12,25 @@ object ScalafixTestkitPlugin extends AutoPlugin {
   object autoImport {
     val scalafixTestkitInputClasspath =
       taskKey[Classpath]("Classpath of input project")
+    val scalafixTestkitInputScalacOptions =
+      taskKey[Seq[String]](
+        "Scalac compiler flags that were used to compile the input project"
+      )
+    val scalafixTestkitInputScalaVersion =
+      settingKey[String](
+        "Scala compiler version that was used to compile the input project"
+      )
     val scalafixTestkitInputSourceDirectories =
-      taskKey[Seq[File]]("Source directory of output projects")
+      taskKey[Seq[File]]("Source directories of input project")
     val scalafixTestkitOutputSourceDirectories =
-      taskKey[Seq[File]]("Source directories of output projects")
+      taskKey[Seq[File]]("Source directories of output project")
   }
   import autoImport._
 
   override def projectSettings: Seq[Def.Setting[_]] =
     List(
+      scalafixTestkitInputScalacOptions := scalacOptions.value,
+      scalafixTestkitInputScalaVersion := scalaVersion.value,
       resourceGenerators.in(Test) += Def.task {
         val props = new java.util.Properties()
         val values = Map[String, Seq[File]](
@@ -40,8 +50,11 @@ object ScalafixTestkitPlugin extends AutoPlugin {
               files.iterator.filter(_.exists()).mkString(pathSeparator)
             )
         }
-        props.put("scalaVersion", scalaVersion.value)
-        props.put("scalacOptions", scalacOptions.value.mkString("|"))
+        props.put("scalaVersion", scalafixTestkitInputScalaVersion.value)
+        props.put(
+          "scalacOptions",
+          scalafixTestkitInputScalacOptions.value.mkString("|")
+        )
         val out =
           managedResourceDirectories.in(Test).value.head /
             "scalafix-testkit.properties"
