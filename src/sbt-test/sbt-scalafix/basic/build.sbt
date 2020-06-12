@@ -1,3 +1,5 @@
+import com.geirsson.coursiersmall.Repository // deprecated, but checks source compatibility
+
 inThisBuild(
   List(
     scalaVersion := "2.12.11",
@@ -9,7 +11,8 @@ inThisBuild(
     scalafixDependencies := List(
       // Custom rule published to Maven Central https://github.com/olafurpg/example-scalafix-rule
       "com.geirsson" %% "example-scalafix-rule" % "1.3.0"
-    )
+    ),
+    scalafixResolvers := List(Repository.MavenCentral)
   )
 )
 

@@ -4,7 +4,7 @@ import java.net.URLClassLoader
 import java.nio.file.Path
 import java.{util => jutil}
 
-import com.geirsson.coursiersmall.Repository
+import coursierapi.Repository
 import sbt._
 import sbt.internal.sbtscalafix.Compat
 import scalafix.interfaces.{Scalafix => ScalafixAPI, _}

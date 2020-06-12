@@ -5,6 +5,11 @@ inThisBuild(
     scalafixDependencies := List(
       // Custom rule published to Maven Central https://github.com/olafurpg/example-scalafix-rule
       "com.geirsson" %% "example-scalafix-rule" % "1.3.0"
+    ),
+    // `Repository.central()` can only be used sbt 1.x / scala 2.12
+    // error: Static methods in interface require -target:jvm-1.8
+    scalafixResolvers := List(
+      coursierapi.MavenRepository.of("https://repo1.maven.org/maven2")
     )
   )
 )

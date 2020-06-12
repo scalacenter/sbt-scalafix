@@ -5,7 +5,6 @@ import java.util.function
 import java.{util => jutil}
 
 import coursierapi._
-import com.geirsson.{coursiersmall => cs}
 import sbt._
 import scalafix.sbt.BuildInfo
 import scala.collection.JavaConverters._
@@ -23,18 +22,18 @@ object ScalafixCoursier {
     )
 
   def scalafixCliJars(
-      repositories: Seq[cs.Repository]
+      repositories: Seq[Repository]
   ): List[Path] = {
     runFetch(
       newFetch()
         .addDependencies(scalafixCli)
-        .addRepositories(toCoursierRepositories(repositories): _*)
+        .addRepositories(repositories: _*)
     )
   }
 
   def scalafixToolClasspath(
       deps: Seq[ModuleID],
-      customResolvers: Seq[cs.Repository]
+      customResolvers: Seq[Repository]
   ): Seq[URL] = {
     if (deps.isEmpty) {
       Nil
@@ -51,7 +50,7 @@ object ScalafixCoursier {
     jutil.Collections.synchronizedMap(new jutil.HashMap())
   }
   private[scalafix] def fetchScalafixDependencies(
-      customResolvers: Seq[cs.Repository]
+      customResolvers: Seq[Repository]
   ): function.Function[Seq[ModuleID], List[Path]] =
     new function.Function[Seq[ModuleID], List[Path]] {
       override def apply(t: Seq[ModuleID]): List[Path] = {
@@ -67,21 +66,13 @@ object ScalafixCoursier {
         }
         runFetch(
           newFetch()
-            .addRepositories(toCoursierRepositories(customResolvers): _*)
+            .addRepositories(customResolvers: _*)
             .addDependencies(scalafixCli)
-            .addDependencies(dependencies.toArray: _*)
+            .addDependencies(dependencies: _*)
         )
       }
     }
 
-  def toCoursierRepositories(
-      repositories: Seq[cs.Repository]
-  ): Array[Repository] =
-    repositories.iterator.collect {
-      case m: cs.Repository.Maven => coursierapi.MavenRepository.of(m.root)
-      case i: cs.Repository.Ivy => coursierapi.IvyRepository.of(i.root)
-      case cs.Repository.Ivy2Local => coursierapi.Repository.ivy2Local()
-    }.toArray
   def runFetch(fetch: Fetch): List[Path] =
     fetch.fetch().asScala.iterator.map(_.toPath()).toList
   def newFetch(): Fetch =
@@ -98,12 +89,14 @@ object ScalafixCoursier {
           )
       )
 
-  val defaultResolvers: Seq[cs.Repository] = Seq(
-    cs.Repository.Ivy2Local,
-    cs.Repository.MavenCentral,
-    new cs.Repository.Maven(
+  val defaultResolvers: Seq[Repository] = Seq(
+    Repository.ivy2Local(),
+    Repository.central(),
+    coursierapi.MavenRepository.of(
       "https://oss.sonatype.org/content/repositories/public"
     ),
-    cs.Repository.SonatypeSnapshots
+    coursierapi.MavenRepository.of(
+      "https://oss.sonatype.org/content/repositories/snapshots"
+    )
   )
 }
