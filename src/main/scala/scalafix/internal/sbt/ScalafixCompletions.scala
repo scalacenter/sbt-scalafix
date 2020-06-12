@@ -9,7 +9,7 @@ import sbt.complete._
 import sbt.complete.DefaultParsers._
 
 class ScalafixCompletions(
-    workingDirectory: () => Path,
+    workingDirectory: Path,
     loadedRules: () => Seq[ScalafixRule],
     terminalWidth: Option[Int]
 ) {
@@ -66,9 +66,9 @@ class ScalafixCompletions(
     }
 
     string
-      .examples(new AbsolutePathExamples(workingDirectory()))
+      .examples(new AbsolutePathExamples(workingDirectory))
       .map { f =>
-        toAbsolutePath(Paths.get(f), workingDirectory())
+        toAbsolutePath(Paths.get(f), workingDirectory)
       }
       .filter(f => Files.exists(f), x => x)
   }
@@ -96,7 +96,7 @@ class ScalafixCompletions(
   private val namedRule2: Parser[ShellArgs.Rule] =
     namedRule.map(s => ShellArgs.Rule(s))
   private lazy val gitDiffParser: P = {
-    val jgitCompletion = new JGitCompletion(workingDirectory())
+    val jgitCompletion = new JGitCompletion(workingDirectory)
     token(
       NotQuoted,
       TokenCompletions.fixed((seen, _) => {

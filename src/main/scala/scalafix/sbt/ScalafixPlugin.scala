@@ -7,9 +7,10 @@ import com.geirsson.coursiersmall.Repository
 import sbt.KeyRanks.Invisible
 import sbt.Keys._
 import sbt._
+import sbt.complete._
+import sbt.internal.sbtscalafix.Caching._
 import sbt.internal.sbtscalafix.{Compat, JLineAccess}
 import sbt.plugins.JvmPlugin
-import sbt.internal.sbtscalafix.Caching._
 import scalafix.interfaces.ScalafixError
 import scalafix.internal.sbt._
 
@@ -103,19 +104,6 @@ object ScalafixPlugin extends AutoPlugin {
       Seq(ivyConfigurations += ScalafixConfig)
 
   override lazy val globalSettings: Seq[Def.Setting[_]] = Seq(
-    initialize := {
-      val _ = initialize.value
-      // Ideally, we would not resort to storing mutable state in `initialize`.
-      // The optimal solution would be to run `scalafixDependencies.value`
-      // inside `scalafixInputTask`.
-      // However, we can't do that due to an sbt bug:
-      //   https://github.com/sbt/sbt/issues/3572#issuecomment-417582703
-      workingDirectory = baseDirectory.in(ThisBuild).value.toPath
-      scalafixInterface = ScalafixInterface.fromToolClasspath(
-        scalafixDependencies = scalafixDependencies.in(ThisBuild).value,
-        scalafixCustomResolvers = scalafixResolvers.in(ThisBuild).value
-      )
-    },
     scalafixConfig := None, // let scalafix-cli try to infer $CWD/.scalafix.conf
     scalafixCaching := false,
     scalafixResolvers := ScalafixCoursier.defaultResolvers,
@@ -124,12 +112,28 @@ object ScalafixPlugin extends AutoPlugin {
   )
 
   lazy val stdoutLogger = Compat.ConsoleLogger(System.out)
-  private var workingDirectory = file("").getAbsoluteFile.toPath
-  private var scalafixInterface: () => ScalafixInterface =
-    () => throw new UninitializedError
+
+  private val scalafixInterface: Def.Initialize[() => ScalafixInterface] =
+    Def.setting {
+      ScalafixInterface.fromToolClasspath(
+        scalafixDependencies = scalafixDependencies.in(ThisBuild).value,
+        scalafixCustomResolvers = scalafixResolvers.in(ThisBuild).value
+      )
+    }
+
+  private val parser: Def.Initialize[Parser[ShellArgs]] = Def.setting {
+    new ScalafixCompletions(
+      workingDirectory = baseDirectory.in(ThisBuild).value.toPath,
+      // Unfortunately, local rules will not show up as completions in the parser, as that parser can only
+      // depend on settings, while local rules classpath must be looked up via tasks
+      loadedRules = () => scalafixInterface.value().availableRules(),
+      terminalWidth = Some(JLineAccess.terminalWidth)
+    ).parser
+  }
 
   private def scalafixArgsFromShell(
       shell: ShellArgs,
+      scalafixInterface: () => ScalafixInterface,
       projectDepsExternal: Seq[ModuleID],
       baseResolvers: Seq[Repository],
       projectDepsInternal: Seq[File]
@@ -161,15 +165,17 @@ object ScalafixPlugin extends AutoPlugin {
   private def scalafixInputTask(
       config: Configuration
   ): Def.Initialize[InputTask[Unit]] =
-    Def.inputTaskDyn {
-      val shell0 = new ScalafixCompletions(
-        workingDirectory = () => workingDirectory,
-        // Unfortunately, local rules will not show up as completions in the parser, as that parser can only depend
-        // on global settings (see note in initialize), while local rules classpath must
-        // be looked up via tasks on projects
-        loadedRules = () => scalafixInterface().availableRules(),
-        terminalWidth = Some(JLineAccess.terminalWidth)
-      ).parser.parsed
+    // workaround https://github.com/sbt/sbt/issues/3572 by invoking directly what Def.inputTaskDyn would via macro
+    InputTask
+      .createDyn(InputTask.initParserAsInput(parser))(
+        Def.task(shellArgs => scalafixTask(shellArgs, config))
+      )
+
+  private def scalafixTask(
+      shellArgs: ShellArgs,
+      config: Configuration
+  ): Def.Initialize[Task[Unit]] =
+    Def.taskDyn {
       val errorLogger =
         new PrintStream(LoggingOutputStream(streams.value.log, Level.Error))
       val projectDepsInternal = products.in(ScalafixConfig).value ++
@@ -180,12 +186,13 @@ object ScalafixPlugin extends AutoPlugin {
           .value
           .flatMap(_.get(moduleID.key))
 
-      if (shell0.rules.isEmpty && shell0.extra == List("--help")) {
+      if (shellArgs.rules.isEmpty && shellArgs.extra == List("--help")) {
         scalafixHelp
       } else {
         val scalafixConf = scalafixConfig.value.map(_.toPath)
         val (shell, mainInterface0) = scalafixArgsFromShell(
-          shell0,
+          shellArgs,
+          scalafixInterface.value,
           projectDepsExternal,
           scalafixResolvers.in(ThisBuild).value,
           projectDepsInternal
@@ -212,7 +219,7 @@ object ScalafixPlugin extends AutoPlugin {
     }
   private def scalafixHelp: Def.Initialize[Task[Unit]] =
     Def.task {
-      scalafixInterface().withArgs(Arg.ParsedArgs(List("--help"))).run()
+      scalafixInterface.value().withArgs(Arg.ParsedArgs(List("--help"))).run()
       ()
     }
 
