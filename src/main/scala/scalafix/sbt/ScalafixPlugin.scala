@@ -30,9 +30,14 @@ object ScalafixPlugin extends AutoPlugin {
 
     val scalafix: InputKey[Unit] =
       inputKey[Unit](
-        "Run scalafix rule in this project and configuration. " +
+        "Run scalafix rule(s) in this project and configuration. " +
           "For example: scalafix RemoveUnusedImports. " +
-          "To run on test sources use test:scalafix."
+          "To run on test sources use test:scalafix or scalafixAll."
+      )
+    val scalafixAll: InputKey[Unit] =
+      inputKey[Unit](
+        "Run scalafix rule(s) in this project, for all configurations where scalafix is enabled. " +
+          "Compile and Test are enabled by default, other configurations can be enabled via scalafixConfigSettings."
       )
     val scalafixCaching: SettingKey[Boolean] =
       settingKey[Boolean](
@@ -101,7 +106,10 @@ object ScalafixPlugin extends AutoPlugin {
   override lazy val projectSettings: Seq[Def.Setting[_]] =
     Seq(Compile, Test).flatMap(c => inConfig(c)(scalafixConfigSettings(c))) ++
       inConfig(ScalafixConfig)(Defaults.configSettings) ++
-      Seq(ivyConfigurations += ScalafixConfig)
+      Seq(
+        ivyConfigurations += ScalafixConfig,
+        scalafixAll := scalafixAllInputTask.evaluated
+      )
 
   override lazy val globalSettings: Seq[Def.Setting[_]] = Seq(
     scalafixConfig := None, // let scalafix-cli try to infer $CWD/.scalafix.conf
@@ -162,6 +170,28 @@ object ScalafixPlugin extends AutoPlugin {
 
   }
 
+  private def scalafixAllInputTask(): Def.Initialize[InputTask[Unit]] =
+    // workaround https://github.com/sbt/sbt/issues/3572 by invoking directly what Def.inputTaskDyn would via macro
+    InputTask
+      .createDyn(InputTask.initParserAsInput(parser))(
+        Def.task(shellArgs => scalafixAllTask(shellArgs, thisProject.value))
+      )
+
+  private def scalafixAllTask(
+      shellArgs: ShellArgs,
+      project: ResolvedProject
+  ): Def.Initialize[Task[Unit]] =
+    Def.taskDyn {
+      val configsWithScalafixInputKey = project.settings
+        .map(_.key)
+        .filter(_.key == scalafix.key)
+        .flatMap(_.scope.config.toOption)
+
+      configsWithScalafixInputKey
+        .map(config => scalafixTask(shellArgs, config))
+        .joinWith(_.join.map(_ => ()))
+    }
+
   private def scalafixInputTask(
       config: Configuration
   ): Def.Initialize[InputTask[Unit]] =
@@ -173,11 +203,16 @@ object ScalafixPlugin extends AutoPlugin {
 
   private def scalafixTask(
       shellArgs: ShellArgs,
-      config: Configuration
+      config: ConfigKey
   ): Def.Initialize[Task[Unit]] =
     Def.taskDyn {
       val errorLogger =
-        new PrintStream(LoggingOutputStream(streams.value.log, Level.Error))
+        new PrintStream(
+          LoggingOutputStream(
+            streams.in(config, scalafix).value.log,
+            Level.Error
+          )
+        )
       val projectDepsInternal = products.in(ScalafixConfig).value ++
         internalDependencyClasspath.in(ScalafixConfig).value.map(_.data)
       val projectDepsExternal =
@@ -189,7 +224,7 @@ object ScalafixPlugin extends AutoPlugin {
       if (shellArgs.rules.isEmpty && shellArgs.extra == List("--help")) {
         scalafixHelp
       } else {
-        val scalafixConf = scalafixConfig.value.map(_.toPath)
+        val scalafixConf = scalafixConfig.in(config).value.map(_.toPath)
         val (shell, mainInterface0) = scalafixArgsFromShell(
           shellArgs,
           scalafixInterface.value,
@@ -198,7 +233,9 @@ object ScalafixPlugin extends AutoPlugin {
           projectDepsInternal
         )
         val maybeNoCache =
-          if (shell.noCache || !scalafixCaching.value) Seq(Arg.NoCache) else Nil
+          if (shell.noCache || !scalafixCaching.in(config).value)
+            Seq(Arg.NoCache)
+          else Nil
         val mainInterface = mainInterface0
           .withArgs(maybeNoCache: _*)
           .withArgs(
@@ -226,25 +263,28 @@ object ScalafixPlugin extends AutoPlugin {
   private def scalafixSyntactic(
       mainInterface: ScalafixInterface,
       shellArgs: ShellArgs,
-      config: Configuration
+      config: ConfigKey
   ): Def.Initialize[Task[Unit]] =
     Def.task {
       val files = filesToFix(shellArgs, config).value
-      runArgs(mainInterface.withArgs(Arg.Paths(files)), streams.value)
+      runArgs(
+        mainInterface.withArgs(Arg.Paths(files)),
+        streams.in(config, scalafix).value
+      )
     }
 
   private def scalafixSemantic(
       ruleNames: Seq[String],
       mainArgs: ScalafixInterface,
       shellArgs: ShellArgs,
-      config: Configuration
+      config: ConfigKey
   ): Def.Initialize[Task[Unit]] =
     Def.taskDyn {
-      val dependencies = allDependencies.value
+      val dependencies = allDependencies.in(config).value
       val files = filesToFix(shellArgs, config).value
       val withScalaInterface = mainArgs.withArgs(
         Arg.ScalaVersion(scalaVersion.value),
-        Arg.ScalacOptions(scalacOptions.value)
+        Arg.ScalacOptions(scalacOptions.in(config).value)
       )
       val errors = new SemanticRuleValidator(
         new SemanticdbNotFound(ruleNames, scalaVersion.value, sbtVersion.value)
@@ -253,9 +293,12 @@ object ScalafixPlugin extends AutoPlugin {
         Def.task {
           val semanticInterface = withScalaInterface.withArgs(
             Arg.Paths(files),
-            Arg.Classpath(fullClasspath.value.map(_.data.toPath))
+            Arg.Classpath(fullClasspath.in(config).value.map(_.data.toPath))
           )
-          runArgs(semanticInterface, streams.value)
+          runArgs(
+            semanticInterface,
+            streams.in(config, scalafix).value
+          )
         }
       } else {
         Def.task {
@@ -396,7 +439,7 @@ object ScalafixPlugin extends AutoPlugin {
   }
   private def filesToFix(
       shellArgs: ShellArgs,
-      config: Configuration
+      config: ConfigKey
   ): Def.Initialize[Task[Seq[Path]]] =
     Def.taskDyn {
       // Dynamic task to avoid redundantly computing `unmanagedSources.value`
@@ -407,7 +450,7 @@ object ScalafixPlugin extends AutoPlugin {
       } else {
         Def.task {
           for {
-            source <- unmanagedSources.in(config).in(scalafix).value
+            source <- unmanagedSources.in(config, scalafix).value
             if source.exists()
             if isScalaFile(source)
           } yield source.toPath

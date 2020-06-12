@@ -205,6 +205,24 @@ $ exec chmod 000 src/test/scala/Valid.scala
 $ delete src/main/scala
 $ delete src/test/scala
 
+# scalafixAll and scalafix should share the same cache per configuration
+> set scalafixConfig := None
+$ mkdir src/main/scala
+$ mkdir src/test/scala
+$ copy-file files/UnusedImports.scala src/main/scala/Valid.scala
+$ copy-file files/ProcedureSyntax.scala src/test/scala/InitiallyInvalid.scala
+-> scalafixAll --check ProcedureSyntax
+$ exec chmod 000 src/main/scala/Valid.scala
+> scalafix --check ProcedureSyntax
+-> test:scalafix --check ProcedureSyntax
+> test:scalafix ProcedureSyntax
+$ exec chmod 000 src/test/scala/InitiallyInvalid.scala
+> scalafix --check ProcedureSyntax
+> test:scalafix --check ProcedureSyntax
+> scalafixAll --check ProcedureSyntax
+$ delete src/main/scala
+$ delete src/test/scala
+
 # make sure the cache is disabled when using `--stdout`
 > set scalafixConfig := None
 $ mkdir src/main/scala
