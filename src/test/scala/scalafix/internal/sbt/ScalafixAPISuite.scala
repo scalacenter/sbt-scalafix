@@ -28,7 +28,7 @@ class ScalafixAPISuite extends AnyFunSuite {
     val logger = Compat.ConsoleLogger(new PrintStream(baos))
     val interface = ScalafixInterface
       .fromToolClasspath(
-        List("com.geirsson" %% "example-scalafix-rule" % "1.3.0"),
+        List("ch.epfl.scala" %% "example-scalafix-rule" % "1.4.0"),
         ScalafixCoursier.defaultResolvers,
         logger
       )()

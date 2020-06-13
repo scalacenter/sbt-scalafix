@@ -24,7 +24,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
 
   val exampleDependency = {
     import sbt._
-    "com.geirsson" %% "example-scalafix-rule" % "1.3.0"
+    "ch.epfl.scala" %% "example-scalafix-rule" % "1.4.0"
   }
   val mainArgs =
     ScalafixInterface

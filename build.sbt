@@ -2,8 +2,8 @@ inThisBuild(
   List(
     parallelExecution in Test := false,
     scalafixDependencies := List(
-      // Custom rule published to Maven Central https://github.com/olafurpg/example-scalafix-rule
-      "com.geirsson" %% "example-scalafix-rule" % "1.3.0"
+      // Custom rule published to Maven Central https://github.com/scalacenter/example-scalafix-rule
+      "ch.epfl.scala" %% "example-scalafix-rule" % "1.4.0"
     )
   )
 )
