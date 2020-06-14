@@ -33,11 +33,16 @@ object ScalafixTestkitPlugin extends AutoPlugin {
       scalafixTestkitInputScalaVersion := scalaVersion.value,
       resourceGenerators.in(Test) += Def.task {
         val props = new java.util.Properties()
+        val targetrootClasspath = semanticdbOption(
+          scalafixTestkitInputScalacOptions.value,
+          "targetroot"
+        ).map(file).toSeq
         val values = Map[String, Seq[File]](
           "sourceroot" ->
             List(baseDirectory.in(ThisBuild).value),
           "inputClasspath" ->
-            scalafixTestkitInputClasspath.value.map(_.data),
+            (scalafixTestkitInputClasspath.value
+              .map(_.data) ++ targetrootClasspath),
           "inputSourceDirectories" ->
             scalafixTestkitInputSourceDirectories.value,
           "outputSourceDirectories" ->
@@ -62,4 +67,15 @@ object ScalafixTestkitPlugin extends AutoPlugin {
         List(out)
       }
     )
+
+  private def semanticdbOption(
+      scalacOptions: Seq[String],
+      name: String
+  ): Option[String] = {
+    val flag = s"-P:semanticdb:$name:"
+    scalacOptions
+      .filter(_.startsWith(flag))
+      .lastOption
+      .map(_.stripPrefix(flag))
+  }
 }
