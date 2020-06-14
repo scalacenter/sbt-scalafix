@@ -35,7 +35,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
   val loadedRules = mainArgs.availableRules.toList
 
   val parser = new ScalafixCompletions(
-    workingDirectory = () => fs.workingDirectory.toAbsolutePath,
+    workingDirectory = fs.workingDirectory.toAbsolutePath,
     loadedRules = () => loadedRules,
     terminalWidth = None
   ).parser
