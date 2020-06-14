@@ -18,6 +18,15 @@ jobs:
       - uses: actions/checkout@v2
       - uses: olafurpg/setup-scala@v7
       - run: sbt ${{ matrix.command }}
+  jdk11:
+    name: JDK11
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: olafurpg/setup-scala@v7
+        with:
+          java-version: adopt@1.11
+      - run: sbt test scripted
   windows:
     name: Windows tests
     runs-on: windows-latest

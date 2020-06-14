@@ -22,7 +22,7 @@ lazy val root = project
   )
 
 lazy val scala210 = project.settings(
-  scalaVersion := "2.10.5"
+  scalaVersion := "2.10.7"
 )
 lazy val scala211 = project.settings(
   scalaVersion := Versions.scala211,

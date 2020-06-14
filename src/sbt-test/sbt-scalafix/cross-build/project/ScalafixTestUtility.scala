@@ -7,7 +7,7 @@ object ScalafixTestUtility {
 
     if (expected == obtained) None
     else {
-      def jLinesOf(s: String) = s.lines.toSeq.asJava
+      def jLinesOf(s: String) = s.linesIterator.toSeq.asJava
 
       val expectedLines = jLinesOf(expected)
       val obtainedLines = jLinesOf(obtained)
