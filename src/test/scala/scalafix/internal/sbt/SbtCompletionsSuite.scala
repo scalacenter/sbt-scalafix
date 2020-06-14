@@ -1,5 +1,6 @@
 package scalafix.internal.sbt
 
+import coursierapi.Repository
 import org.eclipse.jgit.lib.AbbreviatedObjectId
 import org.scalatest.Tag
 import sbt.complete.Parser
@@ -30,7 +31,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
     ScalafixInterface
       .fromToolClasspath(
         Seq(exampleDependency),
-        ScalafixCoursier.defaultResolvers
+        Seq(Repository.central)
       )()
   val loadedRules = mainArgs.availableRules.toList
 

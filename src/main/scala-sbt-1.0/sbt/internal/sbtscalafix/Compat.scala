@@ -6,6 +6,9 @@ object Compat {
   type ConsoleLogger = sbt.internal.util.ConsoleLogger
   val ConsoleLogger = sbt.internal.util.ConsoleLogger
 
+  // https://github.com/sbt/sbt/issues/4977
+  val Disabled = sbt.librarymanagement.Disabled()
+
   def append(
       project: Extracted,
       settings: Seq[Setting[_]],
