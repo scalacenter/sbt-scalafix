@@ -129,6 +129,7 @@ object ScalafixInterface {
     override def apply(): T = _value.get
   }
   def fromToolClasspath(
+      scalafixBinaryScalaVersion: String,
       scalafixDependencies: Seq[ModuleID],
       scalafixCustomResolvers: Seq[Repository],
       logger: Logger = Compat.ConsoleLogger(System.out)
@@ -136,7 +137,10 @@ object ScalafixInterface {
     new LazyValue({ () =>
       val callback = new ScalafixLogger(logger)
       val scalafixArguments = ScalafixAPI
-        .fetchAndClassloadInstance("2.12", scalafixCustomResolvers.asJava)
+        .fetchAndClassloadInstance(
+          scalafixBinaryScalaVersion,
+          scalafixCustomResolvers.asJava
+        )
         .newArguments()
         .withMainCallback(callback)
       new ScalafixInterface(scalafixArguments, Nil)

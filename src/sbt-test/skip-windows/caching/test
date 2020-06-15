@@ -288,7 +288,7 @@ $ mkdir src/main/scala
 $ copy-file files/Valid.scala src/main/scala/Valid.scala
 > scalafix --check ProcedureSyntax
 > reload plugins
-> 'set dependencyOverrides += "ch.epfl.scala" % "scalafix-interfaces" % "0.9.14"' // anything else than above
+> 'set dependencyOverrides += "ch.epfl.scala" % "scalafix-interfaces" % "0.9.17+5-86d5550d-SNAPSHOT"' // different than current, requires bumping when using new APIs
 > session save
 > reload return
 $ exec chmod 000 src/main/scala/Valid.scala
@@ -302,7 +302,7 @@ $ copy-file files/Valid.scala src/main/scala/Valid.scala
 > set scalafixDependencies in ThisBuild := Nil
 > scalafix --check ProcedureSyntax
 > reload plugins
-> 'set dependencyOverrides += "ch.epfl.scala" % "scalafix-interfaces" % "0.9.13"' // anything else than current
+> 'set dependencyOverrides += "ch.epfl.scala" % "scalafix-interfaces" % "0.9.17+7-a1b6d972-SNAPSHOT"' // different than above, requires bumping when using new APIs
 > session save
 > reload return
 > set scalafixDependencies in ThisBuild := Nil

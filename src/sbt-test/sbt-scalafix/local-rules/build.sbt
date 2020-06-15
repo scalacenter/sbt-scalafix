@@ -3,7 +3,7 @@ import _root_.scalafix.sbt.{BuildInfo => Versions}
 inThisBuild(
   List(
     scalafixDependencies := List(
-      // Custom rule published to Maven Central https://github.com/scalacenter/example-scalafix-rule
+      // Custom rule cross-published to Maven Central https://github.com/scalacenter/example-scalafix-rule
       "ch.epfl.scala" %% "example-scalafix-rule" % "1.4.0"
     ),
     // `Repository.central()` can only be used sbt 1.x / scala 2.12

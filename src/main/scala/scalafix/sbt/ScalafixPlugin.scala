@@ -68,6 +68,13 @@ object ScalafixPlugin extends AutoPlugin {
         "Optional list of custom rules to install from Maven Central. " +
           "This setting is read from the global scope so it only needs to be defined once in the build."
       )
+    val scalafixScalaBinaryVersion: SettingKey[String] =
+      settingKey[String](
+        "The Scala binary version used for scalafix execution. Defaults to 2.12. " +
+          s"Rules must be compiled against that binary version, or for advanced rules such as " +
+          s"ExplicitResultTypes which have a full cross-version, against the corresponding full" +
+          s"version that scalafix is built against."
+      )
     val scalafixConfig: SettingKey[Option[File]] =
       settingKey[Option[File]](
         "Optional location to .scalafix.conf file to specify which scalafix rules should run. " +
@@ -143,11 +150,17 @@ object ScalafixPlugin extends AutoPlugin {
     commands += ScalafixEnable.command
   )
 
+  override def buildSettings: Seq[Def.Setting[_]] =
+    Seq(
+      scalafixScalaBinaryVersion := "2.12" // scalaBinaryVersion.value for 1.0
+    )
+
   lazy val stdoutLogger = Compat.ConsoleLogger(System.out)
 
   private val scalafixInterface: Def.Initialize[() => ScalafixInterface] =
     Def.setting {
       ScalafixInterface.fromToolClasspath(
+        scalafixScalaBinaryVersion.in(ThisBuild).value,
         scalafixDependencies = scalafixDependencies.in(ThisBuild).value,
         scalafixCustomResolvers = scalafixResolvers.in(ThisBuild).value
       )

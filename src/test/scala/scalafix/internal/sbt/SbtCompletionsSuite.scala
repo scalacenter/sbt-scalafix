@@ -30,6 +30,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
   val mainArgs =
     ScalafixInterface
       .fromToolClasspath(
+        "2.12",
         Seq(exampleDependency),
         Seq(Repository.central)
       )()
