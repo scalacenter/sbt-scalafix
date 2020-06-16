@@ -13,6 +13,7 @@ import sbt.internal.sbtscalafix.Caching._
 import sbt.internal.sbtscalafix.{Compat, JLineAccess}
 import sbt.plugins.JvmPlugin
 import scalafix.interfaces.ScalafixError
+import scalafix.internal.sbt.Arg.ToolClasspath
 import scalafix.internal.sbt._
 
 import scala.util.Try
@@ -66,6 +67,13 @@ object ScalafixPlugin extends AutoPlugin {
       settingKey[Seq[ModuleID]](
         "Optional list of custom rules to install from Maven Central. " +
           "This setting is read from the global scope so it only needs to be defined once in the build."
+      )
+    val scalafixScalaBinaryVersion: SettingKey[String] =
+      settingKey[String](
+        "The Scala binary version used for scalafix execution. Defaults to 2.12. " +
+          s"Rules must be compiled against that binary version, or for advanced rules such as " +
+          s"ExplicitResultTypes which have a full cross-version, against the corresponding full" +
+          s"version that scalafix is built against."
       )
     val scalafixConfig: SettingKey[Option[File]] =
       settingKey[Option[File]](
@@ -129,16 +137,30 @@ object ScalafixPlugin extends AutoPlugin {
   override lazy val globalSettings: Seq[Def.Setting[_]] = Seq(
     scalafixConfig := None, // let scalafix-cli try to infer $CWD/.scalafix.conf
     scalafixCaching := false,
-    scalafixResolvers := ScalafixCoursier.defaultResolvers,
+    scalafixResolvers := Seq(
+      Repository.ivy2Local(),
+      Repository.central(),
+      coursierapi.MavenRepository
+        .of("https://oss.sonatype.org/content/repositories/public"),
+      coursierapi.MavenRepository.of(
+        "https://oss.sonatype.org/content/repositories/snapshots"
+      )
+    ),
     scalafixDependencies := Nil,
     commands += ScalafixEnable.command
   )
+
+  override def buildSettings: Seq[Def.Setting[_]] =
+    Seq(
+      scalafixScalaBinaryVersion := "2.12" // scalaBinaryVersion.value for 1.0
+    )
 
   lazy val stdoutLogger = Compat.ConsoleLogger(System.out)
 
   private val scalafixInterface: Def.Initialize[() => ScalafixInterface] =
     Def.setting {
       ScalafixInterface.fromToolClasspath(
+        scalafixScalaBinaryVersion.in(ThisBuild).value,
         scalafixDependencies = scalafixDependencies.in(ThisBuild).value,
         scalafixCustomResolvers = scalafixResolvers.in(ThisBuild).value
       )
@@ -158,6 +180,7 @@ object ScalafixPlugin extends AutoPlugin {
       shell: ShellArgs,
       scalafixInterface: () => ScalafixInterface,
       projectDepsExternal: Seq[ModuleID],
+      baseDepsExternal: Seq[ModuleID],
       baseResolvers: Seq[Repository],
       projectDepsInternal: Seq[File]
   ): (ShellArgs, ScalafixInterface) = {
@@ -175,11 +198,22 @@ object ScalafixPlugin extends AutoPlugin {
         throw new ScalafixFailed(List(ScalafixError.CommandLineError))
     }
     val rulesDepsExternal = parsed.map(_.dependency)
-    val interface = scalafixInterface().addToolClasspath(
-      rulesDepsExternal ++ projectDepsExternal,
-      baseResolvers,
-      projectDepsInternal
-    )
+    val refreshClasspath =
+      (projectDepsInternal ++ projectDepsExternal ++ rulesDepsExternal).nonEmpty
+    val interface =
+      if (refreshClasspath)
+        scalafixInterface().withArgs(
+          ToolClasspath(
+            projectDepsInternal.map(_.toURI.toURL),
+            baseDepsExternal ++ projectDepsExternal ++ rulesDepsExternal,
+            baseResolvers
+          )
+        )
+      else
+        // if there is nothing specific to the project or the invocation, reuse the default
+        // interface which already has the baseDepsExternal loaded
+        scalafixInterface()
+
     val newShell = shell.copy(rules = rules ++ parsed.map(_.ruleName))
     (newShell, interface)
 
@@ -244,6 +278,7 @@ object ScalafixPlugin extends AutoPlugin {
           shellArgs,
           scalafixInterface.value,
           projectDepsExternal,
+          scalafixDependencies.in(ThisBuild).value,
           scalafixResolvers.in(ThisBuild).value,
           projectDepsInternal
         )
@@ -346,8 +381,8 @@ object ScalafixPlugin extends AutoPlugin {
 
       implicit val stamper = new CacheKeysStamper {
         override protected def stamp: Arg.CacheKey => Unit = {
-          case Arg.ToolClasspath(classLoader) =>
-            val files = classLoader.getURLs
+          case Arg.ToolClasspath(customURLs, customDependencies, _) =>
+            val files = customURLs
               .map(url => Paths.get(url.toURI).toFile)
               .flatMap {
                 case classDirectory if classDirectory.isDirectory =>
@@ -356,6 +391,7 @@ object ScalafixPlugin extends AutoPlugin {
                   Seq(jar)
               }
             write(files.map(FileInfo.lastModified.apply))
+            write(customDependencies.map(_.toString))
           case Arg.Rules(rules) =>
             rules.foreach {
               case source

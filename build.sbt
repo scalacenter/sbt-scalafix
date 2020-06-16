@@ -2,8 +2,8 @@ inThisBuild(
   List(
     parallelExecution in Test := false,
     scalafixDependencies := List(
-      // Custom rule published to Maven Central https://github.com/olafurpg/example-scalafix-rule
-      "com.geirsson" %% "example-scalafix-rule" % "1.3.0"
+      // Custom rule published to Maven Central https://github.com/scalacenter/example-scalafix-rule
+      "ch.epfl.scala" %% "example-scalafix-rule" % "1.4.0"
     )
   )
 )
@@ -51,9 +51,17 @@ def scala210 = "2.10.7"
 scalaVersion := scala212
 crossScalaVersions := Seq(scala212, scala210)
 sbtVersion in pluginCrossBuild := {
+  // keep this as low as possible to avoid running into binary incompatibility such as https://github.com/sbt/sbt/issues/5049
   scalaBinaryVersion.value match {
     case "2.10" => "0.13.17"
     case "2.12" => "1.2.1"
+  }
+}
+scriptedSbt := {
+  // first releases that can build 2.13 (as they bring a Zinc version with a compiler-bridge published for 2.13)
+  scalaBinaryVersion.value match {
+    case "2.10" => "0.13.18"
+    case "2.12" => "1.2.7"
   }
 }
 libraryDependencies ++= {

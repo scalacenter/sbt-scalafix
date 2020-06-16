@@ -3,12 +3,13 @@ package scalafix.internal.sbt
 import java.io.{ByteArrayOutputStream, PrintStream}
 import java.nio.file.Files
 
+import coursierapi.Repository
 import org.scalactic.source.Position
 import sbt._
 import sbt.internal.sbtscalafix.Compat
 import scalafix.interfaces.ScalafixError
-
 import org.scalatest.funsuite.AnyFunSuite
+
 import scala.util.Properties
 
 class ScalafixAPISuite extends AnyFunSuite {
@@ -28,8 +29,9 @@ class ScalafixAPISuite extends AnyFunSuite {
     val logger = Compat.ConsoleLogger(new PrintStream(baos))
     val interface = ScalafixInterface
       .fromToolClasspath(
-        List("com.geirsson" %% "example-scalafix-rule" % "1.3.0"),
-        ScalafixCoursier.defaultResolvers,
+        "2.12",
+        List("ch.epfl.scala" %% "example-scalafix-rule" % "1.4.0"),
+        Seq(Repository.central),
         logger
       )()
       .withArgs(Arg.PrintStream(new PrintStream(baos)))

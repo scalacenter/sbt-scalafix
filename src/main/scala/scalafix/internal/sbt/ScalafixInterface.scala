@@ -1,6 +1,5 @@
 package scalafix.internal.sbt
 
-import java.net.URLClassLoader
 import java.nio.file.Path
 import java.{util => jutil}
 
@@ -19,12 +18,35 @@ object Arg {
 
   sealed trait CacheKey
 
-  case class ToolClasspath(classLoader: URLClassLoader)
-      extends Arg
+  case class ToolClasspath(
+      customURLs: Seq[URL],
+      customDependencies: Seq[ModuleID],
+      repositories: Seq[Repository]
+  ) extends Arg
       with CacheKey {
     override def apply(sa: ScalafixArguments): ScalafixArguments =
-      // this effectively overrides any previous URLClassLoader
-      sa.withToolClasspath(classLoader)
+      sa.withToolClasspath(
+        customURLs.asJava,
+        customDependencies.map(_.asCoursierCoordinates).asJava,
+        repositories.asJava
+      )
+
+    private implicit class XtensionModuleID(m: ModuleID) {
+      def asCoursierCoordinates: String = {
+        m.crossVersion match {
+          case Compat.Disabled =>
+            s"${m.organization}:${m.name}:${m.revision}"
+          case _: CrossVersion.Binary =>
+            s"${m.organization}::${m.name}:${m.revision}"
+          case _: CrossVersion.Full =>
+            s"${m.organization}:::${m.name}:${m.revision}"
+          case other =>
+            throw new InvalidArgument(
+              s"Unsupported crossVersion $other for dependency $m"
+            )
+        }
+      }
+    }
   }
 
   case class Rules(rules: Seq[String]) extends Arg with CacheKey {
@@ -78,64 +100,6 @@ class ScalafixInterface private (
     val args: Seq[Arg]
 ) {
 
-  private val lastToolClasspath = args.reverse
-    .collectFirst { case tcp: Arg.ToolClasspath => tcp }
-    .getOrElse(
-      throw new IllegalArgumentException(
-        "a base toolClasspath must be provided"
-      )
-    )
-    .classLoader
-
-  private def this(
-      api: ScalafixAPI,
-      toolClasspath: URLClassLoader,
-      mainCallback: ScalafixMainCallback
-  ) =
-    this(
-      api
-        .newArguments()
-        .withMainCallback(mainCallback)
-        .withToolClasspath(toolClasspath),
-      Seq(Arg.ToolClasspath(toolClasspath))
-    )
-
-  // Accumulates the classpath via classloader delegation, as only the last Arg.ToolClasspath is considered
-  //
-  // We effectively end up with the following class loader hierarchy:
-  //   1. Meta-project sbt class loader
-  //       - bound to the sbt session
-  //   2. ScalafixInterfacesClassloader, loading `scalafix-interfaces` from its parent
-  //       - bound to the sbt session
-  //   3. `scalafix-cli` JARs
-  //       - passed in the constructor
-  //       - bound to the sbt session
-  //   4. Global, external dependencies
-  //       - present only if custom dependencies were defined
-  //       - used for rule names autocompletion
-  //       - bound to the sbt session
-  //   5. Project-level, internal and external classpath for ScalafixConfig ivy configuration & dependencies for
-  //      CLI-requested `dependency:` rules
-  //       - present only on project-specific (local rules) or invocation-specific (`dependency:` rule) classpath
-  //       - recreated at each task invocation
-  def addToolClasspath(
-      extraExternalDeps: Seq[ModuleID],
-      customResolvers: Seq[Repository],
-      extraInternalDeps: Seq[File]
-  ): ScalafixInterface = {
-    val extraURLs = ScalafixCoursier
-      .scalafixToolClasspath(
-        extraExternalDeps,
-        customResolvers
-      ) ++ extraInternalDeps.map(_.toURI.toURL)
-
-    if (extraURLs.isEmpty) this
-    else {
-      val classpath = new URLClassLoader(extraURLs.toArray, lastToolClasspath)
-      withArgs(Arg.ToolClasspath(classpath))
-    }
-  }
-
   def withArgs(args: Arg*): ScalafixInterface = {
     val newScalafixArguments = args.foldLeft(scalafixArguments) { (acc, arg) =>
       try arg(acc)
@@ -165,23 +129,27 @@ object ScalafixInterface {
     override def apply(): T = _value.get
   }
   def fromToolClasspath(
+      scalafixBinaryScalaVersion: String,
       scalafixDependencies: Seq[ModuleID],
       scalafixCustomResolvers: Seq[Repository],
       logger: Logger = Compat.ConsoleLogger(System.out)
   ): () => ScalafixInterface =
     new LazyValue({ () =>
-      val jars = ScalafixCoursier.scalafixCliJars(scalafixCustomResolvers)
-      val urls = jars.map(_.toUri.toURL).toArray
-      val interfacesParent =
-        new ScalafixInterfacesClassloader(this.getClass.getClassLoader)
-      val classloader = new URLClassLoader(urls, interfacesParent)
-      val api = ScalafixAPI.classloadInstance(classloader)
       val callback = new ScalafixLogger(logger)
-      new ScalafixInterface(api, classloader, callback)
-        .addToolClasspath(
-          scalafixDependencies,
-          scalafixCustomResolvers,
-          Nil
+      val scalafixArguments = ScalafixAPI
+        .fetchAndClassloadInstance(
+          scalafixBinaryScalaVersion,
+          scalafixCustomResolvers.asJava
+        )
+        .newArguments()
+        .withMainCallback(callback)
+      new ScalafixInterface(scalafixArguments, Nil)
+        .withArgs(
+          Arg.ToolClasspath(
+            Nil,
+            scalafixDependencies,
+            scalafixCustomResolvers
+          )
         )
     })
 }
