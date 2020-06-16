@@ -10,15 +10,17 @@ inThisBuild(
     // error: Static methods in interface require -target:jvm-1.8
     scalafixResolvers := List(
       coursierapi.MavenRepository.of("https://repo1.maven.org/maven2")
-    )
+    ),
+    scalaVersion := "2.13.0", // out of sync with scalafix.sbt.BuildInfo.scala213 on purpose
+    scalafixScalaBinaryVersion :=
+      // this should be the default in sbt-scalafix 1.0
+      CrossVersion.binaryScalaVersion(scalaVersion.value)
   )
 )
 
 val rules = project
   .disablePlugins(ScalafixPlugin)
   .settings(
-    scalaVersion := Versions.scala212,
-    crossPaths := false,
     libraryDependencies += "ch.epfl.scala" %% "scalafix-core" % Versions.scalafixVersion,
     libraryDependencies += "joda-time" % "joda-time" % "2.10.6"
   )
@@ -26,12 +28,10 @@ val rules = project
 val service = project
   .dependsOn(rules % ScalafixConfig)
   .settings(
-    scalaVersion := Versions.scala213,
-    libraryDependencies += "com.nequissimus" % "sort-imports_2.12" % "0.5.0" % ScalafixConfig
+    libraryDependencies += "com.nequissimus" %% "sort-imports" % "0.5.2" % ScalafixConfig
   )
 
 val sameproject = project
   .settings(
-    scalaVersion := Versions.scala212, // the project scala version MUST match the one used by Scalafix
     libraryDependencies += "ch.epfl.scala" %% "scalafix-core" % Versions.scalafixVersion % ScalafixConfig
   )
