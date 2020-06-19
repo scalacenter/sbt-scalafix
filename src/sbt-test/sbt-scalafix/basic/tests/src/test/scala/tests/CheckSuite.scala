@@ -1,10 +1,10 @@
 package tests
 
-import org.scalatest._
+import org.scalatest.funsuite.AnyFunSuite
 import scala.meta.internal.io._
 import scala.meta.testkit._
 
-class CheckSuite extends FunSuite with DiffAssertions {
+class CheckSuite extends AnyFunSuite with DiffAssertions {
 
   test("> scalafix") {
     val root = PathIO.workingDirectory.resolve("example").resolve("src")
