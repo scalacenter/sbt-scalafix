@@ -2,9 +2,9 @@ package tests
 
 import org.scalatest.funsuite.AnyFunSuite
 import scala.meta.internal.io._
-import scala.meta.testkit._
+import scala.meta.testkit.StringFS
 
-class CheckSuite extends AnyFunSuite with DiffAssertions {
+class CheckSuite extends AnyFunSuite {
 
   test("> scalafix") {
     val root = PathIO.workingDirectory.resolve("example").resolve("src")
@@ -21,7 +21,7 @@ class CheckSuite extends AnyFunSuite with DiffAssertions {
         |}
         |// Hello world!
         |""".stripMargin
-    assertNoDiff(obtained, expected)
+    munit.Assertions.assertNoDiff(obtained, expected)
   }
 
 }
