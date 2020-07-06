@@ -11,6 +11,7 @@ import org.eclipse.jgit.util.GitDateFormatter
 
 import java.nio.file.Path
 import scala.collection.JavaConverters._
+import scala.util.Try
 
 class JGitCompletion(cwd: Path) {
   private val isGitRepository =
@@ -24,7 +25,8 @@ class JGitCompletion(cwd: Path) {
       val refList0 =
         repo.getRefDatabase().getRefsByPrefix(RefDatabase.ALL).asScala
       val git = new Git(repo)
-      val refs0 = git.log().setMaxCount(20).call().asScala.toList
+      val refs0 =
+        Try(git.log().setMaxCount(20).call().asScala.toList).getOrElse(Nil)
       (refList0, refs0)
     } else {
       (Nil, Nil)
