@@ -19,14 +19,14 @@ object Arg {
   sealed trait CacheKey
 
   case class ToolClasspath(
-      customURLs: Seq[URL],
+      customURIs: Seq[URI],
       customDependencies: Seq[ModuleID],
       repositories: Seq[Repository]
   ) extends Arg
       with CacheKey {
     override def apply(sa: ScalafixArguments): ScalafixArguments =
       sa.withToolClasspath(
-        customURLs.asJava,
+        customURIs.map(_.toURL).asJava,
         customDependencies.map(_.asCoursierCoordinates).asJava,
         repositories.asJava
       )

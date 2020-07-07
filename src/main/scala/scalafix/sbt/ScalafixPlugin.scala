@@ -230,7 +230,7 @@ object ScalafixPlugin extends AutoPlugin {
     val interface =
       if (customToolClasspath) {
         val toolClasspath = ToolClasspath(
-          projectDepsInternal0.map(_.toURI.toURL),
+          projectDepsInternal0.map(_.toURI),
           baseDepsExternal ++ projectDepsExternal ++ rulesDepsExternal,
           baseResolvers
         )
@@ -415,9 +415,9 @@ object ScalafixPlugin extends AutoPlugin {
 
       implicit val stamper = new CacheKeysStamper {
         override protected def stamp: Arg.CacheKey => Unit = {
-          case Arg.ToolClasspath(customURLs, customDependencies, _) =>
-            val files = customURLs
-              .map(url => Paths.get(url.toURI).toFile)
+          case Arg.ToolClasspath(customURIs, customDependencies, _) =>
+            val files = customURIs
+              .map(uri => Paths.get(uri).toFile)
               .flatMap {
                 case classDirectory if classDirectory.isDirectory =>
                   classDirectory.**(AllPassFilter).get
