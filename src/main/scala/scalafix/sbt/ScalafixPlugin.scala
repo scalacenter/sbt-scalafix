@@ -265,6 +265,7 @@ object ScalafixPlugin extends AutoPlugin {
         .map(_.key)
         .filter(_.key == scalafix.key)
         .flatMap(_.scope.config.toOption)
+        .distinct
 
       configsWithScalafixInputKey
         .map(config => scalafixTask(shellArgs, config))
