@@ -8,7 +8,6 @@ import coursierapi.Repository
 import sbt.KeyRanks.Invisible
 import sbt.Keys._
 import sbt._
-import sbt.complete._
 import sbt.internal.sbtscalafix.Caching._
 import sbt.internal.sbtscalafix.{Compat, JLineAccess}
 import sbt.plugins.JvmPlugin
@@ -123,6 +122,30 @@ object ScalafixPlugin extends AutoPlugin {
       Invisible
     )
 
+  private val scalafixInterfaceProvider: SettingKey[() => ScalafixInterface] =
+    SettingKey(
+      "scalafixInterfaceProvider",
+      "Implementation detail - do not use",
+      Invisible
+    )
+
+  private val scalafixCompletions: SettingKey[ScalafixCompletions] =
+    SettingKey(
+      "scalafixCompletions",
+      "Implementation detail - do not use",
+      Invisible
+    )
+
+  // Memoize ScalafixInterface instances initialized with a custom tool classpath across projects & configurations
+  // during task execution, to amortize the classloading cost when invoking scalafix concurrently on many targets
+  private val scalafixInterfaceCache
+      : TaskKey[BlockingCache[ToolClasspath, ScalafixInterface]] =
+    TaskKey(
+      "scalafixInterfaceCache",
+      "Implementation detail - do not use",
+      Invisible
+    )
+
   override lazy val projectConfigurations: Seq[Configuration] =
     Seq(ScalafixConfig)
 
@@ -147,7 +170,23 @@ object ScalafixPlugin extends AutoPlugin {
       )
     ),
     scalafixDependencies := Nil,
-    commands += ScalafixEnable.command
+    commands += ScalafixEnable.command,
+    scalafixInterfaceProvider := ScalafixInterface.fromToolClasspath(
+      scalafixScalaBinaryVersion.in(ThisBuild).value,
+      scalafixDependencies = scalafixDependencies.in(ThisBuild).value,
+      scalafixCustomResolvers = scalafixResolvers.in(ThisBuild).value
+    ),
+    scalafixCompletions := new ScalafixCompletions(
+      workingDirectory = baseDirectory.in(ThisBuild).value.toPath,
+      // Unfortunately, local rules will not show up as completions in the parser, as that parser can only
+      // depend on settings, while local rules classpath must be looked up via tasks
+      loadedRules = () => scalafixInterfaceProvider.value().availableRules(),
+      terminalWidth = Some(JLineAccess.terminalWidth)
+    ),
+    scalafixInterfaceCache := new BlockingCache[
+      ToolClasspath,
+      ScalafixInterface
+    ]
   )
 
   override def buildSettings: Seq[Def.Setting[_]] =
@@ -157,28 +196,10 @@ object ScalafixPlugin extends AutoPlugin {
 
   lazy val stdoutLogger = Compat.ConsoleLogger(System.out)
 
-  private val scalafixInterface: Def.Initialize[() => ScalafixInterface] =
-    Def.setting {
-      ScalafixInterface.fromToolClasspath(
-        scalafixScalaBinaryVersion.in(ThisBuild).value,
-        scalafixDependencies = scalafixDependencies.in(ThisBuild).value,
-        scalafixCustomResolvers = scalafixResolvers.in(ThisBuild).value
-      )
-    }
-
-  private val parser: Def.Initialize[Parser[ShellArgs]] = Def.setting {
-    new ScalafixCompletions(
-      workingDirectory = baseDirectory.in(ThisBuild).value.toPath,
-      // Unfortunately, local rules will not show up as completions in the parser, as that parser can only
-      // depend on settings, while local rules classpath must be looked up via tasks
-      loadedRules = () => scalafixInterface.value().availableRules(),
-      terminalWidth = Some(JLineAccess.terminalWidth)
-    ).parser
-  }
-
   private def scalafixArgsFromShell(
       shell: ShellArgs,
       scalafixInterface: () => ScalafixInterface,
+      scalafixInterfaceCache: BlockingCache[ToolClasspath, ScalafixInterface],
       projectDepsExternal: Seq[ModuleID],
       baseDepsExternal: Seq[ModuleID],
       baseResolvers: Seq[Repository],
@@ -198,18 +219,27 @@ object ScalafixPlugin extends AutoPlugin {
         throw new ScalafixFailed(List(ScalafixError.CommandLineError))
     }
     val rulesDepsExternal = parsed.map(_.dependency)
-    val refreshClasspath =
-      (projectDepsInternal ++ projectDepsExternal ++ rulesDepsExternal).nonEmpty
+    val projectDepsInternal0 = projectDepsInternal.filter {
+      case directory if directory.isDirectory =>
+        directory.**(AllPassFilter).get.exists(_.isFile)
+      case file if file.isFile => true
+      case _ => false
+    }
+    val customToolClasspath =
+      (projectDepsInternal0 ++ projectDepsExternal ++ rulesDepsExternal).nonEmpty
     val interface =
-      if (refreshClasspath)
-        scalafixInterface().withArgs(
-          ToolClasspath(
-            projectDepsInternal.map(_.toURI.toURL),
-            baseDepsExternal ++ projectDepsExternal ++ rulesDepsExternal,
-            baseResolvers
-          )
+      if (customToolClasspath) {
+        val toolClasspath = ToolClasspath(
+          projectDepsInternal0.map(_.toURI.toURL),
+          baseDepsExternal ++ projectDepsExternal ++ rulesDepsExternal,
+          baseResolvers
         )
-      else
+        scalafixInterfaceCache.getOrElseUpdate(
+          toolClasspath,
+          // costly: triggers artifact resolution & classloader creation
+          scalafixInterface().withArgs(toolClasspath)
+        )
+      } else
         // if there is nothing specific to the project or the invocation, reuse the default
         // interface which already has the baseDepsExternal loaded
         scalafixInterface()
@@ -222,7 +252,7 @@ object ScalafixPlugin extends AutoPlugin {
   private def scalafixAllInputTask(): Def.Initialize[InputTask[Unit]] =
     // workaround https://github.com/sbt/sbt/issues/3572 by invoking directly what Def.inputTaskDyn would via macro
     InputTask
-      .createDyn(InputTask.initParserAsInput(parser))(
+      .createDyn(InputTask.initParserAsInput(scalafixCompletions(_.parser)))(
         Def.task(shellArgs => scalafixAllTask(shellArgs, thisProject.value))
       )
 
@@ -246,7 +276,7 @@ object ScalafixPlugin extends AutoPlugin {
   ): Def.Initialize[InputTask[Unit]] =
     // workaround https://github.com/sbt/sbt/issues/3572 by invoking directly what Def.inputTaskDyn would via macro
     InputTask
-      .createDyn(InputTask.initParserAsInput(parser))(
+      .createDyn(InputTask.initParserAsInput(scalafixCompletions(_.parser)))(
         Def.task(shellArgs => scalafixTask(shellArgs, config))
       )
 
@@ -276,7 +306,8 @@ object ScalafixPlugin extends AutoPlugin {
         val scalafixConf = scalafixConfig.in(config).value.map(_.toPath)
         val (shell, mainInterface0) = scalafixArgsFromShell(
           shellArgs,
-          scalafixInterface.value,
+          scalafixInterfaceProvider.value,
+          scalafixInterfaceCache.value,
           projectDepsExternal,
           scalafixDependencies.in(ThisBuild).value,
           scalafixResolvers.in(ThisBuild).value,
@@ -306,7 +337,10 @@ object ScalafixPlugin extends AutoPlugin {
     }
   private def scalafixHelp: Def.Initialize[Task[Unit]] =
     Def.task {
-      scalafixInterface.value().withArgs(Arg.ParsedArgs(List("--help"))).run()
+      scalafixInterfaceProvider
+        .value()
+        .withArgs(Arg.ParsedArgs(List("--help")))
+        .run()
       ()
     }
 
