@@ -8,7 +8,6 @@ import coursierapi.Repository
 import sbt.KeyRanks.Invisible
 import sbt.Keys._
 import sbt._
-import sbt.complete._
 import sbt.internal.sbtscalafix.Caching._
 import sbt.internal.sbtscalafix.{Compat, JLineAccess}
 import sbt.plugins.JvmPlugin
@@ -130,9 +129,9 @@ object ScalafixPlugin extends AutoPlugin {
       Invisible
     )
 
-  private val scalafixParser: SettingKey[Parser[ShellArgs]] =
+  private val scalafixCompletions: SettingKey[ScalafixCompletions] =
     SettingKey(
-      "scalafixParser",
+      "scalafixCompletions",
       "Implementation detail - do not use",
       Invisible
     )
@@ -167,13 +166,13 @@ object ScalafixPlugin extends AutoPlugin {
       scalafixDependencies = scalafixDependencies.in(ThisBuild).value,
       scalafixCustomResolvers = scalafixResolvers.in(ThisBuild).value
     ),
-    scalafixParser := new ScalafixCompletions(
+    scalafixCompletions := new ScalafixCompletions(
       workingDirectory = baseDirectory.in(ThisBuild).value.toPath,
       // Unfortunately, local rules will not show up as completions in the parser, as that parser can only
       // depend on settings, while local rules classpath must be looked up via tasks
       loadedRules = () => scalafixInterfaceProvider.value().availableRules(),
       terminalWidth = Some(JLineAccess.terminalWidth)
-    ).parser
+    )
   )
 
   override def buildSettings: Seq[Def.Setting[_]] =
@@ -229,7 +228,7 @@ object ScalafixPlugin extends AutoPlugin {
   private def scalafixAllInputTask(): Def.Initialize[InputTask[Unit]] =
     // workaround https://github.com/sbt/sbt/issues/3572 by invoking directly what Def.inputTaskDyn would via macro
     InputTask
-      .createDyn(InputTask.initParserAsInput(scalafixParser))(
+      .createDyn(InputTask.initParserAsInput(scalafixCompletions(_.parser)))(
         Def.task(shellArgs => scalafixAllTask(shellArgs, thisProject.value))
       )
 
@@ -253,7 +252,7 @@ object ScalafixPlugin extends AutoPlugin {
   ): Def.Initialize[InputTask[Unit]] =
     // workaround https://github.com/sbt/sbt/issues/3572 by invoking directly what Def.inputTaskDyn would via macro
     InputTask
-      .createDyn(InputTask.initParserAsInput(scalafixParser))(
+      .createDyn(InputTask.initParserAsInput(scalafixCompletions(_.parser)))(
         Def.task(shellArgs => scalafixTask(shellArgs, config))
       )
 
