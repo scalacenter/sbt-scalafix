@@ -204,13 +204,19 @@ object ScalafixPlugin extends AutoPlugin {
         throw new ScalafixFailed(List(ScalafixError.CommandLineError))
     }
     val rulesDepsExternal = parsed.map(_.dependency)
-    val refreshClasspath =
-      (projectDepsInternal ++ projectDepsExternal ++ rulesDepsExternal).nonEmpty
+    val projectDepsInternal0 = projectDepsInternal.filter {
+      case directory if directory.isDirectory =>
+        directory.**(AllPassFilter).get.exists(_.isFile)
+      case file if file.isFile => true
+      case _ => false
+    }
+    val customToolClasspath =
+      (projectDepsInternal0 ++ projectDepsExternal ++ rulesDepsExternal).nonEmpty
     val interface =
-      if (refreshClasspath)
+      if (customToolClasspath)
         scalafixInterface().withArgs(
           ToolClasspath(
-            projectDepsInternal.map(_.toURI.toURL),
+            projectDepsInternal0.map(_.toURI.toURL),
             baseDepsExternal ++ projectDepsExternal ++ rulesDepsExternal,
             baseResolvers
           )
