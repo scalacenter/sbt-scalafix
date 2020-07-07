@@ -136,6 +136,16 @@ object ScalafixPlugin extends AutoPlugin {
       Invisible
     )
 
+  // Memoize ScalafixInterface instances initialized with a custom tool classpath across projects & configurations
+  // during task execution, to amortize the classloading cost when invoking scalafix concurrently on many targets
+  private val scalafixInterfaceCache
+      : TaskKey[BlockingCache[ToolClasspath, ScalafixInterface]] =
+    TaskKey(
+      "scalafixInterfaceCache",
+      "Implementation detail - do not use",
+      Invisible
+    )
+
   override lazy val projectConfigurations: Seq[Configuration] =
     Seq(ScalafixConfig)
 
@@ -172,7 +182,11 @@ object ScalafixPlugin extends AutoPlugin {
       // depend on settings, while local rules classpath must be looked up via tasks
       loadedRules = () => scalafixInterfaceProvider.value().availableRules(),
       terminalWidth = Some(JLineAccess.terminalWidth)
-    )
+    ),
+    scalafixInterfaceCache := new BlockingCache[
+      ToolClasspath,
+      ScalafixInterface
+    ]
   )
 
   override def buildSettings: Seq[Def.Setting[_]] =
@@ -185,6 +199,7 @@ object ScalafixPlugin extends AutoPlugin {
   private def scalafixArgsFromShell(
       shell: ShellArgs,
       scalafixInterface: () => ScalafixInterface,
+      scalafixInterfaceCache: BlockingCache[ToolClasspath, ScalafixInterface],
       projectDepsExternal: Seq[ModuleID],
       baseDepsExternal: Seq[ModuleID],
       baseResolvers: Seq[Repository],
@@ -213,15 +228,18 @@ object ScalafixPlugin extends AutoPlugin {
     val customToolClasspath =
       (projectDepsInternal0 ++ projectDepsExternal ++ rulesDepsExternal).nonEmpty
     val interface =
-      if (customToolClasspath)
-        scalafixInterface().withArgs(
-          ToolClasspath(
-            projectDepsInternal0.map(_.toURI.toURL),
-            baseDepsExternal ++ projectDepsExternal ++ rulesDepsExternal,
-            baseResolvers
-          )
+      if (customToolClasspath) {
+        val toolClasspath = ToolClasspath(
+          projectDepsInternal0.map(_.toURI.toURL),
+          baseDepsExternal ++ projectDepsExternal ++ rulesDepsExternal,
+          baseResolvers
         )
-      else
+        scalafixInterfaceCache.getOrElseUpdate(
+          toolClasspath,
+          // costly: triggers artifact resolution & classloader creation
+          scalafixInterface().withArgs(toolClasspath)
+        )
+      } else
         // if there is nothing specific to the project or the invocation, reuse the default
         // interface which already has the baseDepsExternal loaded
         scalafixInterface()
@@ -289,6 +307,7 @@ object ScalafixPlugin extends AutoPlugin {
         val (shell, mainInterface0) = scalafixArgsFromShell(
           shellArgs,
           scalafixInterfaceProvider.value,
+          scalafixInterfaceCache.value,
           projectDepsExternal,
           scalafixDependencies.in(ThisBuild).value,
           scalafixResolvers.in(ThisBuild).value,
