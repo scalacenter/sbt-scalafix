@@ -253,12 +253,15 @@ object ScalafixPlugin extends AutoPlugin {
     // workaround https://github.com/sbt/sbt/issues/3572 by invoking directly what Def.inputTaskDyn would via macro
     InputTask
       .createDyn(InputTask.initParserAsInput(scalafixCompletions(_.parser)))(
-        Def.task(shellArgs => scalafixAllTask(shellArgs, thisProject.value))
+        Def.task(shellArgs =>
+          scalafixAllTask(shellArgs, thisProject.value, resolvedScoped.value)
+        )
       )
 
   private def scalafixAllTask(
       shellArgs: ShellArgs,
-      project: ResolvedProject
+      project: ResolvedProject,
+      scopedKey: ScopedKey[_]
   ): Def.Initialize[Task[Unit]] =
     Def.taskDyn {
       val configsWithScalafixInputKey = project.settings
@@ -267,8 +270,24 @@ object ScalafixPlugin extends AutoPlugin {
         .flatMap(_.scope.config.toOption)
         .distinct
 
+      // To avoid seeing 2 concurrent scalafixAll tasks for a given project in supershell, this renames them
+      // to match the underlying configuration-scoped scalafix tasks
+      def updateName[T](task: Task[T], config: ConfigKey): Task[T] =
+        task.named(
+          Scope.display(
+            scopedKey.scope.copy(config = Select(config)),
+            scalafix.key.label,
+            {
+              case ProjectRef(_, id) => s"$id /"
+              case ref => s"${ref.toString} /"
+            }
+          )
+        )
+
       configsWithScalafixInputKey
-        .map(config => scalafixTask(shellArgs, config))
+        .map { config =>
+          scalafixTask(shellArgs, config)(task => updateName(task, config))
+        }
         .joinWith(_.join.map(_ => ()))
     }
 
