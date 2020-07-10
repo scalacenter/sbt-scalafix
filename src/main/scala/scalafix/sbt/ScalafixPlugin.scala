@@ -491,15 +491,15 @@ object ScalafixPlugin extends AutoPlugin {
       }
 
       def diffWithPreviousRun[T](f: (Boolean, ChangeReport[File]) => T): T = {
-        val tracker = Tracked.inputChanged(streams.cacheDirectory / "inputs") {
-          (inputChanged: Boolean, _: Seq[Arg.CacheKey]) =>
-            val diffOutputs: Difference = Tracked.diffOutputs(
-              streams.cacheDirectory / "outputs",
+        val tracker = Tracked.inputChanged(streams.cacheDirectory / "args") {
+          (argsChanged: Boolean, _: Seq[Arg.CacheKey]) =>
+            val diffInputs: Difference = Tracked.diffInputs(
+              streams.cacheDirectory / "targets",
               lastModifiedStyle
             )
-            diffOutputs(paths.map(_.toFile).toSet) {
+            diffInputs(paths.map(_.toFile).toSet) {
               diffTargets: ChangeReport[File] =>
-                f(inputChanged, diffTargets)
+                f(argsChanged, diffTargets)
             }
         }
         Try(tracker(cacheKeyArgs)).recover {
