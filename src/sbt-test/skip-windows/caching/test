@@ -34,18 +34,17 @@ $ exec chmod 000 src/main/scala/Valid.scala
 > scalafix --check
 $ delete src/main/scala
 
-# a file patched during the last run should be cached
+# a file patched during the last run should not be cached as some rules might not have observed the latest content
 > set scalafixConfig := None
 $ mkdir src/test/scala
 $ copy-file files/ProcedureSyntax.scala src/test/scala/ToPatch.scala
 $ copy-file files/Valid.scala src/test/scala/Valid.scala
 # avoid rounding in mtime that could cause false negatives in `newer`
 $ sleep 1000
-> test:scalafix ProcedureSyntax
+> test:scalafix ProcedureSyntax DisableSyntax
 $ newer src/test/scala/ToPatch.scala src/test/scala/Valid.scala
 $ exec chmod 000 src/test/scala/ToPatch.scala
-$ exec chmod 000 src/test/scala/Valid.scala
-> test:scalafix ProcedureSyntax
+-> test:scalafix ProcedureSyntax DisableSyntax
 $ delete src/test/scala
 
 # an added file after a successful run should be checked
@@ -215,6 +214,7 @@ $ copy-file files/ProcedureSyntax.scala src/test/scala/InitiallyInvalid.scala
 $ exec chmod 000 src/main/scala/Valid.scala
 > scalafix --check ProcedureSyntax
 -> test:scalafix --check ProcedureSyntax
+> test:scalafix ProcedureSyntax
 > test:scalafix ProcedureSyntax
 $ exec chmod 000 src/test/scala/InitiallyInvalid.scala
 > scalafix --check ProcedureSyntax
