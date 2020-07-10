@@ -1,0 +1,24 @@
+> scalafix --help
+> checkNoCallback
+
+-> scalafix --check
+> checkNoCallback
+
+-> scalafix --check RemoveUnused
+> checkNoCallback
+
+-> scalafix
+> checkLastCallbackContains UnusedImport.scala
+
+> scalafix --files src/main/scala/UnusedImport.scala
+> checkLastCallbackContains UnusedImport.scala
+
+> scalafix ProcedureSyntax RemoveUnused
+> checkLastCallbackContains ProcedureSyntax.scala UnusedImport.scala
+
+> set scalafixCaching := true
+> scalafix RemoveUnused
+> checkLastCallbackContains ProcedureSyntax.scala UnusedImport.scala
+> scalafix RemoveUnused
+> checkNoCallback
+

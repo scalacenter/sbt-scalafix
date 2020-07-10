@@ -10,6 +10,7 @@ import scalafix.interfaces.{Scalafix => ScalafixAPI, _}
 import scalafix.sbt.InvalidArgument
 
 import scala.collection.JavaConverters._
+import scala.util.Try
 import scala.util.control.NonFatal
 
 sealed trait Arg extends (ScalafixArguments => ScalafixArguments)
@@ -97,6 +98,7 @@ object Arg {
 
 class ScalafixInterface private (
     scalafixArguments: ScalafixArguments, // hide it to force usage of withArgs so we can intercept arguments
+    postScalafixHooks: Seq[Seq[File] => Unit],
     val args: Seq[Arg]
 ) {
 
@@ -105,11 +107,33 @@ class ScalafixInterface private (
       try arg(acc)
       catch { case NonFatal(e) => throw new InvalidArgument(e.getMessage) }
     }
-    new ScalafixInterface(newScalafixArguments, this.args ++ args)
+    new ScalafixInterface(
+      newScalafixArguments,
+      postScalafixHooks,
+      this.args ++ args
+    )
   }
 
   def run(): Seq[ScalafixError] =
-    scalafixArguments.run().toSeq
+    try {
+      scalafixArguments.run().toSeq
+    } finally {
+      val mayRewrite = args.reverse
+        .collectFirst {
+          case Arg.ParsedArgs(args) => args
+        }
+        .forall { args =>
+          Seq("--check", "--test", "--auto-suppress-linter-errors")
+            .intersect(args)
+            .isEmpty
+        }
+      if (mayRewrite) for {
+        hook <- postScalafixHooks
+        files <- args.reverse.collectFirst {
+          case Arg.Paths(paths) => paths.map(_.toFile)
+        }
+      } yield Try(hook(files))
+    }
 
   def availableRules(): Seq[ScalafixRule] =
     scalafixArguments.availableRules().asScala
@@ -132,7 +156,8 @@ object ScalafixInterface {
       scalafixBinaryScalaVersion: String,
       scalafixDependencies: Seq[ModuleID],
       scalafixCustomResolvers: Seq[Repository],
-      logger: Logger = Compat.ConsoleLogger(System.out)
+      logger: Logger = Compat.ConsoleLogger(System.out),
+      postScalafixHooks: Seq[Seq[File] => Unit] = Nil
   ): () => ScalafixInterface =
     new LazyValue({ () =>
       val callback = new ScalafixLogger(logger)
@@ -143,7 +168,7 @@ object ScalafixInterface {
         )
         .newArguments()
         .withMainCallback(callback)
-      new ScalafixInterface(scalafixArguments, Nil)
+      new ScalafixInterface(scalafixArguments, postScalafixHooks, Nil)
         .withArgs(
           Arg.ToolClasspath(
             Nil,

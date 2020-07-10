@@ -115,6 +115,13 @@ object ScalafixPlugin extends AutoPlugin {
 
   import autoImport._
 
+  private val postScalafixHooks: SettingKey[Seq[Seq[File] => Unit]] =
+    SettingKey(
+      "postScalafixHooks",
+      "Callback hook after Scalafix in IN_PLACE or AUTO_SUPPRESS_LINTER_ERRORS mode has run with success or failure",
+      Invisible
+    )
+
   private val scalafixDummyTask: TaskKey[Unit] =
     TaskKey(
       "scalafixDummyTask",
@@ -171,10 +178,12 @@ object ScalafixPlugin extends AutoPlugin {
     ),
     scalafixDependencies := Nil,
     commands += ScalafixEnable.command,
+    postScalafixHooks := Nil,
     scalafixInterfaceProvider := ScalafixInterface.fromToolClasspath(
       scalafixScalaBinaryVersion.in(ThisBuild).value,
       scalafixDependencies = scalafixDependencies.in(ThisBuild).value,
-      scalafixCustomResolvers = scalafixResolvers.in(ThisBuild).value
+      scalafixCustomResolvers = scalafixResolvers.in(ThisBuild).value,
+      postScalafixHooks = postScalafixHooks.in(ThisBuild).value
     ),
     scalafixCompletions := new ScalafixCompletions(
       workingDirectory = baseDirectory.in(ThisBuild).value.toPath,
