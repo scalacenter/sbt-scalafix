@@ -457,8 +457,7 @@ object ScalafixPlugin extends AutoPlugin {
                 throw StampingImpossible
               case _ =>
             }
-            // don't stamp rules explicitly requested on the CLI but those which will actually run
-            write(interface.rulesThatWillRun().map(_.name()))
+          // don't stamp rules as inputs: outputs are stamped by rule
           case Arg.Config(maybeFile) =>
             maybeFile match {
               case Some(path) =>
@@ -490,38 +489,67 @@ object ScalafixPlugin extends AutoPlugin {
         }
       }
 
-      def diffWithPreviousRun[T](f: (Boolean, ChangeReport[File]) => T): T = {
+      def diffWithPreviousRuns[T](f: (Boolean, Set[File]) => T): T = {
         val tracker = Tracked.inputChanged(streams.cacheDirectory / "args") {
           (argsChanged: Boolean, _: Seq[Arg.CacheKey]) =>
-            val diffInputs: Difference = Tracked.diffInputs(
-              streams.cacheDirectory / "targets",
-              lastModifiedStyle
-            )
-            diffInputs(paths.map(_.toFile).toSet) {
-              diffTargets: ChangeReport[File] =>
-                f(argsChanged, diffTargets)
-            }
+            val targets = paths.map(_.toFile).toSet
+
+            // Stamp targets before execution of the provided function, and persist
+            // the result only on successful execution of the provided function
+            def diffTargets(
+                rule: String
+            )(doForStaleTargets: Set[File] => T): T =
+              Tracked.diffInputs(
+                streams.cacheDirectory / "targets-by-rule" / rule,
+                lastModifiedStyle
+              )(targets) { changeReport: ChangeReport[File] =>
+                doForStaleTargets(changeReport.modified -- changeReport.removed)
+              }
+
+            // Execute the callback function against the accumulated files that cache-miss for at least one rule
+            def accumulateAndRunForStaleTargets(
+                ruleTargetsDiffs: List[(Set[File] => T) => T],
+                acc: Set[File] = Set.empty
+            ): T =
+              ruleTargetsDiffs match {
+                case Nil => f(argsChanged, acc)
+                case targetsDiff :: tail =>
+                  targetsDiff { ruleStaleTargets =>
+                    // This cannot be @tailrec as it must nest function calls, so that nothing is persisted
+                    // in case of exception during evaluation of the one and only effect (the terminal callback
+                    // above). Stack depth is limited to the number of requested rules to run, so it should
+                    // be fine...
+                    accumulateAndRunForStaleTargets(
+                      tail,
+                      acc ++ ruleStaleTargets
+                    )
+                  }
+              }
+
+            val ruleTargetDiffs = interface.rulesThatWillRun
+              .map(rule => diffTargets(rule.name) _)
+              .toList
+            accumulateAndRunForStaleTargets(ruleTargetDiffs)
         }
         Try(tracker(cacheKeyArgs)).recover {
           // in sbt 1.x, this is not necessary as any exception thrown during stamping is already silently ignored,
           // but having this here helps keeping code as common as possible
           // https://github.com/sbt/util/blob/v1.0.0/util-tracking/src/main/scala/sbt/util/Tracked.scala#L180
-          case _ @StampingImpossible => f(true, new EmptyChangeReport())
+          case _ @StampingImpossible => f(true, Set.empty)
         }.get
       }
 
-      diffWithPreviousRun { (cacheKeyArgsChanged, diffTargets) =>
+      diffWithPreviousRuns { (cacheKeyArgsChanged, staleTargets) =>
         val errors = if (cacheKeyArgsChanged) {
           streams.log.info(s"Running scalafix on ${paths.size} Scala sources")
           interface.run()
         } else {
-          val dirtyTargets = diffTargets.modified -- diffTargets.removed
-          if (dirtyTargets.nonEmpty) {
+          if (staleTargets.nonEmpty) {
             streams.log.info(
-              s"Running scalafix on ${dirtyTargets.size} Scala sources (incremental)"
+              s"Running scalafix on ${staleTargets.size} Scala sources (incremental)"
             )
             interface
-              .withArgs(Arg.Paths(dirtyTargets.map(_.toPath).toSeq))
+              .withArgs(Arg.Paths(staleTargets.map(_.toPath).toSeq))
               .run()
           } else {
             streams.log.debug(s"already ran on ${paths.length} files")
