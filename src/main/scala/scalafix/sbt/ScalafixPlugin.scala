@@ -97,16 +97,15 @@ object ScalafixPlugin extends AutoPlugin {
     def scalafixConfigSettings(config: Configuration): Seq[Def.Setting[_]] =
       Seq(
         scalafix := scalafixInputTask(config).evaluated,
-        compile := Def.taskDyn {
-          val oldCompile =
-            compile.value // evaluated first, before the potential scalafix evaluation
+        manipulateBytecode := Def.taskDyn {
+          val orig = manipulateBytecode.value
           val runScalafixAfterCompile =
             scalafixOnCompile.value && !scalafixRunExplicitly.value
           if (runScalafixAfterCompile)
             scalafix
               .toTask("")
-              .map(_ => oldCompile)
-          else Def.task(oldCompile)
+              .map(_ => orig)
+          else Def.task(orig)
         }.value,
         // In some cases (I haven't been able to understand when/why, but this also happens for bgRunMain while
         // fgRunMain is fine), there is no specific streams attached to InputTasks, so  we they end up sharing the
