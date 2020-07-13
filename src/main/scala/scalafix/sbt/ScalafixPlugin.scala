@@ -89,8 +89,8 @@ object ScalafixPlugin extends AutoPlugin {
         "Optional location to .scalafix.conf file to specify which scalafix rules should run. " +
           "Defaults to the build base directory if a .scalafix.conf file exists."
       )
-    val scalafixOnCompileConfig: SettingKey[Option[File]] =
-      settingKey[Option[File]](
+    val scalafixOnCompileConfig: SettingKey[File] =
+      settingKey[File](
         "Optional location to .scalafix.conf file to specify which scalafix rules should run on compile. " +
           "Defaults to the same as scalafixConfig."
       )
@@ -185,7 +185,6 @@ object ScalafixPlugin extends AutoPlugin {
 
   override lazy val globalSettings: Seq[Def.Setting[_]] = Seq(
     scalafixConfig := None, // let scalafix-cli try to infer $CWD/.scalafix.conf
-    scalafixConfigOnCompile := scalafixConfig.value,
     scalafixOnCompile := false,
     scalafixResolvers := Seq(
       Repository.ivy2Local(),
@@ -352,7 +351,12 @@ object ScalafixPlugin extends AutoPlugin {
       } else {
         val scalafixConf =
           if (scalafixRunExplicitly.value) scalafixConfig.in(config).value
-          else scalafixConfigOnCompile.in(config).value
+          else
+            scalafixOnCompileConfig
+              .in(config)
+              .?
+              .value
+              .orElse(scalafixConfig.in(config).value)
         val (shell, mainInterface0) = scalafixArgsFromShell(
           shellArgs,
           scalafixInterfaceProvider.value,
