@@ -32,17 +32,27 @@ object ScalafixPlugin extends AutoPlugin {
     val scalafix: InputKey[Unit] =
       inputKey[Unit](
         "Run scalafix rule(s) in this project and configuration. " +
-          "For example: scalafix RemoveUnusedImports. " +
-          "To run on test sources use test:scalafix or scalafixAll."
+          "For example: scalafix RemoveUnused. " +
+          "To run on test sources use test:scalafix or scalafixAll. " +
+          "When invoked directly, prior compilation will be triggered for semantic rules."
       )
     val scalafixAll: InputKey[Unit] =
       inputKey[Unit](
         "Run scalafix rule(s) in this project, for all configurations where scalafix is enabled. " +
-          "Compile and Test are enabled by default, other configurations can be enabled via scalafixConfigSettings."
+          "Compile and Test are enabled by default, other configurations can be enabled via scalafixConfigSettings. " +
+          "When invoked directly, prior compilation will be triggered for semantic rules."
       )
+
+    val scalafixOnCompile: SettingKey[Boolean] =
+      settingKey[Boolean](
+        "Run Scalafix rule(s) declared in .scalafix.conf on compilation and fail on lint errors. " +
+          "Off by default. When enabled, caching will be automatically activated, " +
+          "but can be disabled with `scalafixCaching := false`."
+      )
+
     val scalafixCaching: SettingKey[Boolean] =
       settingKey[Boolean](
-        "Cache scalafix invocations (off by default, still experimental)."
+        "Cache scalafix invocations (off by default, on if scalafixOnCompile := true)."
       )
 
     import scala.language.implicitConversions
@@ -87,6 +97,17 @@ object ScalafixPlugin extends AutoPlugin {
     def scalafixConfigSettings(config: Configuration): Seq[Def.Setting[_]] =
       Seq(
         scalafix := scalafixInputTask(config).evaluated,
+        compile := Def.taskDyn {
+          val oldCompile =
+            compile.value // evaluated first, before the potential scalafix evaluation
+          val runScalafixAfterCompile =
+            scalafixOnCompile.value && !scalafixRunExplicitly.value
+          if (runScalafixAfterCompile)
+            scalafix
+              .toTask("")
+              .map(_ => oldCompile)
+          else Def.task(oldCompile)
+        }.value,
         // In some cases (I haven't been able to understand when/why, but this also happens for bgRunMain while
         // fgRunMain is fine), there is no specific streams attached to InputTasks, so  we they end up sharing the
         // global streams, causing issues for cache storage. This does not happen for Tasks, so we define a dummy one
@@ -159,7 +180,7 @@ object ScalafixPlugin extends AutoPlugin {
 
   override lazy val globalSettings: Seq[Def.Setting[_]] = Seq(
     scalafixConfig := None, // let scalafix-cli try to infer $CWD/.scalafix.conf
-    scalafixCaching := false,
+    scalafixOnCompile := false,
     scalafixResolvers := Seq(
       Repository.ivy2Local(),
       Repository.central(),
@@ -333,10 +354,9 @@ object ScalafixPlugin extends AutoPlugin {
           scalafixResolvers.in(ThisBuild).value,
           projectDepsInternal
         )
+        val cachingRequested = scalafixCaching.or(scalafixOnCompile).value
         val maybeNoCache =
-          if (shell.noCache || !scalafixCaching.in(config).value)
-            Seq(Arg.NoCache)
-          else Nil
+          if (shell.noCache || !cachingRequested) Seq(Arg.NoCache) else Nil
         val mainInterface = mainInterface0
           .withArgs(maybeNoCache: _*)
           .withArgs(
@@ -394,16 +414,22 @@ object ScalafixPlugin extends AutoPlugin {
         new SemanticdbNotFound(ruleNames, scalaVersion.value, sbtVersion.value)
       ).findErrors(files, dependencies, withScalaInterface)
       if (errors.isEmpty) {
-        Def.task {
+        val task = Def.task {
+          // passively consume compilation output without triggering compile as it can result in a cyclic dependency
+          val classpath =
+            dependencyClasspath.in(config).value.map(_.data.toPath) :+
+              classDirectory.in(config).value.toPath
           val semanticInterface = withScalaInterface.withArgs(
             Arg.Paths(files),
-            Arg.Classpath(fullClasspath.in(config).value.map(_.data.toPath))
+            Arg.Classpath(classpath)
           )
           runArgs(
             semanticInterface,
             streams.in(config, scalafix).value
           )
         }
+        if (scalafixRunExplicitly.value) task.dependsOn(compile.in(config))
+        else task
       } else {
         Def.task {
           if (errors.length == 1) {
@@ -536,6 +562,16 @@ object ScalafixPlugin extends AutoPlugin {
       () // do nothing
     }
   }
+
+  // Controls whether scalafix should depend on compile (true) & whether compile may depend on
+  // scalafix (false), to avoid cyclic dependencies causing deadlocks during executions (as
+  // dependencies come from dynamic tasks).
+  private val scalafixRunExplicitly: Def.Initialize[Task[Boolean]] =
+    Def.task {
+      executionRoots.value.exists { root =>
+        Seq(scalafix.key, scalafixAll.key).contains(root.key)
+      }
+    }
 
   private def isScalaFile(file: File): Boolean = {
     val path = file.getPath
