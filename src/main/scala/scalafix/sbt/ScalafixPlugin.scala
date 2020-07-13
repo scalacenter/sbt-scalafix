@@ -89,7 +89,7 @@ object ScalafixPlugin extends AutoPlugin {
         "Optional location to .scalafix.conf file to specify which scalafix rules should run. " +
           "Defaults to the build base directory if a .scalafix.conf file exists."
       )
-    val scalafixConfigOnCompile: SettingKey[Option[File]] =
+    val scalafixOnCompileConfig: SettingKey[Option[File]] =
       settingKey[Option[File]](
         "Optional location to .scalafix.conf file to specify which scalafix rules should run on compile. " +
           "Defaults to the same as scalafixConfig."
