@@ -89,6 +89,11 @@ object ScalafixPlugin extends AutoPlugin {
         "Optional location to .scalafix.conf file to specify which scalafix rules should run. " +
           "Defaults to the build base directory if a .scalafix.conf file exists."
       )
+    val scalafixConfigOnCompile: SettingKey[Option[File]] =
+      settingKey[Option[File]](
+        "Optional location to .scalafix.conf file to specify which scalafix rules should run on compile. " +
+          "Defaults to the same as scalafixConfig."
+      )
     val scalafixSemanticdb: ModuleID =
       scalafixSemanticdb(BuildInfo.scalametaVersion)
     def scalafixSemanticdb(scalametaVersion: String): ModuleID =
@@ -180,6 +185,7 @@ object ScalafixPlugin extends AutoPlugin {
 
   override lazy val globalSettings: Seq[Def.Setting[_]] = Seq(
     scalafixConfig := None, // let scalafix-cli try to infer $CWD/.scalafix.conf
+    scalafixConfigOnCompile := scalafixConfig.value,
     scalafixOnCompile := false,
     scalafixResolvers := Seq(
       Repository.ivy2Local(),
@@ -344,7 +350,9 @@ object ScalafixPlugin extends AutoPlugin {
       if (shellArgs.rules.isEmpty && shellArgs.extra == List("--help")) {
         scalafixHelp
       } else {
-        val scalafixConf = scalafixConfig.in(config).value.map(_.toPath)
+        val scalafixConf =
+          if (scalafixRunExplicitly.value) scalafixConfig.in(config).value
+          else scalafixConfigOnCompile.in(config).value
         val (shell, mainInterface0) = scalafixArgsFromShell(
           shellArgs,
           scalafixInterfaceProvider.value,
@@ -361,7 +369,7 @@ object ScalafixPlugin extends AutoPlugin {
           .withArgs(maybeNoCache: _*)
           .withArgs(
             Arg.PrintStream(errorLogger),
-            Arg.Config(scalafixConf),
+            Arg.Config(scalafixConf.map(_.toPath)),
             Arg.Rules(shell.rules),
             Arg.ParsedArgs(shell.extra)
           )
