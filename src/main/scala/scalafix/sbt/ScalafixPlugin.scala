@@ -116,7 +116,15 @@ object ScalafixPlugin extends AutoPlugin {
             scalafixOnCompile.value && !scalafixRunExplicitly.value
           if (runScalafixAfterCompile)
             scalafix
-              .toTask("")
+              .toTask {
+                // Since last scalafix.conf wins, scalafixOnCompileConfig is passed if it's defined.
+                // Otherwise no argument is passed here, and scalafixConfig or .scalafix.conf will be used.
+                scalafixOnCompileConfig
+                  .in(config)
+                  .?
+                  .value
+                  .fold("")(conf => s" --config=${conf.getAbsolutePath}")
+              }
               .map(_ => oldCompile)
           else Def.task(oldCompile)
         }.value,
@@ -379,14 +387,7 @@ object ScalafixPlugin extends AutoPlugin {
       if (shellArgs.rules.isEmpty && shellArgs.extra == List("--help")) {
         scalafixHelp
       } else {
-        val scalafixConf =
-          if (scalafixRunExplicitly.value) scalafixConfig.in(config).value
-          else
-            scalafixOnCompileConfig
-              .in(config)
-              .?
-              .value
-              .orElse(scalafixConfig.in(config).value)
+        val scalafixConf = scalafixConfig.in(config).value
         val (shell, mainInterface0) = scalafixArgsFromShell(
           shellArgs,
           scalafixInterfaceProvider.value,
