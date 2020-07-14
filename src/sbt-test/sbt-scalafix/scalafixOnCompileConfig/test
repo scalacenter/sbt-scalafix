@@ -1,37 +1,43 @@
 # check if scalafix-on-compile is disabled
 
 > example/compile
--> example/scalafix
+-> example/scalafix --check
 
 # check if scalafix-on-compile is enabled and uses .scalafix.conf
 
 > set scalafixOnCompile.in(ThisBuild) := true
 -> example/compile
--> example/scalafix
+-> example/scalafix --check
 
 # check if scalafix-on-compile uses .scalafix-on-compile.conf
 #   and scalafix-explicit-run still uses .scalafix.conf
 
 > set scalafixOnCompileConfig.in(ThisBuild) := file(".scalafix-on-compile.conf"),
--> example/scalafix
+-> example/scalafix --check
 -> example/scalafix --check RemoveUnused
+$ copy-file example/src/main/scala/Example.scala noneScalafixConfig/src/test/scala/Original.scala
 > example/compile
+$ newer example/src/main/scala/Example.scala example/src/test/scala/Original.scala
 ## A statement incl. null has been removed by the precedence scalafix-on-compile.
-> example/scalafix
+> example/scalafix --check
 
 # check if scalafix-on-compile uses .scalafix-on-compile.conf
 #   and scalafix-explicit-run uses .scalafix-explicit-run.conf
 
-> set scalafixConfig.in(ThisBuild) := Some(file(".scalafix-explicit-run.conf")),
--> example/scalafix
+> set scalafixConfig.in(example) := Some(file(".scalafix-explicit-run.conf"))
+-> example/scalafix --check
+$ touch example/src/test/scala/Original.scala
 > example/compile
+$ newer example/src/test/scala/Original.scala example/src/main/scala/Example.scala
 
 # check if scalafix-on-compile uses .scalafix-on-compile.conf
 #   but scalafix-explicit-run uses .scalafix.conf because scalafixConfig is None
 
--> noneScalafixConfig/scalafix
+-> noneScalafixConfig/scalafix --check
 -> noneScalafixConfig/scalafix --check RemoveUnused
+$ copy-file noneScalafixConfig/src/main/scala/UnusedNull.scala noneScalafixConfig/src/test/scala/Original.scala
 > noneScalafixConfig/compile
+$ newer noneScalafixConfig/src/main/scala/UnusedNull.scala noneScalafixConfig/src/test/scala/Original.scala
 ## A statement incl. null has been removed by the precedence scalafix-on-compile.
-> noneScalafixConfig/scalafix
+> noneScalafixConfig/scalafix --check
 

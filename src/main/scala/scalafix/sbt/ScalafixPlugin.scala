@@ -91,8 +91,8 @@ object ScalafixPlugin extends AutoPlugin {
       )
     val scalafixOnCompileConfig: SettingKey[File] =
       settingKey[File](
-        "Optional location to .scalafix.conf file to specify which scalafix rules should run on compile. " +
-          "Defaults to the same as scalafixConfig."
+        "Location to .scalafix.conf file to specify which scalafix rules should run on compile. " +
+          "scalafixOnCompile must be set for this to have an effect. Defaults to the same as scalafixConfig."
       )
     val scalafixSemanticdb: ModuleID =
       scalafixSemanticdb(BuildInfo.scalametaVersion)
