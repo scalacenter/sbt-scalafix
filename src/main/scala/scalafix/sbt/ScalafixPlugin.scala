@@ -100,9 +100,7 @@ object ScalafixPlugin extends AutoPlugin {
         compile := Def.taskDyn {
           val oldCompile =
             compile.value // evaluated first, before the potential scalafix evaluation
-          val runScalafixAfterCompile =
-            scalafixOnCompile.value && !scalafixRunExplicitly.value
-          if (runScalafixAfterCompile)
+          if (scalafixOnCompile.value)
             scalafix
               .toTask("")
               .map(_ => oldCompile)
@@ -415,7 +413,7 @@ object ScalafixPlugin extends AutoPlugin {
       ).findErrors(files, dependencies, withScalaInterface)
       if (errors.isEmpty) {
         val task = Def.task {
-          // passively consume compilation output without triggering compile as it can result in a cyclic dependency
+          // don't use fullClasspath as it results in a cyclic dependency via compile when scalafixOnCompile := true
           val classpath =
             dependencyClasspath.in(config).value.map(_.data.toPath) :+
               classDirectory.in(config).value.toPath
@@ -428,8 +426,8 @@ object ScalafixPlugin extends AutoPlugin {
             streams.in(config, scalafix).value
           )
         }
-        if (scalafixRunExplicitly.value) task.dependsOn(compile.in(config))
-        else task
+        // sub-task of compile after which bytecode should not be modified
+        task.dependsOn(manipulateBytecode.in(config))
       } else {
         Def.task {
           if (errors.length == 1) {
@@ -562,16 +560,6 @@ object ScalafixPlugin extends AutoPlugin {
       () // do nothing
     }
   }
-
-  // Controls whether scalafix should depend on compile (true) & whether compile may depend on
-  // scalafix (false), to avoid cyclic dependencies causing deadlocks during executions (as
-  // dependencies come from dynamic tasks).
-  private val scalafixRunExplicitly: Def.Initialize[Task[Boolean]] =
-    Def.task {
-      executionRoots.value.exists { root =>
-        Seq(scalafix.key, scalafixAll.key).contains(root.key)
-      }
-    }
 
   private def isScalaFile(file: File): Boolean = {
     val path = file.getPath
