@@ -14,11 +14,12 @@
 
 > set scalafixOnCompileConfig.in(ThisBuild) := file(".scalafix-on-compile.conf"),
 -> example/scalafix --check
--> example/scalafix --check RemoveUnused
-$ copy-file example/src/main/scala/Example.scala noneScalafixConfig/src/test/scala/Original.scala
+-> example/scalafixOnCompileCheck
+$ copy-file example/src/main/scala/Example.scala noneScalafixConfig/src/test/scala/CopiedFile.scala
 > example/compile
-$ newer example/src/main/scala/Example.scala example/src/test/scala/Original.scala
+$ newer example/src/main/scala/Example.scala example/src/test/scala/CopiedFile.scala
 ## A statement incl. null has been removed by the precedence scalafix-on-compile.
+> example/scalafixOnCompileCheck
 > example/scalafix --check
 
 # check if scalafix-on-compile uses .scalafix-on-compile.conf
@@ -26,18 +27,20 @@ $ newer example/src/main/scala/Example.scala example/src/test/scala/Original.sca
 
 > set scalafixConfig.in(example) := Some(file(".scalafix-explicit-run.conf"))
 -> example/scalafix --check
-$ touch example/src/test/scala/Original.scala
+> example/scalafixOnCompileCheck
+$ touch example/src/test/scala/CopiedFile.scala
 > example/compile
-$ newer example/src/test/scala/Original.scala example/src/main/scala/Example.scala
+$ newer example/src/test/scala/CopiedFile.scala example/src/main/scala/Example.scala
 
 # check if scalafix-on-compile uses .scalafix-on-compile.conf
 #   but scalafix-explicit-run uses .scalafix.conf because scalafixConfig is None
 
 -> noneScalafixConfig/scalafix --check
--> noneScalafixConfig/scalafix --check RemoveUnused
-$ copy-file noneScalafixConfig/src/main/scala/UnusedNull.scala noneScalafixConfig/src/test/scala/Original.scala
+-> noneScalafixConfig/scalafixOnCompileCheck
+$ copy-file noneScalafixConfig/src/main/scala/UnusedNull.scala noneScalafixConfig/src/test/scala/CopiedFile.scala
 > noneScalafixConfig/compile
-$ newer noneScalafixConfig/src/main/scala/UnusedNull.scala noneScalafixConfig/src/test/scala/Original.scala
+$ newer noneScalafixConfig/src/main/scala/UnusedNull.scala noneScalafixConfig/src/test/scala/CopiedFile.scala
 ## A statement incl. null has been removed by the precedence scalafix-on-compile.
+> noneScalafixConfig/scalafixOnCompileCheck
 > noneScalafixConfig/scalafix --check
 

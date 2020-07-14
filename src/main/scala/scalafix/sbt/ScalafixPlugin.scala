@@ -50,6 +50,12 @@ object ScalafixPlugin extends AutoPlugin {
           "but can be disabled with `scalafixCaching := false`."
       )
 
+    val scalafixOnCompileCheck: InputKey[Unit] =
+      inputKey[Unit](
+        "Run `scalafix --check` against rule(s) declared in scalafixOnCompileConfig." +
+          "If scalafixOnCompileConfig is undefined, run checking against scalafixConfig or .scalafix.conf ."
+      )
+
     val scalafixCaching: SettingKey[Boolean] =
       settingKey[Boolean](
         "Cache scalafix invocations (off by default, on if scalafixOnCompile := true)."
@@ -102,6 +108,7 @@ object ScalafixPlugin extends AutoPlugin {
     def scalafixConfigSettings(config: Configuration): Seq[Def.Setting[_]] =
       Seq(
         scalafix := scalafixInputTask(config).evaluated,
+        scalafixOnCompileCheck := scalafixOnCompileInputTask(config).evaluated,
         compile := Def.taskDyn {
           val oldCompile =
             compile.value // evaluated first, before the potential scalafix evaluation
@@ -316,6 +323,29 @@ object ScalafixPlugin extends AutoPlugin {
         }
         .joinWith(_.join.map(_ => ()))
     }
+
+  private def scalafixOnCompileInputTask(
+      config: Configuration
+  ): Def.Initialize[InputTask[Unit]] =
+    // workaround https://github.com/sbt/sbt/issues/3572 by invoking directly what Def.inputTaskDyn would via macro
+    InputTask
+      .createDyn(InputTask.initParserAsInput(scalafixCompletions(_.parser)))(
+        Def.task { shellArgs =>
+          val actualOnCompileConf = scalafixOnCompileConfig
+            .in(config)
+            .?
+            .value
+            .orElse(scalafixConfig.in(config).value)
+
+          val overrideArgs = ShellArgs(extra =
+            "--check" ::
+              actualOnCompileConf.toList.flatMap(c =>
+                List("--config", c.getAbsolutePath)
+              )
+          )
+          scalafixTask(shellArgs + overrideArgs, config)
+        }
+      )
 
   private def scalafixInputTask(
       config: Configuration
@@ -581,7 +611,9 @@ object ScalafixPlugin extends AutoPlugin {
   private val scalafixRunExplicitly: Def.Initialize[Task[Boolean]] =
     Def.task {
       executionRoots.value.exists { root =>
-        Seq(scalafix.key, scalafixAll.key).contains(root.key)
+        Seq(scalafix.key, scalafixAll.key, scalafixOnCompileCheck.key).contains(
+          root.key
+        )
       }
     }
 

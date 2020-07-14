@@ -28,4 +28,12 @@ case class ShellArgs(
     files: List[String] = Nil,
     extra: List[String] = Nil,
     noCache: Boolean = false
-)
+) {
+  def +(that: ShellArgs): ShellArgs =
+    ShellArgs(
+      this.rules ::: that.rules,
+      this.files ::: that.files,
+      this.extra ::: that.extra,
+      this.noCache || that.noCache
+    )
+}
