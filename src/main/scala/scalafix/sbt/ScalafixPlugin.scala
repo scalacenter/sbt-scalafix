@@ -387,7 +387,7 @@ object ScalafixPlugin extends AutoPlugin {
       if (shellArgs.rules.isEmpty && shellArgs.extra == List("--help")) {
         scalafixHelp
       } else {
-        val scalafixConf = scalafixConfig.in(config).value
+        val scalafixConf = scalafixConfig.in(config).value.map(_.toPath)
         val (shell, mainInterface0) = scalafixArgsFromShell(
           shellArgs,
           scalafixInterfaceProvider.value,
@@ -404,7 +404,7 @@ object ScalafixPlugin extends AutoPlugin {
           .withArgs(maybeNoCache: _*)
           .withArgs(
             Arg.PrintStream(errorLogger),
-            Arg.Config(scalafixConf.map(_.toPath)),
+            Arg.Config(scalafixConf),
             Arg.Rules(shell.rules),
             Arg.ParsedArgs(shell.extra)
           )
