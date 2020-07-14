@@ -1,0 +1,5 @@
+# warm up so that tasks themselves (not their dependencies) run in parallel
+> scalafix:compile
+
+> all addHeader scalafixAddFooter
+> check
