@@ -1,0 +1,14 @@
+# check that missing rewrites are detected, with or without a warm compilation cache
+> set scalafixOnCompile := false
+-> lintAll
+> compile
+-> lintAll
+
+# apply the rewrite via an explicit call
+> scalafix
+
+# confirms that `lintAll` sees that rewrite, with or without a warm compilation cache
+> clean
+> lintAll
+> compile
+> lintAll
