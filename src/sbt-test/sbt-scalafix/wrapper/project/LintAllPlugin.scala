@@ -17,7 +17,7 @@ object LintAllPlugin extends AutoPlugin {
   override def projectSettings: Seq[Def.Setting[_]] =
     Seq(
       lintAll := {
-        scalafixAll.toTask(" --check").value
+        scalafix.in(Compile).toTask(" --check").value
         // & other linters...
       }
     )
