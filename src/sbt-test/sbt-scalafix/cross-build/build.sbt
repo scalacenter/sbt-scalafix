@@ -32,7 +32,6 @@ lazy val scala212 = project
   .configs(IntegrationTest)
   .settings(
     Defaults.itSettings,
-    inConfig(IntegrationTest)(scalafixConfigSettings(IntegrationTest)),
     unmanagedSources.in(Compile, scalafix) :=
       unmanagedSources
         .in(Compile)
@@ -41,6 +40,8 @@ lazy val scala212 = project
     scalaVersion := Versions.scala212,
     scalafixSettings
   )
+  .settings(scalafixConfigSettings(IntegrationTest): _*)
+
 lazy val javaProject = project.settings(
   scalaVersion := Versions.scala212,
   scalafixSettings
