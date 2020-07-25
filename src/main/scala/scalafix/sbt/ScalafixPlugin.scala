@@ -96,12 +96,12 @@ object ScalafixPlugin extends AutoPlugin {
 
     def scalafixConfigSettings(config: Configuration): Seq[Def.Setting[_]] =
       Seq(
-        scalafix := scalafixInputTask(config).evaluated,
+        (scalafix in config) := scalafixInputTask(config).evaluated,
         (compile in config) := Def.taskDyn {
           val oldCompile =
             (compile in config).value // evaluated first, before the potential scalafix evaluation
-          if ((scalafixOnCompile in config).value)
-            scalafix
+          if (scalafixOnCompile.value)
+            (scalafix in config)
               .toTask("")
               .map(_ => oldCompile)
           else Def.task(oldCompile)
