@@ -106,6 +106,19 @@ $ exec chmod 000 src/main/scala/InitiallyValid.scala
 -> scalafix --check ProcedureSyntax
 $ delete src/main/scala
 
+# files should not be re-checked if all requested rules have previously been run across invocations
+> set scalafixConfig := Some(file("files/DisableSyntaxVar.scalafix.conf"))
+$ mkdir src/test/scala
+$ copy-file files/Valid.scala src/test/scala/Valid.scala
+> test:scalafix ProcedureSyntax
+> test:scalafix --check
+$ exec chmod 000 src/test/scala/Valid.scala
+> test:scalafix --check ProcedureSyntax DisableSyntax
+> test:scalafix --syntactic ProcedureSyntax
+> test:scalafix DisableSyntax ProcedureSyntax
+> test:scalafix
+$ delete src/test/scala
+
 # files should be re-checked after updating the configuration (even if the rule is the same)
 > set scalafixConfig := Some(file("files/DisableSyntaxVar.scalafix.conf"))
 $ mkdir src/main/scala
