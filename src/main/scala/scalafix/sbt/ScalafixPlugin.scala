@@ -15,6 +15,7 @@ import scalafix.interfaces.ScalafixError
 import scalafix.internal.sbt.Arg.ToolClasspath
 import scalafix.internal.sbt._
 
+import scala.collection.JavaConverters.collectionAsScalaIterableConverter
 import scala.util.Try
 import scala.util.control.NoStackTrace
 
@@ -179,9 +180,7 @@ object ScalafixPlugin extends AutoPlugin {
   override lazy val globalSettings: Seq[Def.Setting[_]] = Seq(
     scalafixConfig := None, // let scalafix-cli try to infer $CWD/.scalafix.conf
     scalafixOnCompile := false,
-    scalafixResolvers := Seq(
-      Repository.ivy2Local(),
-      Repository.central(),
+    scalafixResolvers := Repository.defaults().asScala.toSeq ++ Seq(
       coursierapi.MavenRepository
         .of("https://oss.sonatype.org/content/repositories/public"),
       coursierapi.MavenRepository.of(
