@@ -17,9 +17,9 @@ inThisBuild(
 lazy val example = project
   .settings(
     Defaults.itSettings,
-    inConfig(IntegrationTest)(scalafixConfigSettings(IntegrationTest)),
     addCompilerPlugin(scalafixSemanticdb),
     scalacOptions += "-Yrangepos"
   )
+  .settings(scalafixConfigSettings(IntegrationTest): _*)
 
 lazy val tests = project

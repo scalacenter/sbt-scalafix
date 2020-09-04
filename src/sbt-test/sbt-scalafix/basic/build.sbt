@@ -20,13 +20,13 @@ inThisBuild(
 lazy val example = project
   .settings(
     Defaults.itSettings,
-    inConfig(IntegrationTest)(scalafixConfigSettings(IntegrationTest)),
     addCompilerPlugin(scalafixSemanticdb),
     scalacOptions ++= List(
       "-Yrangepos",
       "-Ywarn-unused-import"
     )
   )
+  .settings(scalafixConfigSettings(IntegrationTest): _*)
 
 lazy val tests = project
 

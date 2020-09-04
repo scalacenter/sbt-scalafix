@@ -18,6 +18,6 @@ lazy val rewrite = project
   .configs(IntegrationTest)
   .settings(
     Defaults.itSettings,
-    inConfig(IntegrationTest)(scalafixConfigSettings(IntegrationTest)),
     addCompilerPlugin(scalafixSemanticdb)
   )
+  .settings(scalafixConfigSettings(IntegrationTest): _*)

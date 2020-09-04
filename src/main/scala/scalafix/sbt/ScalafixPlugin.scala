@@ -96,25 +96,26 @@ object ScalafixPlugin extends AutoPlugin {
       "org.scalameta" % "semanticdb-scalac" % scalametaVersion cross CrossVersion.full
 
     def scalafixConfigSettings(config: Configuration): Seq[Def.Setting[_]] =
-      Seq(
-        scalafix := scalafixInputTask(config).evaluated,
-        compile := Def.taskDyn {
-          val oldCompile =
-            compile.value // evaluated first, before the potential scalafix evaluation
-          if (scalafixOnCompile.value)
-            scalafix
-              .toTask("")
-              .map(_ => oldCompile)
-          else Def.task(oldCompile)
-        }.value,
-        // In some cases (I haven't been able to understand when/why, but this also happens for bgRunMain while
-        // fgRunMain is fine), there is no specific streams attached to InputTasks, so  we they end up sharing the
-        // global streams, causing issues for cache storage. This does not happen for Tasks, so we define a dummy one
-        // to acquire a distinct streams instance for each InputTask.
-        scalafixDummyTask := (()),
-        streams.in(scalafix) := streams.in(scalafixDummyTask).value
+      inConfig(config)(
+        Seq(
+          scalafix := scalafixInputTask(config).evaluated,
+          compile := Def.taskDyn {
+            val oldCompile =
+              compile.value // evaluated first, before the potential scalafix evaluation
+            if (scalafixOnCompile.value)
+              scalafix
+                .toTask("")
+                .map(_ => oldCompile)
+            else Def.task(oldCompile)
+          }.value,
+          // In some cases (I haven't been able to understand when/why, but this also happens for bgRunMain while
+          // fgRunMain is fine), there is no specific streams attached to InputTasks, so  we they end up sharing the
+          // global streams, causing issues for cache storage. This does not happen for Tasks, so we define a dummy one
+          // to acquire a distinct streams instance for each InputTask.
+          scalafixDummyTask := (()),
+          streams.in(scalafix) := streams.in(scalafixDummyTask).value
+        )
       )
-
     @deprecated("This setting is no longer used", "0.6.0")
     val scalafixSourceroot: SettingKey[File] =
       settingKey[File]("Unused")
