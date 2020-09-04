@@ -15,6 +15,7 @@ import scalafix.interfaces.ScalafixError
 import scalafix.internal.sbt.Arg.ToolClasspath
 import scalafix.internal.sbt._
 
+import scala.collection.JavaConverters.collectionAsScalaIterableConverter
 import scala.util.Try
 import scala.util.control.NoStackTrace
 
@@ -179,15 +180,21 @@ object ScalafixPlugin extends AutoPlugin {
   override lazy val globalSettings: Seq[Def.Setting[_]] = Seq(
     scalafixConfig := None, // let scalafix-cli try to infer $CWD/.scalafix.conf
     scalafixOnCompile := false,
-    scalafixResolvers := Seq(
-      Repository.ivy2Local(),
-      Repository.central(),
-      coursierapi.MavenRepository
-        .of("https://oss.sonatype.org/content/repositories/public"),
-      coursierapi.MavenRepository.of(
-        "https://oss.sonatype.org/content/repositories/snapshots"
-      )
-    ),
+    scalafixResolvers :=
+      // Repository.defaults() defaults to Repository.ivy2Local() and Repository.central(). These can be overridden per
+      // env variable, e.g., export COURSIER_REPOSITORIES="ivy2Local|central|sonatype:releases|jitpack|https://corporate.com/repo".
+      // See https://github.com/coursier/coursier/blob/master/modules/coursier/jvm/src/main/scala/coursier/PlatformResolve.scala#L19-L68
+      // and https://get-coursier.io/docs/other-repositories for more details.
+      // Also see src/sbt-test/sbt-scalafix/scalafixResolvers/test for a scripted test preserving this behavior.
+      Repository.defaults().asScala.toSeq ++
+        Seq(
+          coursierapi.MavenRepository.of(
+            "https://oss.sonatype.org/content/repositories/public"
+          ),
+          coursierapi.MavenRepository.of(
+            "https://oss.sonatype.org/content/repositories/snapshots"
+          )
+        ),
     scalafixDependencies := Nil,
     commands += ScalafixEnable.command,
     scalafixInterfaceProvider := ScalafixInterface.fromToolClasspath(
