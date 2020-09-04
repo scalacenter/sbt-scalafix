@@ -24,7 +24,6 @@ object ScalafixPlugin extends AutoPlugin {
   override def requires: Plugins = JvmPlugin
 
   object autoImport {
-    @deprecated("not used internally, use your own tag", "0.9.17")
     val Scalafix = Tags.Tag("scalafix")
 
     val ScalafixConfig = config("scalafix")
@@ -213,7 +212,8 @@ object ScalafixPlugin extends AutoPlugin {
     scalafixInterfaceCache := new BlockingCache[
       ToolClasspath,
       ScalafixInterface
-    ]
+    ],
+    concurrentRestrictions += Tags.exclusiveGroup(Scalafix)
   )
 
   override def buildSettings: Seq[Def.Setting[_]] =
@@ -330,8 +330,8 @@ object ScalafixPlugin extends AutoPlugin {
   private def scalafixTask(
       shellArgs: ShellArgs,
       config: ConfigKey
-  ): Def.Initialize[Task[Unit]] =
-    Def.taskDyn {
+  ): Def.Initialize[Task[Unit]] = {
+    val task = Def.taskDyn {
       val errorLogger =
         new PrintStream(
           LoggingOutputStream(
@@ -381,6 +381,9 @@ object ScalafixPlugin extends AutoPlugin {
         }
       }
     }
+    task.tag(Scalafix)
+  }
+
   private def scalafixHelp: Def.Initialize[Task[Unit]] =
     Def.task {
       scalafixInterfaceProvider
