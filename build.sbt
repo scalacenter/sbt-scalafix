@@ -42,7 +42,7 @@ resolvers += Resolver.sonatypeRepo("public")
 libraryDependencies ++= Dependencies.all
 libraryDependencies ++= List(
   "com.lihaoyi" %% "fansi" % "0.2.6" % Test,
-  "org.scalatest" %% "scalatest" % "3.2.1" % Test
+  "org.scalatest" %% "scalatest" % "3.2.2" % Test
 )
 
 // Cross-building settings (see https://github.com/sbt/sbt/issues/3473#issuecomment-325729747)
