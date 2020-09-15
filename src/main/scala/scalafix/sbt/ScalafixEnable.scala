@@ -9,8 +9,8 @@ object ScalafixEnable {
 
   /** sbt 1.0 and 0.13 compatible implementation of partialVersion */
   private def partialVersion(version: String): Option[(Long, Long)] =
-    CrossVersion.partialVersion(version).map {
-      case (a, b) => (a.toLong, b.toLong)
+    CrossVersion.partialVersion(version).map { case (a, b) =>
+      (a.toLong, b.toLong)
     }
 
   lazy val partialToFullScalaVersion: Map[(Long, Long), String] = (for {

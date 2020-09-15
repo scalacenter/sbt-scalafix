@@ -457,12 +457,12 @@ object ScalafixPlugin extends AutoPlugin {
       interface: ScalafixInterface,
       streams: TaskStreams
   ): Unit = {
-    val paths = interface.args.collect {
-      case Arg.Paths(paths) => paths
+    val paths = interface.args.collect { case Arg.Paths(paths) =>
+      paths
     }.flatten
     if (paths.nonEmpty) {
-      val cacheKeyArgs = interface.args.collect {
-        case cacheKey: Arg.CacheKey => cacheKey
+      val cacheKeyArgs = interface.args.collect { case cacheKey: Arg.CacheKey =>
+        cacheKey
       }
 
       // used to signal that one of the argument cannot be reliably stamped
