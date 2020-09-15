@@ -104,14 +104,13 @@ class ScalafixCompletions(
           jgitCompletion.last20Commits
             .filter { case (_, sha1) => sha1.startsWith(seen) }
             .zipWithIndex
-            .map {
-              case ((log, sha1), i) =>
-                val j = i + 1
-                val idx = if (j < 10) " " + j.toString else j.toString
-                new Token(
-                  display = s"|$idx| $log",
-                  append = sha1.stripPrefix(seen)
-                )
+            .map { case ((log, sha1), i) =>
+              val j = i + 1
+              val idx = if (j < 10) " " + j.toString else j.toString
+              new Token(
+                display = s"|$idx| $log",
+                append = sha1.stripPrefix(seen)
+              )
             }
             .toSet
 

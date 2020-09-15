@@ -142,10 +142,9 @@ class SbtCompletionsSuite extends AnyFunSuite {
     assert(displays.contains("v0.1.0"))
 
     // last 20 commits
-    appends.zip(displays).reverse.take(20).foreach {
-      case (append, display) =>
-        assert(isSha1(append))
-        assert(display.endsWith("ago)"))
+    appends.zip(displays).reverse.take(20).foreach { case (append, display) =>
+      assert(isSha1(append))
+      assert(display.endsWith("ago)"))
     }
   }
 

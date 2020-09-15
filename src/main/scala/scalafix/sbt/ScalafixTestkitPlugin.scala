@@ -48,12 +48,11 @@ object ScalafixTestkitPlugin extends AutoPlugin {
           "outputSourceDirectories" ->
             scalafixTestkitOutputSourceDirectories.value
         )
-        values.foreach {
-          case (key, files) =>
-            props.put(
-              key,
-              files.iterator.filter(_.exists()).mkString(pathSeparator)
-            )
+        values.foreach { case (key, files) =>
+          props.put(
+            key,
+            files.iterator.filter(_.exists()).mkString(pathSeparator)
+          )
         }
         props.put("scalaVersion", scalafixTestkitInputScalaVersion.value)
         props.put(
