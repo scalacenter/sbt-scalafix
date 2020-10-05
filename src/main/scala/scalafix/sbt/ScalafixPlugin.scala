@@ -97,7 +97,11 @@ object ScalafixPlugin extends AutoPlugin {
     def scalafixConfigSettings(config: Configuration): Seq[Def.Setting[_]] =
       inConfig(config)(
         Seq(
-          scalafix := scalafixInputTask(config).evaluated,
+          scalafix := {
+            // force detection of usage of `scalafixCaching` to workaround https://github.com/sbt/sbt/issues/5647
+            val _ = scalafixCaching.?.value
+            scalafixInputTask(config).evaluated
+          },
           compile := Def.taskDyn {
             val oldCompile =
               compile.value // evaluated first, before the potential scalafix evaluation
