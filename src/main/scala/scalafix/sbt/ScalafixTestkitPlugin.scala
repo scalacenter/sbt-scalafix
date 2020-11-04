@@ -41,8 +41,8 @@ object ScalafixTestkitPlugin extends AutoPlugin {
           "sourceroot" ->
             List(baseDirectory.in(ThisBuild).value),
           "inputClasspath" ->
-            (scalafixTestkitInputClasspath.value
-              .map(_.data) ++ targetrootClasspath),
+            scalafixTestkitInputClasspath.value.map(_.data),
+          "semanticdbRootDirectory" -> targetrootClasspath,
           "inputSourceDirectories" ->
             scalafixTestkitInputSourceDirectories.value,
           "outputSourceDirectories" ->
