@@ -175,7 +175,9 @@ object ScalafixPlugin extends AutoPlugin {
 
   override lazy val projectSettings: Seq[Def.Setting[_]] =
     Seq(Compile, Test).flatMap(c => inConfig(c)(scalafixConfigSettings(c))) ++
-      inConfig(ScalafixConfig)(Defaults.configSettings) ++
+      inConfig(ScalafixConfig)(
+        Defaults.configSettings :+ (sourcesInBase := false)
+      ) ++
       Seq(
         ivyConfigurations += ScalafixConfig,
         scalafixAll := scalafixAllInputTask.evaluated
