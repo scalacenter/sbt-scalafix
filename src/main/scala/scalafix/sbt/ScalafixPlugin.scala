@@ -492,7 +492,7 @@ object ScalafixPlugin extends AutoPlugin {
                 case jar =>
                   Seq(jar)
               }
-            write(files.map(FileInfo.lastModified.apply))
+            write(files.map(stampFile))
             write(customDependencies.map(_.toString))
           case Arg.Rules(rules) =>
             rules.foreach {
@@ -509,10 +509,10 @@ object ScalafixPlugin extends AutoPlugin {
           case Arg.Config(maybeFile) =>
             maybeFile match {
               case Some(path) =>
-                write(FileInfo.lastModified(path.toFile))
+                write(stampFile(path.toFile))
               case None =>
                 val defaultConfigFile = file(".scalafix.conf")
-                write(FileInfo.lastModified(defaultConfigFile))
+                write(stampFile(defaultConfigFile))
             }
           case Arg.ParsedArgs(args) =>
             val cacheKeys = args.filter {
@@ -534,6 +534,14 @@ object ScalafixPlugin extends AutoPlugin {
             write(cacheKeys)
           case Arg.NoCache =>
             throw StampingImpossible
+        }
+
+        def stampFile(file: File): Array[Byte] = {
+          // ensure the file exists and is not a directory
+          if (file.isFile)
+            Hash(file)
+          else
+            Array.empty[Byte]
         }
       }
 
