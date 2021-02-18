@@ -11,6 +11,7 @@ import scala.util.DynamicVariable
 object Caching {
 
   val lastModifiedStyle = FilesInfo.lastModified
+  val hashStyle = FilesInfo.hash
 
   trait CacheKeysStamper
       extends InputCache[Seq[Arg.CacheKey]]
