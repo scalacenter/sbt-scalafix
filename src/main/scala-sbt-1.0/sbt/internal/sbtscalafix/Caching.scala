@@ -9,6 +9,7 @@ import scala.util.DynamicVariable
 object Caching {
 
   val lastModifiedStyle = FileInfo.lastModified
+  val hashStyle = FileInfo.hash
 
   trait CacheKeysStamper
       extends JsonFormat[Seq[Arg.CacheKey]]

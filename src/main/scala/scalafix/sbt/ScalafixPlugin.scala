@@ -170,6 +170,13 @@ object ScalafixPlugin extends AutoPlugin {
       Invisible
     )
 
+  private lazy val cachingStyle = {
+    val useLastModifiedCachingStyle =
+      sys.props.get("sbt-scalafix.uselastmodified") == Some("true")
+    if (useLastModifiedCachingStyle) lastModifiedStyle
+    else hashStyle
+  }
+
   override lazy val projectConfigurations: Seq[Configuration] =
     Seq(ScalafixConfig)
 
@@ -485,7 +492,7 @@ object ScalafixPlugin extends AutoPlugin {
                 case jar =>
                   Seq(jar)
               }
-            write(files.map(FileInfo.lastModified.apply))
+            write(files.map(stampFile))
             write(customDependencies.map(_.toString))
           case Arg.Rules(rules) =>
             rules.foreach {
@@ -502,10 +509,10 @@ object ScalafixPlugin extends AutoPlugin {
           case Arg.Config(maybeFile) =>
             maybeFile match {
               case Some(path) =>
-                write(FileInfo.lastModified(path.toFile))
+                write(stampFile(path.toFile))
               case None =>
                 val defaultConfigFile = file(".scalafix.conf")
-                write(FileInfo.lastModified(defaultConfigFile))
+                write(stampFile(defaultConfigFile))
             }
           case Arg.ParsedArgs(args) =>
             val cacheKeys = args.filter {
@@ -528,6 +535,14 @@ object ScalafixPlugin extends AutoPlugin {
           case Arg.NoCache =>
             throw StampingImpossible
         }
+
+        def stampFile(file: File): Array[Byte] = {
+          // ensure the file exists and is not a directory
+          if (file.isFile)
+            Hash(file)
+          else
+            Array.empty[Byte]
+        }
       }
 
       def diffWithPreviousRuns[T](f: (Boolean, Set[File]) => T): T = {
@@ -542,7 +557,7 @@ object ScalafixPlugin extends AutoPlugin {
             )(doForStaleTargets: Set[File] => T): T =
               Tracked.diffInputs(
                 streams.cacheDirectory / "targets-by-rule" / rule,
-                lastModifiedStyle
+                cachingStyle
               )(targets) { changeReport: ChangeReport[File] =>
                 doForStaleTargets(changeReport.modified -- changeReport.removed)
               }
@@ -576,7 +591,8 @@ object ScalafixPlugin extends AutoPlugin {
           // in sbt 1.x, this is not necessary as any exception thrown during stamping is already silently ignored,
           // but having this here helps keeping code as common as possible
           // https://github.com/sbt/util/blob/v1.0.0/util-tracking/src/main/scala/sbt/util/Tracked.scala#L180
-          case _ @StampingImpossible => f(true, Set.empty)
+          case _ @StampingImpossible =>
+            f(true, Set.empty)
         }.get
       }
 
