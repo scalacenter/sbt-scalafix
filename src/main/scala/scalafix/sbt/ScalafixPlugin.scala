@@ -492,8 +492,8 @@ object ScalafixPlugin extends AutoPlugin {
                 case jar =>
                   Seq(jar)
               }
-            write(files.map(stampFile))
-            write(customDependencies.map(_.toString))
+            write(files.map(stampFile).sorted)
+            write(customDependencies.map(_.toString).sorted)
           case Arg.Rules(rules) =>
             rules.foreach {
               case source
@@ -536,12 +536,12 @@ object ScalafixPlugin extends AutoPlugin {
             throw StampingImpossible
         }
 
-        def stampFile(file: File): Array[Byte] = {
+        def stampFile(file: File): String = {
           // ensure the file exists and is not a directory
           if (file.isFile)
-            Hash(file)
+            Hash.toHex(Hash(file))
           else
-            Array.empty[Byte]
+            ""
         }
       }
 
