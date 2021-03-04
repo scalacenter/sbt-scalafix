@@ -46,7 +46,7 @@ object ScalafixEnable {
       relaxScalacForScalafix <- List(
         scalacOptions.in(p) := {
           val options = scalacOptions.in(p).value
-          if (!scalafixInvoked.value) options
+          if (!scalafixInvokedAlone.value) options
           else
             options.filterNot { option =>
               List("-Xfatal-warnings", "-Werror").contains(option) ||
@@ -79,9 +79,9 @@ object ScalafixEnable {
     scalafixReady
   }
 
-  private def scalafixInvoked: Def.Initialize[Task[Boolean]] =
+  private def scalafixInvokedAlone: Def.Initialize[Task[Boolean]] =
     Def.task {
-      executionRoots.value.exists { root =>
+      executionRoots.value.forall { root =>
         Seq(
           scalafix.key,
           scalafixAll.key
