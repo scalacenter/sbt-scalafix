@@ -43,15 +43,25 @@ object ScalafixEnable {
     val extracted = Project.extract(s)
     val settings: Seq[Setting[_]] = for {
       (p, fullVersion) <- projectsWithMatchingScalaVersion(s)
-      relaxScalacForScalafix <- List(
+      relaxScalacForScalafix = List(
         scalacOptions.in(p) := {
           val options = scalacOptions.in(p).value
           if (!scalafixInvokedAlone.value) options
           else
             options.filterNot { option =>
-              List("-Xfatal-warnings", "-Werror").contains(option) ||
-              option.startsWith("-Wconf")
+              scalacOptionsToRelax.exists(_.matcher(option).matches)
             }
+        },
+        incOptions.in(p) := {
+          val options = incOptions.in(p).value
+          if (!scalafixInvokedAlone.value) options
+          else
+            options.withIgnoredScalacOptions(
+              options.ignoredScalacOptions() ++
+                // maximize chance to get a zinc cache hit when running scalafix, even though we have
+                // potentially added/removed scalacOptions for that specific invocation
+                scalacOptionsToRelax.map(_.pattern())
+            )
         }
       )
       isSemanticdbEnabled =
@@ -88,4 +98,7 @@ object ScalafixEnable {
         ).contains(root.key)
       }
     }
+
+  private val scalacOptionsToRelax =
+    List("-Xfatal-warnings", "-Werror", "-Wconf.*").map(_.r.pattern)
 }

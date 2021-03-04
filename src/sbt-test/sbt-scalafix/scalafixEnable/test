@@ -14,3 +14,8 @@
 # confirm that compilation succeeds after fixing the last warning
 > scala212/scalafix ProcedureSyntax
 > scala212/compile
+
+# check that there is no recompilation when running a semantic rule after a successful compilation
+-> scala212/checkLastCompilationCached
+> scala212/scalafixAll RemoveUnused
+> scala212/checkLastCompilationCached
