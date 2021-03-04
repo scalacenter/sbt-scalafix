@@ -80,5 +80,12 @@ object ScalafixEnable {
   }
 
   private def scalafixInvoked: Def.Initialize[Task[Boolean]] =
-    Def.task(executionRoots.value.exists(_.key == scalafix.key))
+    Def.task {
+      executionRoots.value.exists { root =>
+        Seq(
+          scalafix.key,
+          scalafixAll.key
+        ).contains(root.key)
+      }
+    }
 }

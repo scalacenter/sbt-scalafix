@@ -6,7 +6,7 @@
 -> scala212/compile
 
 # ensure that a semantic rule can be ran despite warnings, to fix one of the warning
-> scala212/scalafix RemoveUnused
+> scala212/scalafixAll RemoveUnused
 
 # but that -Xfatal-warnings remains honored for regular compilation
 -> scala212/compile
