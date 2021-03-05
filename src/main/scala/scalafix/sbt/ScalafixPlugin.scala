@@ -109,11 +109,11 @@ object ScalafixPlugin extends AutoPlugin {
             val options = incOptions.value
             if (!scalafixInvokedAlone.value) options
             else
-              options.withIgnoredScalacOptions(
-                options.ignoredScalacOptions() ++
-                  // maximize chance to get a zinc cache hit when running scalafix, even though we have
-                  // potentially added/removed scalacOptions for that specific invocation
-                  scalacOptionsToRelax.map(_.pattern())
+              // maximize chance to get a zinc cache hit when running scalafix, even though we have
+              // potentially added/removed scalacOptions for that specific invocation
+              Compat.addIgnoredScalacOptions(
+                options,
+                scalacOptionsToRelax.map(_.pattern())
               )
           },
           scalafix := {
