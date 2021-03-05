@@ -1,21 +1,3 @@
 -> check
 > scalafixEnable
 > check
-
-# we have 2 fatal warnings preventing compilation
--> scala212/compile
-
-# ensure that a semantic rule can be ran despite warnings, to fix one of the warning
-> scala212/scalafixAll RemoveUnused
-
-# but that -Xfatal-warnings remains honored for regular compilation
--> scala212/compile
-
-# confirm that compilation succeeds after fixing the last warning
-> scala212/scalafix ProcedureSyntax
-> scala212/compile
-
-# check that there is no recompilation when running a semantic rule after a successful compilation
--> scala212/checkLastCompilationCached
-> scala212/scalafixAll RemoveUnused
-> scala212/checkLastCompilationCached

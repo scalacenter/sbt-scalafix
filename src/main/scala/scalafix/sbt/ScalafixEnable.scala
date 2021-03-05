@@ -3,7 +3,6 @@ package scalafix.sbt
 import sbt._
 import sbt.Keys._
 import sbt.internal.sbtscalafix.Compat
-import ScalafixPlugin.autoImport._
 
 /** Command to automatically enable semanticdb-scalac for shell session */
 object ScalafixEnable {
@@ -37,38 +36,17 @@ object ScalafixEnable {
       "Configure libraryDependencies, scalaVersion and scalacOptions for scalafix.",
     detail = """1. enables the semanticdb-scalac compiler plugin
       |2. sets scalaVersion to latest Scala version supported by scalafix
-      |3. add -Yrangepos to scalacOptions
-      |4. relax -Xfatal-warnings, -Werror & -Wconf* (if set in scalacOptions) for upcoming scalafix invocations""".stripMargin
+      |3. add -Yrangepos to scalacOptions""".stripMargin
   ) { s =>
     val extracted = Project.extract(s)
     val settings: Seq[Setting[_]] = for {
       (p, fullVersion) <- projectsWithMatchingScalaVersion(s)
-      relaxScalacForScalafix = List(
-        scalacOptions.in(p) := {
-          val options = scalacOptions.in(p).value
-          if (!scalafixInvokedAlone.value) options
-          else
-            options.filterNot { option =>
-              scalacOptionsToRelax.exists(_.matcher(option).matches)
-            }
-        },
-        incOptions.in(p) := {
-          val options = incOptions.in(p).value
-          if (!scalafixInvokedAlone.value) options
-          else
-            options.withIgnoredScalacOptions(
-              options.ignoredScalacOptions() ++
-                // maximize chance to get a zinc cache hit when running scalafix, even though we have
-                // potentially added/removed scalacOptions for that specific invocation
-                scalacOptionsToRelax.map(_.pattern())
-            )
-        }
-      )
       isSemanticdbEnabled =
         libraryDependencies
           .in(p)
           .get(extracted.structure.data)
           .exists(_.exists(_.name == "semanticdb-scalac"))
+      if !isSemanticdbEnabled
       addSemanticdb <- List(
         scalaVersion.in(p) := fullVersion,
         scalacOptions.in(p) ++= List(
@@ -79,26 +57,10 @@ object ScalafixEnable {
           ScalafixPlugin.autoImport.scalafixSemanticdb
         )
       )
-      settings <-
-        relaxScalacForScalafix ++
-          (if (!isSemanticdbEnabled) addSemanticdb else List())
-    } yield settings
+    } yield addSemanticdb
 
     val scalafixReady = Compat.append(extracted, settings, s)
 
     scalafixReady
   }
-
-  private def scalafixInvokedAlone: Def.Initialize[Task[Boolean]] =
-    Def.task {
-      executionRoots.value.forall { root =>
-        Seq(
-          scalafix.key,
-          scalafixAll.key
-        ).contains(root.key)
-      }
-    }
-
-  private val scalacOptionsToRelax =
-    List("-Xfatal-warnings", "-Werror", "-Wconf.*").map(_.r.pattern)
 }

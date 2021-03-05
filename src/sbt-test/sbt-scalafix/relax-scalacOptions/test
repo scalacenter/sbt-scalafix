@@ -1,0 +1,17 @@
+# we have 2 fatal warnings preventing compilation
+-> compile
+
+# ensure that a semantic rule can be ran despite warnings, to fix one of the warning
+> scalafixAll RemoveUnused
+
+# but that -Xfatal-warnings remains honored for regular compilation
+-> compile
+
+# confirm that compilation succeeds after fixing the last warning
+> scalafix ProcedureSyntax
+> compile
+
+# check that there is no recompilation when running a semantic rule after a successful compilation
+-> checkLastCompilationCached
+> scalafixAll RemoveUnused
+> checkLastCompilationCached

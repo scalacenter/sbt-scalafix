@@ -34,13 +34,13 @@ object ScalafixPlugin extends AutoPlugin {
         "Run scalafix rule(s) in this project and configuration. " +
           "For example: scalafix RemoveUnused. " +
           "To run on test sources use test:scalafix or scalafixAll. " +
-          "When invoked directly, prior compilation will be triggered for semantic rules."
+          "When invoked, prior compilation with -Xfatal-warnings relaxed will be triggered for semantic rules."
       )
     val scalafixAll: InputKey[Unit] =
       inputKey[Unit](
         "Run scalafix rule(s) in this project, for all configurations where scalafix is enabled. " +
           "Compile and Test are enabled by default, other configurations can be enabled via scalafixConfigSettings. " +
-          "When invoked directly, prior compilation will be triggered for semantic rules."
+          "When invoked, prior compilation with -Xfatal-warnings relaxed will be triggered for semantic rules."
       )
 
     val scalafixOnCompile: SettingKey[Boolean] =
@@ -97,6 +97,25 @@ object ScalafixPlugin extends AutoPlugin {
     def scalafixConfigSettings(config: Configuration): Seq[Def.Setting[_]] =
       inConfig(config)(
         Seq(
+          scalacOptions := {
+            val options = scalacOptions.value
+            if (!scalafixInvokedAlone.value) options
+            else
+              options.filterNot { option =>
+                scalacOptionsToRelax.exists(_.matcher(option).matches)
+              }
+          },
+          incOptions := {
+            val options = incOptions.value
+            if (!scalafixInvokedAlone.value) options
+            else
+              options.withIgnoredScalacOptions(
+                options.ignoredScalacOptions() ++
+                  // maximize chance to get a zinc cache hit when running scalafix, even though we have
+                  // potentially added/removed scalacOptions for that specific invocation
+                  scalacOptionsToRelax.map(_.pattern())
+              )
+          },
           scalafix := {
             // force detection of usage of `scalafixCaching` to workaround https://github.com/sbt/sbt/issues/5647
             val _ = scalafixCaching.?.value
@@ -648,5 +667,16 @@ object ScalafixPlugin extends AutoPlugin {
       }
     }
 
-  final class UninitializedError extends RuntimeException("uninitialized value")
+  private def scalafixInvokedAlone: Def.Initialize[Task[Boolean]] =
+    Def.task {
+      executionRoots.value.forall { root =>
+        Seq(
+          scalafix.key,
+          scalafixAll.key
+        ).contains(root.key)
+      }
+    }
+
+  private val scalacOptionsToRelax =
+    List("-Xfatal-warnings", "-Werror", "-Wconf.*").map(_.r.pattern)
 }
