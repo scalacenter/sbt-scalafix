@@ -652,7 +652,7 @@ object ScalafixPlugin extends AutoPlugin {
     Seq(
       scalacOptions.in(compile) := {
         val options = scalacOptions.in(compile).value
-        if (!scalafixInvokedAlone.value) options
+        if (!scalafixInvoked.value) options
         else
           options.filterNot { option =>
             scalacOptionsToRelax.exists(_.matcher(option).matches)
@@ -660,7 +660,7 @@ object ScalafixPlugin extends AutoPlugin {
       },
       incOptions := {
         val options = incOptions.value
-        if (!scalafixInvokedAlone.value) options
+        if (!scalafixInvoked.value) options
         else
           // maximize chance to get a zinc cache hit when running scalafix, even though we have
           // potentially added/removed scalacOptions for that specific invocation
@@ -671,14 +671,24 @@ object ScalafixPlugin extends AutoPlugin {
       }
     )
 
-  private def scalafixInvokedAlone: Def.Initialize[Task[Boolean]] =
+  private def scalafixInvoked: Def.Initialize[Task[Boolean]] =
     Def.task {
-      executionRoots.value.forall { root =>
+      val (scalafixKeys, otherKeys) = executionRoots.value.partition { root =>
         Seq(
           scalafix.key,
           scalafixAll.key
         ).contains(root.key)
       }
+      if (scalafixKeys.nonEmpty && otherKeys.nonEmpty) {
+        // Fail hard if we detect other concurrent tasks requested, as `scalafixInvoked` is used to
+        // conditionnally, transiently alter tasks transitively triggered by scalafix, so these tasks
+        // should not see run with that altered behavior as it could cause compilation/packaging to
+        // succeed even though the build requests fatal warnings and there were warnings detected.
+        throw new InvalidArgument(
+          "Scalafix cannot be invoked concurrently with other tasks"
+        )
+      }
+      scalafixKeys.nonEmpty
     }
 
   private val scalacOptionsToRelax =
