@@ -39,6 +39,9 @@ object ScalafixEnable {
       |3. add -Yrangepos to scalacOptions""".stripMargin
   ) { s =>
     val extracted = Project.extract(s)
+    val relaxScalacForScalafix = Seq(Compile, Test).flatMap(
+      inConfig(_)(ScalafixPlugin.relaxScalacOptionsConfigSettings)
+    )
     val settings: Seq[Setting[_]] = for {
       (p, fullVersion) <- projectsWithMatchingScalaVersion(s)
       isSemanticdbEnabled =
@@ -46,7 +49,6 @@ object ScalafixEnable {
           .in(p)
           .get(extracted.structure.data)
           .exists(_.exists(_.name == "semanticdb-scalac"))
-      if !isSemanticdbEnabled
       addSemanticdb <- List(
         scalaVersion.in(p) := fullVersion,
         scalacOptions.in(p) ++= List(
@@ -57,7 +59,10 @@ object ScalafixEnable {
           ScalafixPlugin.autoImport.scalafixSemanticdb
         )
       )
-    } yield addSemanticdb
+      settings <-
+        inScope(ThisScope.in(p))(relaxScalacForScalafix) ++
+          (if (!isSemanticdbEnabled) addSemanticdb else List())
+    } yield settings
 
     val scalafixReady = Compat.append(extracted, settings, s)
 

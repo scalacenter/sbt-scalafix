@@ -1,3 +1,7 @@
 -> check
 > scalafixEnable
 > check
+
+-> scala212/test:compile
+> scala212/scalafixAll RemoveUnused
+> scala212/test:compile

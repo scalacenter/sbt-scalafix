@@ -96,26 +96,7 @@ object ScalafixPlugin extends AutoPlugin {
 
     def scalafixConfigSettings(config: Configuration): Seq[Def.Setting[_]] =
       inConfig(config)(
-        Seq(
-          scalacOptions.in(compile) := {
-            val options = scalacOptions.in(compile).value
-            if (!scalafixInvokedAlone.value) options
-            else
-              options.filterNot { option =>
-                scalacOptionsToRelax.exists(_.matcher(option).matches)
-              }
-          },
-          incOptions := {
-            val options = incOptions.value
-            if (!scalafixInvokedAlone.value) options
-            else
-              // maximize chance to get a zinc cache hit when running scalafix, even though we have
-              // potentially added/removed scalacOptions for that specific invocation
-              Compat.addIgnoredScalacOptions(
-                options,
-                scalacOptionsToRelax.map(_.pattern())
-              )
-          },
+        relaxScalacOptionsConfigSettings ++ Seq(
           scalafix := {
             // force detection of usage of `scalafixCaching` to workaround https://github.com/sbt/sbt/issues/5647
             val _ = scalafixCaching.?.value
@@ -449,7 +430,7 @@ object ScalafixPlugin extends AutoPlugin {
       val files = filesToFix(shellArgs, config).value
       val withScalaInterface = mainArgs.withArgs(
         Arg.ScalaVersion(scalaVersion.value),
-        Arg.ScalacOptions(scalacOptions.in(config).value)
+        Arg.ScalacOptions(scalacOptions.in(config, compile).value)
       )
       val errors = new SemanticRuleValidator(
         new SemanticdbNotFound(ruleNames, scalaVersion.value, sbtVersion.value)
@@ -666,6 +647,29 @@ object ScalafixPlugin extends AutoPlugin {
         }
       }
     }
+
+  private[sbt] val relaxScalacOptionsConfigSettings: Seq[Def.Setting[_]] =
+    Seq(
+      scalacOptions.in(compile) := {
+        val options = scalacOptions.in(compile).value
+        if (!scalafixInvokedAlone.value) options
+        else
+          options.filterNot { option =>
+            scalacOptionsToRelax.exists(_.matcher(option).matches)
+          }
+      },
+      incOptions := {
+        val options = incOptions.value
+        if (!scalafixInvokedAlone.value) options
+        else
+          // maximize chance to get a zinc cache hit when running scalafix, even though we have
+          // potentially added/removed scalacOptions for that specific invocation
+          Compat.addIgnoredScalacOptions(
+            options,
+            scalacOptionsToRelax.map(_.pattern())
+          )
+      }
+    )
 
   private def scalafixInvokedAlone: Def.Initialize[Task[Boolean]] =
     Def.task {
