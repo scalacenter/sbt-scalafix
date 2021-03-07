@@ -7,7 +7,9 @@ scalaVersion := V.scala212
 scalacOptions ++= Seq(
   // generate errors on unused imports
   "-Xfatal-warnings",
-  "-Ywarn-unused",
+  "-Ywarn-unused"
+)
+scalacOptions.in(Compile, compile) ++= Seq(
   // generate errors on procedure syntax
   "-Wconf:cat=deprecation:e",
   "-Xfuture",

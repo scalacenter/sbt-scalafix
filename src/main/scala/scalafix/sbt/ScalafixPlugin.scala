@@ -97,8 +97,8 @@ object ScalafixPlugin extends AutoPlugin {
     def scalafixConfigSettings(config: Configuration): Seq[Def.Setting[_]] =
       inConfig(config)(
         Seq(
-          scalacOptions := {
-            val options = scalacOptions.value
+          scalacOptions.in(compile) := {
+            val options = scalacOptions.in(compile).value
             if (!scalafixInvokedAlone.value) options
             else
               options.filterNot { option =>
