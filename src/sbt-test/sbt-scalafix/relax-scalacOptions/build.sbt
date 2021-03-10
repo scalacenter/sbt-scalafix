@@ -31,6 +31,15 @@ TaskKey[Unit]("checkLastCompilationCached") := {
   }
 }
 
+TaskKey[Unit]("checkZincAnalysisPresent") := {
+  // to compile with sbt 0.13
+  val isPresent = previousCompile.in(Compile).value.analysis match {
+    case option: { def isPresent(): Boolean } => option.isPresent
+  }
+
+  assert(isPresent, "zinc analysis not found")
+}
+
 // https://github.com/sbt/sbt/commit/dbb47b3ce822ff7ec25881dadd71a3b29e202273
 // must be outside a macro to workaround "Illegal dynamic reference: Def"
 def streamScopedKey(scope: Scope) = Def.ScopedKey(scope, Keys.streams.key)

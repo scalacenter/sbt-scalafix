@@ -1,6 +1,7 @@
 package sbt.internal.sbtscalafix
 
 import sbt.{Extracted, IncOptions, Setting, State}
+import xsbti.compile.CompileResult
 
 object Compat {
   type ConsoleLogger = sbt.internal.util.ConsoleLogger
@@ -23,5 +24,12 @@ object Compat {
     incOptions.withIgnoredScalacOptions(
       incOptions.ignoredScalacOptions() ++ ignoredScalacOptions
     )
+  }
+
+  def withHasModified(
+      compileResult: CompileResult,
+      hasModified: Boolean
+  ): CompileResult = {
+    compileResult.withHasModified(hasModified)
   }
 }

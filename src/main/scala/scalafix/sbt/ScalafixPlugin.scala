@@ -668,6 +668,16 @@ object ScalafixPlugin extends AutoPlugin {
             options,
             scalacOptionsToRelax.map(_.pattern())
           )
+      },
+      manipulateBytecode := {
+        val analysis = manipulateBytecode.value
+        if (!scalafixInvoked.value) analysis
+        else {
+          // prevent storage of the analysis with relaxed scalacOptions - despite not depending explicitly on compile,
+          // it is being triggered for parent configs/projects through evaluation of dependencyClasspath (TrackAlways)
+          // in the scope where scalafix is invoked
+          Compat.withHasModified(analysis, false)
+        }
       }
     )
 
