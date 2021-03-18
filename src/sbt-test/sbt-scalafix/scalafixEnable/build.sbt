@@ -33,14 +33,34 @@ TaskKey[Unit]("check") := {
   // nothing should change for the 2.10 project
   assert(scalaVersion.in(scala210).value == "2.10.4")
   assert(libraryDependencies.in(scala210).value.isEmpty)
-  assert(scalacOptions.in(scala210).value.isEmpty)
+  assert(scalacOptions.in(scala210, Compile, compile).value.isEmpty)
 
   // 2.12.0 should be overidden to 2.12.X
   assert(scalaVersion.in(overridesSettings).value == V.scala212)
   assert(libraryDependencies.in(overridesSettings).value.nonEmpty)
-  assert(scalacOptions.in(overridesSettings).value.contains("-Yrangepos"))
+  assert(
+    scalacOptions
+      .in(overridesSettings, Compile, compile)
+      .value
+      .contains("-Yrangepos")
+  )
 
-  assert(scalacOptions.in(scala211).value.count(_ == "-Yrangepos") == 1)
-  assert(scalacOptions.in(scala212).value.count(_ == "-Yrangepos") == 1)
-  assert(scalacOptions.in(scala213).value.count(_ == "-Yrangepos") == 1)
+  assert(
+    scalacOptions
+      .in(scala211, Compile, compile)
+      .value
+      .count(_ == "-Yrangepos") == 1
+  )
+  assert(
+    scalacOptions
+      .in(scala212, Compile, compile)
+      .value
+      .count(_ == "-Yrangepos") == 1
+  )
+  assert(
+    scalacOptions
+      .in(scala213, Test, compile)
+      .value
+      .count(_ == "-Yrangepos") == 1
+  )
 }

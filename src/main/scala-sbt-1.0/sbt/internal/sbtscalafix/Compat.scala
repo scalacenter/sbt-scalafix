@@ -1,6 +1,7 @@
 package sbt.internal.sbtscalafix
 
-import sbt.{Extracted, IncOptions, Setting, State}
+import sbt.internal.inc.ScalaInstance
+import sbt.{Classpaths, Extracted, IncOptions, Setting, State, UpdateReport}
 import xsbti.compile.CompileResult
 
 object Compat {
@@ -31,5 +32,16 @@ object Compat {
       hasModified: Boolean
   ): CompileResult = {
     compileResult.withHasModified(hasModified)
+  }
+
+  def autoPlugins(
+      report: UpdateReport,
+      scalaVersion: String
+  ): Seq[String] = {
+    Classpaths.autoPlugins(
+      report,
+      Seq(),
+      ScalaInstance.isDotty(scalaVersion)
+    )
   }
 }
