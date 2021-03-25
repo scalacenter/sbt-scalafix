@@ -16,7 +16,7 @@ The project should import into IntelliJ like normal sbt builds.
 
 Be sure to run the `bin/scalafmt` script to ensure code formatting is OK.  Pro
 tip, `./bin/scalafmt --diff` formats only the files that have changed from the
-master branch.  You can read more about it at http://scalafmt.org
+main branch.  You can read more about it at http://scalafmt.org
 
 ## TL;DR
 
