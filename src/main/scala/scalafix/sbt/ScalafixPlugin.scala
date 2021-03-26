@@ -34,13 +34,13 @@ object ScalafixPlugin extends AutoPlugin {
         "Run scalafix rule(s) in this project and configuration. " +
           "For example: scalafix RemoveUnused. " +
           "To run on test sources use test:scalafix or scalafixAll. " +
-          "When invoked directly, prior compilation will be triggered for semantic rules."
+          "When invoked, prior compilation with -Xfatal-warnings relaxed will be triggered for semantic rules."
       )
     val scalafixAll: InputKey[Unit] =
       inputKey[Unit](
         "Run scalafix rule(s) in this project, for all configurations where scalafix is enabled. " +
           "Compile and Test are enabled by default, other configurations can be enabled via scalafixConfigSettings. " +
-          "When invoked directly, prior compilation will be triggered for semantic rules."
+          "When invoked, prior compilation with -Xfatal-warnings relaxed will be triggered for semantic rules."
       )
 
     val scalafixOnCompile: SettingKey[Boolean] =
@@ -96,7 +96,7 @@ object ScalafixPlugin extends AutoPlugin {
 
     def scalafixConfigSettings(config: Configuration): Seq[Def.Setting[_]] =
       inConfig(config)(
-        Seq(
+        relaxScalacOptionsConfigSettings ++ Seq(
           scalafix := {
             // force detection of usage of `scalafixCaching` to workaround https://github.com/sbt/sbt/issues/5647
             val _ = scalafixCaching.?.value
@@ -430,7 +430,7 @@ object ScalafixPlugin extends AutoPlugin {
       val files = filesToFix(shellArgs, config).value
       val withScalaInterface = mainArgs.withArgs(
         Arg.ScalaVersion(scalaVersion.value),
-        Arg.ScalacOptions(scalacOptions.in(config).value)
+        Arg.ScalacOptions(scalacOptions.in(config, compile).value)
       )
       val errors = new SemanticRuleValidator(
         new SemanticdbNotFound(ruleNames, scalaVersion.value, sbtVersion.value)
@@ -648,5 +648,59 @@ object ScalafixPlugin extends AutoPlugin {
       }
     }
 
-  final class UninitializedError extends RuntimeException("uninitialized value")
+  private[sbt] val relaxScalacOptionsConfigSettings: Seq[Def.Setting[_]] =
+    Seq(
+      scalacOptions.in(compile) := {
+        val options = scalacOptions.in(compile).value
+        if (!scalafixInvoked.value) options
+        else
+          options.filterNot { option =>
+            scalacOptionsToRelax.exists(_.matcher(option).matches)
+          }
+      },
+      incOptions := {
+        val options = incOptions.value
+        if (!scalafixInvoked.value) options
+        else
+          // maximize chance to get a zinc cache hit when running scalafix, even though we have
+          // potentially added/removed scalacOptions for that specific invocation
+          Compat.addIgnoredScalacOptions(
+            options,
+            scalacOptionsToRelax.map(_.pattern())
+          )
+      },
+      manipulateBytecode := {
+        val analysis = manipulateBytecode.value
+        if (!scalafixInvoked.value) analysis
+        else {
+          // prevent storage of the analysis with relaxed scalacOptions - despite not depending explicitly on compile,
+          // it is being triggered for parent configs/projects through evaluation of dependencyClasspath (TrackAlways)
+          // in the scope where scalafix is invoked
+          Compat.withHasModified(analysis, false)
+        }
+      }
+    )
+
+  private def scalafixInvoked: Def.Initialize[Task[Boolean]] =
+    Def.task {
+      val (scalafixKeys, otherKeys) = executionRoots.value.partition { root =>
+        Seq(
+          scalafix.key,
+          scalafixAll.key
+        ).contains(root.key)
+      }
+      if (scalafixKeys.nonEmpty && otherKeys.nonEmpty) {
+        // Fail hard if we detect other concurrent tasks requested, as `scalafixInvoked` is used to
+        // conditionnally, transiently alter tasks transitively triggered by scalafix, so these tasks
+        // should not see run with that altered behavior as it could cause compilation/packaging to
+        // succeed even though the build requests fatal warnings and there were warnings detected.
+        throw new InvalidArgument(
+          "Scalafix cannot be invoked concurrently with other tasks"
+        )
+      }
+      scalafixKeys.nonEmpty
+    }
+
+  private val scalacOptionsToRelax =
+    List("-Xfatal-warnings", "-Werror", "-Wconf.*").map(_.r.pattern)
 }

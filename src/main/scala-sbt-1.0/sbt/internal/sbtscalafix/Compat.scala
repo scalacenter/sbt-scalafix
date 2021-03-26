@@ -1,6 +1,7 @@
 package sbt.internal.sbtscalafix
 
-import sbt.{Extracted, Setting, State}
+import sbt.{Extracted, IncOptions, Setting, State}
+import xsbti.compile.CompileResult
 
 object Compat {
   type ConsoleLogger = sbt.internal.util.ConsoleLogger
@@ -15,4 +16,20 @@ object Compat {
       state: State
   ): State =
     project.appendWithoutSession(settings, state)
+
+  def addIgnoredScalacOptions(
+      incOptions: IncOptions,
+      ignoredScalacOptions: Seq[String]
+  ): IncOptions = {
+    incOptions.withIgnoredScalacOptions(
+      incOptions.ignoredScalacOptions() ++ ignoredScalacOptions
+    )
+  }
+
+  def withHasModified(
+      compileResult: CompileResult,
+      hasModified: Boolean
+  ): CompileResult = {
+    compileResult.withHasModified(hasModified)
+  }
 }

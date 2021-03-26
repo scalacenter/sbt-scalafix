@@ -3,7 +3,6 @@ package scalafix.sbt
 import sbt._
 import sbt.Keys._
 import sbt.internal.sbtscalafix.Compat
-import ScalafixPlugin.autoImport._
 
 /** Command to automatically enable semanticdb-scalac for shell session */
 object ScalafixEnable {
@@ -37,23 +36,14 @@ object ScalafixEnable {
       "Configure libraryDependencies, scalaVersion and scalacOptions for scalafix.",
     detail = """1. enables the semanticdb-scalac compiler plugin
       |2. sets scalaVersion to latest Scala version supported by scalafix
-      |3. add -Yrangepos to scalacOptions
-      |4. relax -Xfatal-warnings, -Werror & -Wconf* (if set in scalacOptions) for upcoming scalafix invocations""".stripMargin
+      |3. add -Yrangepos to scalacOptions""".stripMargin
   ) { s =>
     val extracted = Project.extract(s)
+    val relaxScalacForScalafix = Seq(Compile, Test).flatMap(
+      inConfig(_)(ScalafixPlugin.relaxScalacOptionsConfigSettings)
+    )
     val settings: Seq[Setting[_]] = for {
       (p, fullVersion) <- projectsWithMatchingScalaVersion(s)
-      relaxScalacForScalafix <- List(
-        scalacOptions.in(p) := {
-          val options = scalacOptions.in(p).value
-          if (!scalafixInvoked.value) options
-          else
-            options.filterNot { option =>
-              List("-Xfatal-warnings", "-Werror").contains(option) ||
-              option.startsWith("-Wconf")
-            }
-        }
-      )
       isSemanticdbEnabled =
         libraryDependencies
           .in(p)
@@ -70,7 +60,7 @@ object ScalafixEnable {
         )
       )
       settings <-
-        relaxScalacForScalafix ++
+        inScope(ThisScope.in(p))(relaxScalacForScalafix) ++
           (if (!isSemanticdbEnabled) addSemanticdb else List())
     } yield settings
 
@@ -78,14 +68,4 @@ object ScalafixEnable {
 
     scalafixReady
   }
-
-  private def scalafixInvoked: Def.Initialize[Task[Boolean]] =
-    Def.task {
-      executionRoots.value.exists { root =>
-        Seq(
-          scalafix.key,
-          scalafixAll.key
-        ).contains(root.key)
-      }
-    }
 }

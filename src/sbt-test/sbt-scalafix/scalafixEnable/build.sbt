@@ -21,16 +21,7 @@ lazy val scala211 = project.settings(
 
 // 2.12.x is supported
 lazy val scala212 = project.settings(
-  scalaVersion := V.scala212,
-  scalacOptions ++= Seq(
-    // generate errors on unused imports
-    "-Xfatal-warnings",
-    "-Ywarn-unused",
-    // generate errors on procedure syntax
-    "-Wconf:cat=deprecation:e",
-    "-Xfuture",
-    "-deprecation"
-  )
+  scalaVersion := V.scala212
 )
 
 // 2.13.x is supported
