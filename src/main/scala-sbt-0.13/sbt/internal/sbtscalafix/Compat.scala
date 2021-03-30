@@ -1,6 +1,6 @@
 package sbt.internal.sbtscalafix
 
-import sbt.{Compiler, Extracted, Setting, State}
+import sbt.{Classpaths, Compiler, Extracted, Setting, State, UpdateReport}
 import sbt.inc.IncOptions
 
 object Compat {
@@ -29,5 +29,16 @@ object Compat {
       hasModified: Boolean
   ): Compiler.CompileResult = {
     compileResult
+  }
+
+  def autoPlugins(
+      report: UpdateReport,
+      scalaVersion: String
+  ): Seq[String] = {
+    Classpaths.autoPlugins(
+      report,
+      Seq(),
+      Set("jar", "bundle")
+    )
   }
 }

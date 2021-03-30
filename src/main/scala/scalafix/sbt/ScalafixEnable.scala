@@ -36,11 +36,14 @@ object ScalafixEnable {
       "Configure libraryDependencies, scalaVersion and scalacOptions for scalafix.",
     detail = """1. enables the semanticdb-scalac compiler plugin
       |2. sets scalaVersion to latest Scala version supported by scalafix
-      |3. add -Yrangepos to scalacOptions""".stripMargin
+      |3. add -Yrangepos to Compile|Test / compile / scalacOptions""".stripMargin
   ) { s =>
     val extracted = Project.extract(s)
-    val relaxScalacForScalafix = Seq(Compile, Test).flatMap(
-      inConfig(_)(ScalafixPlugin.relaxScalacOptionsConfigSettings)
+    val scalacOptionsSettings = Seq(Compile, Test).flatMap(
+      inConfig(_)(
+        semanticdbConfigSettings ++
+          ScalafixPlugin.relaxScalacOptionsConfigSettings
+      )
     )
     val settings: Seq[Setting[_]] = for {
       (p, fullVersion) <- projectsWithMatchingScalaVersion(s)
@@ -49,23 +52,33 @@ object ScalafixEnable {
           .in(p)
           .get(extracted.structure.data)
           .exists(_.exists(_.name == "semanticdb-scalac"))
-      addSemanticdb <- List(
+      addSemanticdbCompilerPlugin <- List(
         scalaVersion.in(p) := fullVersion,
-        scalacOptions.in(p) ++= List(
-          "-Yrangepos",
-          s"-Xplugin-require:semanticdb"
-        ),
         libraryDependencies.in(p) += compilerPlugin(
           ScalafixPlugin.autoImport.scalafixSemanticdb
         )
       )
       settings <-
-        inScope(ThisScope.in(p))(relaxScalacForScalafix) ++
-          (if (!isSemanticdbEnabled) addSemanticdb else List())
+        inScope(ThisScope.in(p))(scalacOptionsSettings) ++
+          (if (!isSemanticdbEnabled) addSemanticdbCompilerPlugin else List())
     } yield settings
 
     val scalafixReady = Compat.append(extracted, settings, s)
 
     scalafixReady
   }
+
+  private val semanticdbConfigSettings: Seq[Def.Setting[_]] =
+    Seq(
+      scalacOptions.in(compile) := {
+        val old = scalacOptions.in(compile).value
+        val options = List(
+          "-Yrangepos",
+          "-Xplugin-require:semanticdb"
+        )
+        // don't rely on autoCompilerPlugins to inject the plugin as it does not work if scalacOptions is overriden in the build
+        val plugins = Compat.autoPlugins(update.value, scalaVersion.value)
+        old ++ (plugins ++ options).diff(old)
+      }
+    )
 }
