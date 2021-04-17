@@ -45,7 +45,8 @@ object ScalafixPlugin extends AutoPlugin {
 
     val scalafixOnCompile: SettingKey[Boolean] =
       settingKey[Boolean](
-        "Run Scalafix rule(s) declared in .scalafix.conf on compilation and fail on lint errors. " +
+        "Run Scalafix rule(s) declared in .scalafix.conf on compilation and fail on lint errors," +
+          "with overlaying configuration by `triggered` sections if defined in .scalafix.conf file." +
           "Off by default. When enabled, caching will be automatically activated, " +
           "but can be disabled with `scalafixCaching := false`."
       )
@@ -107,7 +108,7 @@ object ScalafixPlugin extends AutoPlugin {
               compile.value // evaluated first, before the potential scalafix evaluation
             if (scalafixOnCompile.value)
               scalafix
-                .toTask("")
+                .toTask(" --triggered")
                 .map(_ => oldCompile)
             else Def.task(oldCompile)
           }.value,
@@ -529,11 +530,27 @@ object ScalafixPlugin extends AutoPlugin {
                 // custom tool classpaths might contain directories for which we would need to stamp all files, so
                 // just disable caching for now to keep it simple and to be safe
                 throw StampingImpossible
+              case "--triggered" =>
+                // If there is a triggered section in a default config file, --triggered flag should be accounted.
+                // If not, --triggered can share the same cache.
+                checkIfTriggeredSectionExists
               case _ => true
             }
             write(cacheKeys)
           case Arg.NoCache =>
             throw StampingImpossible
+        }
+
+        private lazy val checkIfTriggeredSectionExists: Boolean = {
+          val confInArgs = interface.args
+            .collect { case Arg.Config(conf) => conf }
+            .flatten
+            .lastOption
+          val configFile = confInArgs.fold(file(".scalafix.conf"))(_.toFile())
+          if (configFile.exists()) {
+            val lines = IO.readLines(configFile)
+            lines.exists(_.startsWith("triggered"))
+          } else false
         }
 
         def stampFile(file: File): String = {
