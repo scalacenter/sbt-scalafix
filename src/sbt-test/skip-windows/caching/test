@@ -140,20 +140,6 @@ $ exec chmod 000 src/main/scala/Valid.scala
 > set scalafixOnCompile := false
 $ delete src/main/scala
 
-# a file patched during the last run with --triggered should not also be cached.
-> set scalafixConfig := Some(file("files/Triggered.scalafix.conf"))
-> set scalafixOnCompile := true
-$ mkdir src/main/scala
-$ copy-file files/ProcedureSyntax.scala src/main/scala/ToPatch.scala
--> scalafix --triggered --check
-> compile
--$ must-mirror files/ProcedureSyntax.scala src/main/scala/ToPatch.scala
-$ exec chmod 000 src/main/scala/ToPatch.scala
--> scalafix --triggered --check
--> scalafix --check
-> set scalafixOnCompile := false
-$ delete src/main/scala
-
 # files should not be re-checked if all requested rules have previously been run across invocations
 > set scalafixConfig := Some(file("files/DisableSyntaxVar.scalafix.conf"))
 $ mkdir src/test/scala

@@ -549,7 +549,7 @@ object ScalafixPlugin extends AutoPlugin {
           val configFile = confInArgs.fold(file(".scalafix.conf"))(_.toFile())
           if (configFile.exists()) {
             val lines = IO.readLines(configFile)
-            lines.exists(_.startsWith("triggered"))
+            lines.exists(_.trim.startsWith("triggered"))
           } else false
         }
 
