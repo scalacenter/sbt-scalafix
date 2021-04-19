@@ -45,8 +45,8 @@ object ScalafixPlugin extends AutoPlugin {
 
     val scalafixOnCompile: SettingKey[Boolean] =
       settingKey[Boolean](
-        "Run Scalafix rule(s) declared in .scalafix.conf on compilation and fail on lint errors," +
-          "with overlaying configuration by `triggered` sections if defined in .scalafix.conf file." +
+        "Run Scalafix rule(s) declared in .scalafix.conf on compilation and fail on lint errors." +
+          "Default rules & rule configuration can be overridden using the `triggered` section." +
           "Off by default. When enabled, caching will be automatically activated, " +
           "but can be disabled with `scalafixCaching := false`."
       )
@@ -531,7 +531,7 @@ object ScalafixPlugin extends AutoPlugin {
                 // just disable caching for now to keep it simple and to be safe
                 throw StampingImpossible
               case "--triggered" =>
-                // If there is a triggered section in a default config file, --triggered flag should be accounted.
+                // If there is a triggered section in the config file, --triggered flag should be accounted.
                 // If not, --triggered can share the same cache.
                 checkIfTriggeredSectionExists
               case _ => true

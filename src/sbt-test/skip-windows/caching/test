@@ -128,7 +128,7 @@ $ exec chmod 000 src/main/scala/Valid.scala
 -> scalafix --triggered --check
 $ delete src/main/scala
 
-# files should not be re-checked in scalafix explicit invocation after scalafix runs onCompile if any triggered configuration is not defined
+# files should not be re-checked in scalafix explicit invocation after scalafix runs onCompile if no triggered configuration is defined
 > set scalafixConfig := Some(file("files/DisableSyntaxVar.scalafix.conf"))
 > set scalafixOnCompile := true
 $ mkdir src/main/scala

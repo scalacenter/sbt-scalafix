@@ -22,7 +22,7 @@ lazy val rewrite = project
   )
   .settings(scalafixConfigSettings(IntegrationTest): _*)
 
-lazy val args = project
+lazy val triggered = project
   .settings(
     addCompilerPlugin(scalafixSemanticdb)
   )

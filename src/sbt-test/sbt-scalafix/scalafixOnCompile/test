@@ -28,6 +28,6 @@
 # check that triggered rules are respected on compilation, and ignored on explicit invocation.
 #   `private var` is detected by `DisableSyntax.noVars = true` on explicit invocation,
 #   and removed by `triggered.RemoveUnused.privates = true` on compilation.
--> args/test:scalafix
-> args/test:compile
-> args/test:scalafix
+-> triggered/test:scalafix
+> triggered/test:compile
+> triggered/test:scalafix
