@@ -5,7 +5,7 @@ inThisBuild(
     scalaVersion := Versions.scala212,
     scalacOptions ++= List(
       "-Yrangepos",
-      "-Ywarn-unused-import"
+      "-Ywarn-unused"
     )
   )
 )
@@ -21,3 +21,8 @@ lazy val rewrite = project
     addCompilerPlugin(scalafixSemanticdb)
   )
   .settings(scalafixConfigSettings(IntegrationTest): _*)
+
+lazy val triggered = project
+  .settings(
+    addCompilerPlugin(scalafixSemanticdb)
+  )

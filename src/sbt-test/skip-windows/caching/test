@@ -106,6 +106,40 @@ $ exec chmod 000 src/main/scala/InitiallyValid.scala
 -> scalafix --check ProcedureSyntax
 $ delete src/main/scala
 
+# files should be re-checked in scalafix run without --triggered even after scalafix runs onCompile, if a triggered configuration is defined
+> set scalafixConfig := Some(file("files/Triggered.scalafix.conf"))
+> set scalafixOnCompile := true
+$ mkdir src/main/scala
+$ copy-file files/Valid.scala src/main/scala/Valid.scala
+> compile
+$ exec chmod 000 src/main/scala/Valid.scala
+> scalafix --triggered --check
+-> scalafix --check
+> set scalafixOnCompile := false
+$ delete src/main/scala
+
+# files should be re-checked in scalafix --triggered run even after scalafix run without --triggered, if a triggered configuration is defined
+> set scalafixConfig := Some(file("files/Triggered.scalafix.conf"))
+$ mkdir src/main/scala
+$ copy-file files/Valid.scala src/main/scala/Valid.scala
+> scalafix
+$ exec chmod 000 src/main/scala/Valid.scala
+> scalafix --check
+-> scalafix --triggered --check
+$ delete src/main/scala
+
+# files should not be re-checked in scalafix explicit invocation after scalafix runs onCompile if no triggered configuration is defined
+> set scalafixConfig := Some(file("files/DisableSyntaxVar.scalafix.conf"))
+> set scalafixOnCompile := true
+$ mkdir src/main/scala
+$ copy-file files/Valid.scala src/main/scala/Valid.scala
+> compile
+$ exec chmod 000 src/main/scala/Valid.scala
+> scalafix --triggered --check
+> scalafix --check
+> set scalafixOnCompile := false
+$ delete src/main/scala
+
 # files should not be re-checked if all requested rules have previously been run across invocations
 > set scalafixConfig := Some(file("files/DisableSyntaxVar.scalafix.conf"))
 $ mkdir src/test/scala
