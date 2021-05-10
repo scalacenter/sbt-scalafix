@@ -4,7 +4,9 @@ import java.io.{ByteArrayOutputStream, OutputStream}
 
 import sbt.{Level, Logger}
 
-/** Split an OutputStream into messages and feed them to a given logger at a specified level. Not thread-safe. */
+/** Split an OutputStream into messages and feed them to a given logger at a
+  * specified level. Not thread-safe.
+  */
 class LoggingOutputStream(
     logger: Logger,
     level: Level.Value,
