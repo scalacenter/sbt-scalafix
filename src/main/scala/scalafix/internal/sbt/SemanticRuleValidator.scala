@@ -2,7 +2,7 @@ package scalafix.internal.sbt
 
 import java.nio.file.Path
 
-import sbt.{CrossVersion, ModuleID}
+import sbt.ModuleID
 
 import scala.collection.mutable.ListBuffer
 
@@ -10,13 +10,15 @@ class SemanticRuleValidator(ifNotFound: SemanticdbNotFound) {
   def findErrors(
       files: Seq[Path],
       dependencies: Seq[ModuleID],
+      scalacOpts: Seq[String],
       interface: ScalafixInterface
   ): Seq[String] = {
     if (files.isEmpty) Nil
     else {
       val errors = ListBuffer.empty[String]
       val hasSemanticdb =
-        dependencies.exists(_.name.startsWith("semanticdb-scalac"))
+        dependencies.exists(_.name.startsWith("semanticdb-scalac")) ||
+          scalacOpts.contains("-Xsemanticdb")
       if (!hasSemanticdb)
         errors += ifNotFound.message
       val invalidArguments = interface.validate()
@@ -30,19 +32,16 @@ class SemanticRuleValidator(ifNotFound: SemanticdbNotFound) {
 
 class SemanticdbNotFound(
     ruleNames: Seq[String],
-    scalaVersion: String,
-    sbtVersion: String
+    scalaVersion: String
 ) {
   def message: String = {
     val names = ruleNames.mkString(", ")
 
-    val recommendedSetting = CrossVersion.partialVersion(sbtVersion) match {
-      case Some((1, n)) if n < 3 => atMostSbt12
-      case Some((0, _)) => atMostSbt12
-      case _ => atLeastSbt13(scalaVersion)
-    }
+    val recommendedSetting =
+      if (SemanticdbPlugin.available) semanticdbPluginSetup(scalaVersion)
+      else manualSetup
 
-    s"""|The semanticdb-scalac compiler plugin is required to run semantic rules like $names.
+    s"""|The scalac compiler should produce semanticdb files to run semantic rules like $names.
       |To fix this problem for this sbt shell session, run `scalafixEnable` and try again.
       |To fix this problem permanently for your build, add the following settings to build.sbt:
       |
@@ -50,7 +49,7 @@ class SemanticdbNotFound(
       |""".stripMargin
   }
 
-  private def atLeastSbt13(scalaVersion: String) =
+  private def semanticdbPluginSetup(scalaVersion: String) =
     s"""inThisBuild(
       |  List(
       |    scalaVersion := "$scalaVersion",
@@ -60,7 +59,7 @@ class SemanticdbNotFound(
       |)
       |""".stripMargin
 
-  private val atMostSbt12 =
+  private val manualSetup =
     s"""addCompilerPlugin(scalafixSemanticdb)
       |scalacOptions += "-Yrangepos"
       |""".stripMargin
