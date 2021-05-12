@@ -204,9 +204,6 @@ object ScalafixPlugin extends AutoPlugin {
         Seq(
           coursierapi.MavenRepository.of(
             "https://oss.sonatype.org/content/repositories/public"
-          ),
-          coursierapi.MavenRepository.of(
-            "https://oss.sonatype.org/content/repositories/snapshots"
           )
         ),
     scalafixDependencies := Nil,
