@@ -2,15 +2,16 @@ package fix
 
 import scalafix.testkit._
 import scala.util.control.NonFatal
+import org.scalatest.FunSuiteLike
 import org.scalatest.exceptions.TestFailedException
 
 object IntputOutputSuite {
   def main(args: Array[String]): Unit = {
     if (Array("--save-expect").sameElements(args)) {
-      val suite = new SemanticRuleSuite(
-        TestkitProperties.loadFromResources(),
-        isSaveExpect = true
-      ) {
+      val suite = new AbstractSemanticRuleSuite with FunSuiteLike {
+        override val props = TestkitProperties.loadFromResources()
+        override val isSaveExpect = true
+
         testsToRun.foreach { t =>
           try evaluateTestBody(t)
           catch {
@@ -29,6 +30,6 @@ object IntputOutputSuite {
   }
 }
 
-class IntputOutputSuite extends SemanticRuleSuite {
+class IntputOutputSuite extends AbstractSemanticRuleSuite with FunSuiteLike {
   runAllTests()
 }

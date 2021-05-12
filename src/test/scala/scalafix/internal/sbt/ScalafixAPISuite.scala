@@ -3,7 +3,7 @@ package scalafix.internal.sbt
 import java.io.{ByteArrayOutputStream, PrintStream}
 import java.nio.file.Files
 
-import coursierapi.Repository
+import coursierapi.{MavenRepository, Repository}
 import org.scalactic.source.Position
 import sbt._
 import sbt.internal.sbtscalafix.Compat
@@ -31,7 +31,12 @@ class ScalafixAPISuite extends AnyFunSuite {
       .fromToolClasspath(
         "2.12",
         List("ch.epfl.scala" %% "example-scalafix-rule" % "1.4.0"),
-        Seq(Repository.central),
+        Seq(
+          Repository.central,
+          MavenRepository.of(
+            "https://oss.sonatype.org/content/repositories/snapshots"
+          )
+        ),
         logger
       )()
       .withArgs(Arg.PrintStream(new PrintStream(baos)))

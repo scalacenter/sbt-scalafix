@@ -12,8 +12,7 @@ inThisBuild(
     scalafixDependencies := List(
       // Custom rule published to Maven Central https://github.com/scalacenter/example-scalafix-rule
       "ch.epfl.scala" %% "example-scalafix-rule" % "1.4.0"
-    ),
-    scalafixResolvers := List(Repository.MavenCentral)
+    )
   )
 )
 

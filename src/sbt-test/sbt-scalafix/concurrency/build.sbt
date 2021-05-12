@@ -1,6 +1,7 @@
 val V = _root_.scalafix.sbt.BuildInfo
 
 scalaVersion := V.scala212
+resolvers += Resolver.sonatypeRepo("snapshots")
 libraryDependencies += "ch.epfl.scala" %% "scalafix-core" % V.scalafixVersion % ScalafixConfig
 
 // make it possible to run scalafix in parallel with other tasks via the `all` command

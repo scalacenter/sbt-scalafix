@@ -1,6 +1,6 @@
 package scalafix.internal.sbt
 
-import coursierapi.Repository
+import coursierapi.{MavenRepository, Repository}
 import org.eclipse.jgit.lib.AbbreviatedObjectId
 import org.scalatest.Tag
 import sbt.complete.Parser
@@ -32,7 +32,12 @@ class SbtCompletionsSuite extends AnyFunSuite {
       .fromToolClasspath(
         "2.12",
         Seq(exampleDependency),
-        Seq(Repository.central)
+        Seq(
+          Repository.central,
+          MavenRepository.of(
+            "https://oss.sonatype.org/content/repositories/snapshots"
+          )
+        )
       )()
   val loadedRules = mainArgs.availableRules.toList
 
