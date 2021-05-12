@@ -1,0 +1,4 @@
+# check that we can run a syntactic rule against a Scala 3 dialect source file
+-> scalafix --check LeakingImplicitClassVal
+> scalafix LeakingImplicitClassVal
+> scalafix --check LeakingImplicitClassVal
