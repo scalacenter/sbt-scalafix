@@ -5,7 +5,7 @@ object Dependencies {
   // when bumping remove dep on SNAPSHOT in sbt-1.5 scripted tests
   def scalafixVersion: String = "0.9.27"
   val all = List(
-    "org.eclipse.jgit" % "org.eclipse.jgit" % "5.11.0.202103091610-r",
+    "org.eclipse.jgit" % "org.eclipse.jgit" % "5.11.1.202105131744-r",
     "ch.epfl.scala" % "scalafix-interfaces" % scalafixVersion,
     // coursier-small provides a binary stable API around Coursier making sure that
     // sbt-scalafix doesn't conflict with the user's installed version of sbt-coursier.
