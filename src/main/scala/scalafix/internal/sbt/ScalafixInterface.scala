@@ -135,6 +135,12 @@ object ScalafixInterface {
       logger: Logger = Compat.ConsoleLogger(System.out)
   ): () => ScalafixInterface =
     new LazyValue({ () =>
+      if (scalafixBinaryScalaVersion.startsWith("3"))
+        logger.error(
+          "To use Scalafix on Scala 3 projects, you must unset `scalafixBinaryScalaVersion`. " +
+            "Rules such as ExplicitResultTypes requiring the project version to match the Scalafix " +
+            "version are unsupported for the moment."
+        )
       val callback = new ScalafixLogger(logger)
       val scalafixArguments = ScalafixAPI
         .fetchAndClassloadInstance(
