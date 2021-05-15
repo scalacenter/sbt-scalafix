@@ -47,13 +47,12 @@ object ScalafixPlugin extends AutoPlugin {
       settingKey[Boolean](
         "Run Scalafix rule(s) declared in .scalafix.conf on compilation and fail on lint errors." +
           "Default rules & rule configuration can be overridden using the `triggered` section." +
-          "Off by default. When enabled, caching will be automatically activated, " +
-          "but can be disabled with `scalafixCaching := false`."
+          "Off by default."
       )
 
     val scalafixCaching: SettingKey[Boolean] =
       settingKey[Boolean](
-        "Cache scalafix invocations (off by default, on if scalafixOnCompile := true)."
+        "Make scalafix invocations incremental. On by default."
       )
 
     import scala.language.implicitConversions
@@ -194,6 +193,7 @@ object ScalafixPlugin extends AutoPlugin {
   override lazy val globalSettings: Seq[Def.Setting[_]] = Seq(
     scalafixConfig := None, // let scalafix-cli try to infer $CWD/.scalafix.conf
     scalafixOnCompile := false,
+    scalafixCaching := true,
     scalafixResolvers :=
       // Repository.defaults() defaults to Repository.ivy2Local() and Repository.central(). These can be overridden per
       // env variable, e.g., export COURSIER_REPOSITORIES="ivy2Local|central|sonatype:releases|jitpack|https://corporate.com/repo".
@@ -374,9 +374,8 @@ object ScalafixPlugin extends AutoPlugin {
           scalafixResolvers.in(ThisBuild).value,
           projectDepsInternal
         )
-        val cachingRequested = scalafixCaching.or(scalafixOnCompile).value
         val maybeNoCache =
-          if (shell.noCache || !cachingRequested) Seq(Arg.NoCache) else Nil
+          if (shell.noCache || !scalafixCaching.value) Seq(Arg.NoCache) else Nil
         val mainInterface = mainInterface0
           .withArgs(maybeNoCache: _*)
           .withArgs(
