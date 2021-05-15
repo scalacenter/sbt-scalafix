@@ -2,8 +2,8 @@ import sbt._
 
 object Dependencies {
   val x = List(1) // scalafix:ok
-  // when bumping remove dep on SNAPSHOT in sbt-1.5 scripted tests
-  def scalafixVersion: String = "0.9.27"
+  def scalafixVersion: String = "0.9.27+52-6c9eeec9-SNAPSHOT"
+
   val all = List(
     "org.eclipse.jgit" % "org.eclipse.jgit" % "5.11.1.202105131744-r",
     "ch.epfl.scala" % "scalafix-interfaces" % scalafixVersion,

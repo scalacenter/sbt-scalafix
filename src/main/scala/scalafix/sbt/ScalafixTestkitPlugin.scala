@@ -27,6 +27,11 @@ object ScalafixTestkitPlugin extends AutoPlugin {
   }
   import autoImport._
 
+  override def buildSettings: Seq[Def.Setting[_]] =
+    List(
+      resolvers += Resolver.sonatypeRepo("snapshots")
+    )
+
   override def projectSettings: Seq[Def.Setting[_]] =
     List(
       scalafixTestkitInputScalacOptions := scalacOptions.value,
