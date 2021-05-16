@@ -229,7 +229,7 @@ object ScalafixPlugin extends AutoPlugin {
 
   override def buildSettings: Seq[Def.Setting[_]] =
     Seq(
-      scalafixScalaBinaryVersion := "2.12" // scalaBinaryVersion.value for 1.0
+      scalafixScalaBinaryVersion := "2.12"
     )
 
   lazy val stdoutLogger = Compat.ConsoleLogger(System.out)
