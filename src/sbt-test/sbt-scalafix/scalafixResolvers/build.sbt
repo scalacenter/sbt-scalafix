@@ -7,7 +7,6 @@ TaskKey[Unit]("check") := {
     //Repository.ivy2Local()
     ".ivy2/local/",
     "https://oss.sonatype.org/content/repositories/public",
-    "https://oss.sonatype.org/content/repositories/snapshots",
     // custom repository
     "https://a.b.com/artifactory/snapshots"
   )
