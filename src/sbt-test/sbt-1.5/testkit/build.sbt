@@ -43,7 +43,7 @@ lazy val tests = projectMatrix
       resolveByInputAxis(
         input,
         Compile / unmanagedSourceDirectories
-      ).value.distinct, // https://github.com/sbt/sbt/pull/6511
+      ).value,
     scalafixTestkitInputClasspath :=
       resolveByInputAxis(input, Compile / fullClasspath).value,
     scalafixTestkitInputScalacOptions :=

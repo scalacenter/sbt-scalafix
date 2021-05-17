@@ -80,7 +80,7 @@ object ScalafixTestkitPlugin extends AutoPlugin {
           "inputClasspath" ->
             scalafixTestkitInputClasspath.value.map(_.data),
           "inputSourceDirectories" ->
-            scalafixTestkitInputSourceDirectories.value,
+            scalafixTestkitInputSourceDirectories.value.distinct, // https://github.com/sbt/sbt/pull/6511
           "outputSourceDirectories" ->
             scalafixTestkitOutputSourceDirectories.value
         )
