@@ -13,38 +13,42 @@ object ScalafixTestkitPlugin extends AutoPlugin {
   override def requires: Plugins = JvmPlugin
 
   object autoImport {
-    case class InputAxis(scalaVersion: String) extends VirtualAxis.WeakAxis {
+    case class TestkitTargetAxis(scalaVersion: String)
+        extends VirtualAxis.WeakAxis {
       private val scalaBinaryVersion =
         CrossVersion.binaryScalaVersion(scalaVersion)
 
-      override val idSuffix = s"Input${scalaBinaryVersion.replace('.', '_')}"
-      override val directorySuffix = s"input$scalaBinaryVersion"
+      override val idSuffix = s"Target${scalaBinaryVersion.replace('.', '_')}"
+      override val directorySuffix = s"target$scalaBinaryVersion"
     }
 
-    object InputAxis {
-      def inputScalaVersion(virtualAxes: Seq[VirtualAxis]): String =
-        virtualAxes.collectFirst { case a: InputAxis => a.scalaVersion }.get
+    object TestkitTargetAxis {
+
+      private def targetScalaVersion(virtualAxes: Seq[VirtualAxis]): String =
+        virtualAxes.collectFirst { case a: TestkitTargetAxis =>
+          a.scalaVersion
+        }.get
+
+      def resolve[T](
+          matrix: ProjectMatrix,
+          key: TaskKey[T]
+      ): Def.Initialize[Task[T]] =
+        Def.taskDyn {
+          val sv = targetScalaVersion(virtualAxes.value)
+          val project = matrix.finder().apply(sv)
+          Def.task((project / key).value)
+        }
+
+      def resolve[T](
+          matrix: ProjectMatrix,
+          key: SettingKey[T]
+      ): Def.Initialize[T] =
+        Def.settingDyn {
+          val sv = targetScalaVersion(virtualAxes.value)
+          val project = matrix.finder().apply(sv)
+          Def.setting((project / key).value)
+        }
     }
-
-    def resolveByInputAxis[T](
-        matrix: ProjectMatrix,
-        key: TaskKey[T]
-    ): Def.Initialize[Task[T]] =
-      Def.taskDyn {
-        val sv = InputAxis.inputScalaVersion(virtualAxes.value)
-        val project = matrix.finder().apply(sv)
-        Def.task((project / key).value)
-      }
-
-    def resolveByInputAxis[T](
-        matrix: ProjectMatrix,
-        key: SettingKey[T]
-    ): Def.Initialize[T] =
-      Def.settingDyn {
-        val sv = InputAxis.inputScalaVersion(virtualAxes.value)
-        val project = matrix.finder().apply(sv)
-        Def.setting((project / key).value)
-      }
 
     val scalafixTestkitInputClasspath =
       taskKey[Classpath]("Classpath of input project")
