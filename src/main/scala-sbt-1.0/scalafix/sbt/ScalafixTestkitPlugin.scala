@@ -1,15 +1,51 @@
 package scalafix.sbt
 
-import sbt.Def
-import sbt._
 import sbt.Keys._
-import java.io.File.pathSeparator
+import sbt._
+import sbt.internal.ProjectMatrix
 import sbt.plugins.JvmPlugin
+import sbtprojectmatrix.ProjectMatrixPlugin.autoImport._
+
+import java.io.File.pathSeparator
 
 object ScalafixTestkitPlugin extends AutoPlugin {
   override def trigger: PluginTrigger = noTrigger
   override def requires: Plugins = JvmPlugin
+
   object autoImport {
+    case class InputAxis(scalaVersion: String) extends VirtualAxis.WeakAxis {
+      private val scalaBinaryVersion =
+        CrossVersion.binaryScalaVersion(scalaVersion)
+
+      override val idSuffix = s"Input${scalaBinaryVersion.replace('.', '_')}"
+      override val directorySuffix = s"input$scalaBinaryVersion"
+    }
+
+    object InputAxis {
+      def inputScalaVersion(virtualAxes: Seq[VirtualAxis]): String =
+        virtualAxes.collectFirst { case a: InputAxis => a.scalaVersion }.get
+    }
+
+    def resolveByInputAxis[T](
+        matrix: ProjectMatrix,
+        key: TaskKey[T]
+    ): Def.Initialize[Task[T]] =
+      Def.taskDyn {
+        val sv = InputAxis.inputScalaVersion(virtualAxes.value)
+        val project = matrix.finder().apply(sv)
+        Def.task((project / key).value)
+      }
+
+    def resolveByInputAxis[T](
+        matrix: ProjectMatrix,
+        key: SettingKey[T]
+    ): Def.Initialize[T] =
+      Def.settingDyn {
+        val sv = InputAxis.inputScalaVersion(virtualAxes.value)
+        val project = matrix.finder().apply(sv)
+        Def.setting((project / key).value)
+      }
+
     val scalafixTestkitInputClasspath =
       taskKey[Classpath]("Classpath of input project")
     val scalafixTestkitInputScalacOptions =
@@ -38,16 +74,11 @@ object ScalafixTestkitPlugin extends AutoPlugin {
       scalafixTestkitInputScalaVersion := scalaVersion.value,
       resourceGenerators.in(Test) += Def.task {
         val props = new java.util.Properties()
-        val targetrootClasspath = semanticdbOption(
-          scalafixTestkitInputScalacOptions.value,
-          "targetroot"
-        ).map(file).toSeq
         val values = Map[String, Seq[File]](
           "sourceroot" ->
             List(baseDirectory.in(ThisBuild).value),
           "inputClasspath" ->
-            (scalafixTestkitInputClasspath.value
-              .map(_.data) ++ targetrootClasspath),
+            scalafixTestkitInputClasspath.value.map(_.data),
           "inputSourceDirectories" ->
             scalafixTestkitInputSourceDirectories.value,
           "outputSourceDirectories" ->
@@ -71,15 +102,4 @@ object ScalafixTestkitPlugin extends AutoPlugin {
         List(out)
       }
     )
-
-  private def semanticdbOption(
-      scalacOptions: Seq[String],
-      name: String
-  ): Option[String] = {
-    val flag = s"-P:semanticdb:$name:"
-    scalacOptions
-      .filter(_.startsWith(flag))
-      .lastOption
-      .map(_.stripPrefix(flag))
-  }
 }

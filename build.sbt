@@ -40,6 +40,12 @@ commands += Command.command("ci-windows") { s =>
 // Dependencies
 resolvers += Resolver.sonatypeRepo("public")
 libraryDependencies ++= Dependencies.all
+libraryDependencies ++= Dependencies.sbt1Plugins.flatMap { plugin =>
+  val sbtV = (sbtBinaryVersion in pluginCrossBuild).value
+  val scalaV = (scalaBinaryVersion in update).value
+  if (sbtV.startsWith("0.13")) Nil
+  else Seq(sbt.Defaults.sbtPluginExtra(plugin, sbtV, scalaV))
+}
 libraryDependencies ++= List(
   "com.lihaoyi" %% "fansi" % "0.2.6" % Test,
   "org.scalatest" %% "scalatest" % "3.2.9" % Test
