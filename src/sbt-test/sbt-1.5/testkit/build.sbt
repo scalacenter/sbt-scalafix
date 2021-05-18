@@ -38,40 +38,41 @@ lazy val tests = projectMatrix
   .settings(
     libraryDependencies += "ch.epfl.scala" % "scalafix-testkit" % V.scalafixVersion % Test cross CrossVersion.full,
     scalafixTestkitOutputSourceDirectories :=
-      resolveByInputAxis(output, Compile / unmanagedSourceDirectories).value,
+      TestkitTargetAxis
+        .resolve(output, Compile / unmanagedSourceDirectories)
+        .value,
     scalafixTestkitInputSourceDirectories :=
-      resolveByInputAxis(
-        input,
-        Compile / unmanagedSourceDirectories
-      ).value.distinct, // https://github.com/sbt/sbt/pull/6511
+      TestkitTargetAxis
+        .resolve(input, Compile / unmanagedSourceDirectories)
+        .value,
     scalafixTestkitInputClasspath :=
-      resolveByInputAxis(input, Compile / fullClasspath).value,
+      TestkitTargetAxis.resolve(input, Compile / fullClasspath).value,
     scalafixTestkitInputScalacOptions :=
-      resolveByInputAxis(input, Compile / scalacOptions).value,
+      TestkitTargetAxis.resolve(input, Compile / scalacOptions).value,
     scalafixTestkitInputScalaVersion :=
-      resolveByInputAxis(input, Compile / scalaVersion).value
+      TestkitTargetAxis.resolve(input, Compile / scalaVersion).value
   )
   .defaultAxes(
     rulesCrossVersions.map(VirtualAxis.scalaABIVersion) :+ VirtualAxis.jvm: _*
   )
   .customRow(
     scalaVersions = Seq(V.scala212),
-    axisValues = Seq(InputAxis(scala3Version), VirtualAxis.jvm),
+    axisValues = Seq(TestkitTargetAxis(scala3Version), VirtualAxis.jvm),
     settings = Seq()
   )
   .customRow(
     scalaVersions = Seq(V.scala213),
-    axisValues = Seq(InputAxis(V.scala213), VirtualAxis.jvm),
+    axisValues = Seq(TestkitTargetAxis(V.scala213), VirtualAxis.jvm),
     settings = Seq()
   )
   .customRow(
     scalaVersions = Seq(V.scala212),
-    axisValues = Seq(InputAxis(V.scala212), VirtualAxis.jvm),
+    axisValues = Seq(TestkitTargetAxis(V.scala212), VirtualAxis.jvm),
     settings = Seq()
   )
   .customRow(
     scalaVersions = Seq(V.scala211),
-    axisValues = Seq(InputAxis(V.scala211), VirtualAxis.jvm),
+    axisValues = Seq(TestkitTargetAxis(V.scala211), VirtualAxis.jvm),
     settings = Seq()
   )
   .dependsOn(rules)
