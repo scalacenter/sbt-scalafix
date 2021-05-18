@@ -18,7 +18,8 @@ lazy val root = project
     javaProject,
     scala211,
     scala210,
-    scala212
+    scala212,
+    scala213
   )
 
 lazy val scala210 = project.settings(
@@ -41,6 +42,15 @@ lazy val scala212 = project
     scalafixSettings
   )
   .settings(scalafixConfigSettings(IntegrationTest): _*)
+
+lazy val scala213 = project.settings(
+  scalaVersion := Versions.scala213,
+  scalacOptions += "-Xsource:3",
+  scalafixSettings,
+  // NoAutoTupling is not supported
+  scalacOptions -= "-Ywarn-adapted-args",
+  scalafixConfig := Some(file("213.scalafix.conf"))
+)
 
 lazy val javaProject = project.settings(
   scalaVersion := Versions.scala212,

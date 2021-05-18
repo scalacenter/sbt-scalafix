@@ -19,13 +19,14 @@ lazy val rules = projectMatrix
 
 lazy val input = projectMatrix
   .defaultAxes(VirtualAxis.jvm)
+  .jvmPlatform(scalaVersions = Seq(scala3Version))
   .jvmPlatform(
-    scalaVersions = rulesCrossVersions,
+    scalaVersions = Seq(V.scala213),
     settings = Seq(
-      scalacOptions += "-P:semanticdb:synthetics:on"
+      scalacOptions += "-Xsource:3"
     )
   )
-  .jvmPlatform(scalaVersions = Seq(scala3Version))
+  .jvmPlatform(scalaVersions = Seq(V.scala212, V.scala211))
 
 lazy val output = projectMatrix
   .defaultAxes(VirtualAxis.jvm)
