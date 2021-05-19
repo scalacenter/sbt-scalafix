@@ -13,8 +13,4 @@ object Dependencies {
     "com.geirsson" %% "coursier-small" % "1.3.3",
     "io.get-coursier" % "interface" % "1.0.4"
   )
-
-  val sbt1Plugins = List(
-    "com.eed3si9n" % "sbt-projectmatrix" % "0.8.0"
-  )
 }
