@@ -10,9 +10,3 @@ unmanagedSourceDirectories.in(Compile) ++= {
   )
 }
 libraryDependencies ++= Dependencies.all
-libraryDependencies ++= Dependencies.sbt1Plugins.flatMap { plugin =>
-  val sbtV = (sbtBinaryVersion in pluginCrossBuild).value
-  val scalaV = (scalaBinaryVersion in update).value
-  if (sbtV.startsWith("0.13")) Nil
-  else Seq(sbt.Defaults.sbtPluginExtra(plugin, sbtV, scalaV))
-}
