@@ -380,6 +380,7 @@ object ScalafixPlugin extends AutoPlugin {
             Arg.Config(scalafixConf),
             Arg.Rules(shell.rules),
             Arg.ScalaVersion(scalaVersion.value),
+            Arg.ScalacOptions(scalacOptions.in(config, compile).value),
             Arg.ParsedArgs(shell.extra)
           )
         val rulesThatWillRun = mainInterface.rulesThatWillRun()
@@ -427,17 +428,16 @@ object ScalafixPlugin extends AutoPlugin {
       val dependencies = allDependencies.in(config).value
       val files = filesToFix(shellArgs, config).value
       val scalacOpts = scalacOptions.in(config, compile).value
-      val withScalaInterface = mainArgs.withArgs(Arg.ScalacOptions(scalacOpts))
       val errors = new SemanticRuleValidator(
         new SemanticdbNotFound(ruleNames, scalaVersion.value)
-      ).findErrors(files, dependencies, scalacOpts, withScalaInterface)
+      ).findErrors(files, dependencies, scalacOpts, mainArgs)
       if (errors.isEmpty) {
         val task = Def.task {
           // don't use fullClasspath as it results in a cyclic dependency via compile when scalafixOnCompile := true
           val classpath =
             dependencyClasspath.in(config).value.map(_.data.toPath) :+
               classDirectory.in(config).value.toPath
-          val semanticInterface = withScalaInterface.withArgs(
+          val semanticInterface = mainArgs.withArgs(
             Arg.Paths(files),
             Arg.Classpath(classpath)
           )
