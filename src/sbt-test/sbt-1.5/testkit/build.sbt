@@ -39,41 +39,41 @@ lazy val tests = projectMatrix
   .settings(
     libraryDependencies += "ch.epfl.scala" % "scalafix-testkit" % V.scalafixVersion % Test cross CrossVersion.full,
     scalafixTestkitOutputSourceDirectories :=
-      TestkitTargetAxis
+      TargetAxis
         .resolve(output, Compile / unmanagedSourceDirectories)
         .value,
     scalafixTestkitInputSourceDirectories :=
-      TestkitTargetAxis
+      TargetAxis
         .resolve(input, Compile / unmanagedSourceDirectories)
         .value,
     scalafixTestkitInputClasspath :=
-      TestkitTargetAxis.resolve(input, Compile / fullClasspath).value,
+      TargetAxis.resolve(input, Compile / fullClasspath).value,
     scalafixTestkitInputScalacOptions :=
-      TestkitTargetAxis.resolve(input, Compile / scalacOptions).value,
+      TargetAxis.resolve(input, Compile / scalacOptions).value,
     scalafixTestkitInputScalaVersion :=
-      TestkitTargetAxis.resolve(input, Compile / scalaVersion).value
+      TargetAxis.resolve(input, Compile / scalaVersion).value
   )
   .defaultAxes(
     rulesCrossVersions.map(VirtualAxis.scalaABIVersion) :+ VirtualAxis.jvm: _*
   )
   .customRow(
     scalaVersions = Seq(V.scala212),
-    axisValues = Seq(TestkitTargetAxis(scala3Version), VirtualAxis.jvm),
+    axisValues = Seq(TargetAxis(scala3Version), VirtualAxis.jvm),
     settings = Seq()
   )
   .customRow(
     scalaVersions = Seq(V.scala213),
-    axisValues = Seq(TestkitTargetAxis(V.scala213), VirtualAxis.jvm),
+    axisValues = Seq(TargetAxis(V.scala213), VirtualAxis.jvm),
     settings = Seq()
   )
   .customRow(
     scalaVersions = Seq(V.scala212),
-    axisValues = Seq(TestkitTargetAxis(V.scala212), VirtualAxis.jvm),
+    axisValues = Seq(TargetAxis(V.scala212), VirtualAxis.jvm),
     settings = Seq()
   )
   .customRow(
     scalaVersions = Seq(V.scala211),
-    axisValues = Seq(TestkitTargetAxis(V.scala211), VirtualAxis.jvm),
+    axisValues = Seq(TargetAxis(V.scala211), VirtualAxis.jvm),
     settings = Seq()
   )
   .dependsOn(rules)
