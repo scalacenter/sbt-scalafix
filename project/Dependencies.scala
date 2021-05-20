@@ -2,7 +2,7 @@ import sbt._
 
 object Dependencies {
   val x = List(1) // scalafix:ok
-  def scalafixVersion: String = "0.9.27+84-22626c72-SNAPSHOT"
+  def scalafixVersion: String = "0.9.28"
 
   val all = List(
     "org.eclipse.jgit" % "org.eclipse.jgit" % "5.11.1.202105131744-r",
