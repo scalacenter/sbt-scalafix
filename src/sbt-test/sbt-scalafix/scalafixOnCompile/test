@@ -1,7 +1,7 @@
 # check implicit rewrite of rewrite/src/main/scala/UnusedImports.scala via `compile`
 > compile
 -> scalafix --check
-> set scalafixOnCompile.in(ThisBuild) := true
+> set ThisBuild / scalafixOnCompile := true
 -> scalafix --check
 > compile
 > scalafix --check
@@ -22,7 +22,7 @@
 > lint/test:scalafix RemoveUnused
 
 # check configuration granularity for scalafixOnCompile
-> set scalafixOnCompile.in(lint, Test) := false
+> set lint / Test / scalafixOnCompile := false
 > lint/test:compile
 
 # check that triggered rules are respected on compilation, and ignored on explicit invocation.

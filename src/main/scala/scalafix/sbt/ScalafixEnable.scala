@@ -37,7 +37,7 @@ object ScalafixEnable {
       pf: PartialFunction[(Long, Long), U]
   ): Seq[(ProjectRef, U)] = for {
     p <- extracted.structure.allProjectRefs
-    version <- scalaVersion.in(p).get(extracted.structure.data).toList
+    version <- (p / scalaVersion).get(extracted.structure.data).toList
     partialVersion <- CrossVersion.partialVersion(version).toList
     res <- pf.lift(partialVersion).toList
   } yield p -> res
@@ -68,7 +68,7 @@ object ScalafixEnable {
         )
       } :+ (SemanticdbPlugin.semanticdbEnabled := true)
       settings <-
-        inScope(ThisScope.in(p))(
+        inScope(ThisScope.copy(project = Select(p)))(
           scalacOptionsSettings ++ enableSemanticdbPlugin
         )
     } yield settings
@@ -96,18 +96,17 @@ object ScalafixEnable {
         semanticdbScalacFullScalaVersion
       )
       isSemanticdbEnabled =
-        libraryDependencies
-          .in(p)
+        (p / libraryDependencies)
           .get(extracted.structure.data)
           .exists(_.exists(_.name == "semanticdb-scalac"))
       addSemanticdbCompilerPlugin <- List(
-        scalaVersion.in(p) := fullVersion,
-        libraryDependencies.in(p) += compilerPlugin(
+        p / scalaVersion := fullVersion,
+        p / libraryDependencies += compilerPlugin(
           ScalafixPlugin.autoImport.scalafixSemanticdb
         )
       )
       settings <-
-        inScope(ThisScope.in(p))(scalacOptionsSettings) ++
+        inScope(ThisScope.copy(project = Select(p)))(scalacOptionsSettings) ++
           (if (!isSemanticdbEnabled) addSemanticdbCompilerPlugin else List())
     } yield settings
     extracted.appendWithoutSession(settings, s)
@@ -115,8 +114,8 @@ object ScalafixEnable {
 
   private val semanticdbConfigSettings: Seq[Def.Setting[_]] =
     Seq(
-      scalacOptions.in(compile) := {
-        val old = scalacOptions.in(compile).value
+      compile / scalacOptions := {
+        val old = (compile / scalacOptions).value
         val options = List(
           "-Yrangepos",
           "-Xplugin-require:semanticdb"

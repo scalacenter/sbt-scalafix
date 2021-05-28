@@ -1,6 +1,6 @@
 inThisBuild(
   List(
-    parallelExecution in Test := false,
+    Test / parallelExecution := false,
     scalafixDependencies := List(
       // Custom rule published to Maven Central https://github.com/scalacenter/example-scalafix-rule
       "ch.epfl.scala" %% "example-scalafix-rule" % "1.4.0"
@@ -48,7 +48,7 @@ libraryDependencies ++= List(
 scalaVersion := "2.12.14"
 
 // keep this as low as possible to avoid running into binary incompatibility such as https://github.com/sbt/sbt/issues/5049
-sbtVersion in pluginCrossBuild := "1.2.1"
+pluginCrossBuild / sbtVersion := "1.2.1"
 
 // first release that can build 2.13 (as it bring a Zinc version with a compiler-bridge published for 2.13)
 scriptedSbt := "1.2.7"

@@ -31,36 +31,28 @@ lazy val scala213 = project.settings(
 
 TaskKey[Unit]("check") := {
   // nothing should change for the 2.10 project
-  assert(scalaVersion.in(scala210).value == "2.10.4")
-  assert(libraryDependencies.in(scala210).value.isEmpty)
-  assert(scalacOptions.in(scala210, Compile, compile).value.isEmpty)
+  assert((scala210 / scalaVersion).value == "2.10.4")
+  assert((scala210 / libraryDependencies).value.isEmpty)
+  assert((scala210 / Compile / compile / scalacOptions).value.isEmpty)
 
   // 2.12.0 should be overidden to 2.12.X
-  assert(scalaVersion.in(overridesSettings).value == V.scala212)
-  assert(libraryDependencies.in(overridesSettings).value.nonEmpty)
+  assert((overridesSettings / scalaVersion).value == V.scala212)
+  assert((overridesSettings / libraryDependencies).value.nonEmpty)
   assert(
-    scalacOptions
-      .in(overridesSettings, Compile, compile)
-      .value
+    (overridesSettings / Compile / compile / scalacOptions).value
       .contains("-Yrangepos")
   )
 
   assert(
-    scalacOptions
-      .in(scala211, Compile, compile)
-      .value
+    (scala211 / Compile / compile / scalacOptions).value
       .count(_ == "-Yrangepos") == 1
   )
   assert(
-    scalacOptions
-      .in(scala212, Compile, compile)
-      .value
+    (scala212 / Compile / compile / scalacOptions).value
       .count(_ == "-Yrangepos") == 1
   )
   assert(
-    scalacOptions
-      .in(scala213, Test, compile)
-      .value
+    (scala213 / Test / compile / scalacOptions).value
       .count(_ == "-Yrangepos") == 1
   )
 }

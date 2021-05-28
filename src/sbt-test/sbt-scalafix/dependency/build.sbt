@@ -1,6 +1,6 @@
 scalaVersion := "2.12.7"
 
 TaskKey[Unit]("check") := {
-  val text = IO.read(sourceDirectory.in(Compile).value / "scala" / "A.scala")
+  val text = IO.read((Compile / sourceDirectory).value / "scala" / "A.scala")
   assert(text.contains("// v1 SemanticRule!"), text)
 }
