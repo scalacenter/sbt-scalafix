@@ -2,10 +2,8 @@ package scalafix.internal.sbt
 
 import java.nio.file.Path
 import java.{util => jutil}
-
 import coursierapi.Repository
 import sbt._
-import sbt.internal.sbtscalafix.Compat
 import scalafix.interfaces.{Scalafix => ScalafixAPI, _}
 import scalafix.sbt.InvalidArgument
 
@@ -34,7 +32,7 @@ object Arg {
     private implicit class XtensionModuleID(m: ModuleID) {
       def asCoursierCoordinates: String = {
         m.crossVersion match {
-          case Compat.Disabled =>
+          case _: Disabled =>
             s"${m.organization}:${m.name}:${m.revision}"
           case _: CrossVersion.Binary =>
             s"${m.organization}::${m.name}:${m.revision}"
@@ -132,7 +130,7 @@ object ScalafixInterface {
       scalafixBinaryScalaVersion: String,
       scalafixDependencies: Seq[ModuleID],
       scalafixCustomResolvers: Seq[Repository],
-      logger: Logger = Compat.ConsoleLogger(System.out)
+      logger: Logger = ConsoleLogger(System.out)
   ): () => ScalafixInterface =
     new LazyValue({ () =>
       if (scalafixBinaryScalaVersion.startsWith("3"))

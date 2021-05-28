@@ -32,11 +32,7 @@ TaskKey[Unit]("checkLastCompilationCached") := {
 }
 
 TaskKey[Unit]("checkZincAnalysisPresent") := {
-  // to compile with sbt 0.13
-  val isPresent = previousCompile.in(Compile).value.analysis match {
-    case option: { def isPresent(): Boolean } => option.isPresent
-  }
-
+  val isPresent = previousCompile.in(Compile).value.analysis.isPresent()
   assert(isPresent, "zinc analysis not found")
 }
 
