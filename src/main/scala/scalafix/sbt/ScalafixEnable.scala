@@ -2,18 +2,12 @@ package scalafix.sbt
 
 import sbt._
 import sbt.Keys._
-import sbt.internal.sbtscalafix.Compat
+import sbt.internal.inc.ScalaInstance
 import scalafix.internal.sbt.SemanticdbPlugin
 
 /** Command to automatically enable semanticdb compiler output for shell session
   */
 object ScalafixEnable {
-
-  /** sbt 1.0 and 0.13 compatible implementation of partialVersion */
-  private def partialVersion(version: String): Option[(Long, Long)] =
-    CrossVersion.partialVersion(version).map { case (a, b) =>
-      (a.toLong, b.toLong)
-    }
 
   /** If the provided Scala binary version is supported, return the full version
     * required for running semanticdb-scalac.
@@ -21,7 +15,7 @@ object ScalafixEnable {
   private lazy val semanticdbScalacFullScalaVersion
       : PartialFunction[(Long, Long), String] = (for {
     v <- BuildInfo.supportedScalaVersions
-    p <- partialVersion(v).toList
+    p <- CrossVersion.partialVersion(v).toList
   } yield p -> v).toMap
 
   /** If the provided Scala binary version is supported, return the full version
@@ -44,7 +38,7 @@ object ScalafixEnable {
   ): Seq[(ProjectRef, U)] = for {
     p <- extracted.structure.allProjectRefs
     version <- scalaVersion.in(p).get(extracted.structure.data).toList
-    partialVersion <- partialVersion(version).toList
+    partialVersion <- CrossVersion.partialVersion(version).toList
     res <- pf.lift(partialVersion).toList
   } yield p -> res
 
@@ -78,7 +72,7 @@ object ScalafixEnable {
           scalacOptionsSettings ++ enableSemanticdbPlugin
         )
     } yield settings
-    Compat.append(extracted, settings, s)
+    extracted.appendWithoutSession(settings, s)
   }
 
   private lazy val withSemanticdbScalac = Command.command(
@@ -116,7 +110,7 @@ object ScalafixEnable {
         inScope(ThisScope.in(p))(scalacOptionsSettings) ++
           (if (!isSemanticdbEnabled) addSemanticdbCompilerPlugin else List())
     } yield settings
-    Compat.append(extracted, settings, s)
+    extracted.appendWithoutSession(settings, s)
   }
 
   private val semanticdbConfigSettings: Seq[Def.Setting[_]] =
@@ -128,7 +122,12 @@ object ScalafixEnable {
           "-Xplugin-require:semanticdb"
         )
         // don't rely on autoCompilerPlugins to inject the plugin as it does not work if scalacOptions is overriden in the build
-        val plugins = Compat.autoPlugins(update.value, scalaVersion.value)
+        val plugins =
+          Classpaths.autoPlugins(
+            update.value,
+            Seq(),
+            ScalaInstance.isDotty(scalaVersion.value)
+          )
         old ++ (plugins ++ options).diff(old)
       }
     )
