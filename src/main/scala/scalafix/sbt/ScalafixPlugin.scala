@@ -114,7 +114,7 @@ object ScalafixPlugin extends AutoPlugin {
           // global streams, causing issues for cache storage. This does not happen for Tasks, so we define a dummy one
           // to acquire a distinct streams instance for each InputTask.
           scalafixDummyTask := (()),
-          streams.in(scalafix) := streams.in(scalafixDummyTask).value
+          scalafix / streams := (scalafixDummyTask / streams).value
         )
       )
     @deprecated("This setting is no longer used", "0.6.0")
@@ -207,12 +207,12 @@ object ScalafixPlugin extends AutoPlugin {
     scalafixDependencies := Nil,
     commands += ScalafixEnable.command,
     scalafixInterfaceProvider := ScalafixInterface.fromToolClasspath(
-      scalafixScalaBinaryVersion.in(ThisBuild).value,
-      scalafixDependencies = scalafixDependencies.in(ThisBuild).value,
-      scalafixCustomResolvers = scalafixResolvers.in(ThisBuild).value
+      (ThisBuild / scalafixScalaBinaryVersion).value,
+      scalafixDependencies = (ThisBuild / scalafixDependencies).value,
+      scalafixCustomResolvers = (ThisBuild / scalafixResolvers).value
     ),
     scalafixCompletions := new ScalafixCompletions(
-      workingDirectory = baseDirectory.in(ThisBuild).value.toPath,
+      workingDirectory = (ThisBuild / baseDirectory).value.toPath,
       // Unfortunately, local rules will not show up as completions in the parser, as that parser can only
       // depend on settings, while local rules classpath must be looked up via tasks
       loadedRules = () => scalafixInterfaceProvider.value().availableRules(),
@@ -344,29 +344,27 @@ object ScalafixPlugin extends AutoPlugin {
       val errorLogger =
         new PrintStream(
           LoggingOutputStream(
-            streams.in(config, scalafix).value.log,
+            (config / scalafix / streams).value.log,
             Level.Error
           )
         )
-      val projectDepsInternal = products.in(ScalafixConfig).value ++
-        internalDependencyClasspath.in(ScalafixConfig).value.map(_.data)
+      val projectDepsInternal = (ScalafixConfig / products).value ++
+        (ScalafixConfig / internalDependencyClasspath).value.map(_.data)
       val projectDepsExternal =
-        externalDependencyClasspath
-          .in(ScalafixConfig)
-          .value
+        (ScalafixConfig / externalDependencyClasspath).value
           .flatMap(_.get(moduleID.key))
 
       if (shellArgs.rules.isEmpty && shellArgs.extra == List("--help")) {
         scalafixHelp
       } else {
-        val scalafixConf = scalafixConfig.in(config).value.map(_.toPath)
+        val scalafixConf = (config / scalafixConfig).value.map(_.toPath)
         val (shell, mainInterface0) = scalafixArgsFromShell(
           shellArgs,
           scalafixInterfaceProvider.value,
           scalafixInterfaceCache.value,
           projectDepsExternal,
-          scalafixDependencies.in(ThisBuild).value,
-          scalafixResolvers.in(ThisBuild).value,
+          (ThisBuild / scalafixDependencies).value,
+          (ThisBuild / scalafixResolvers).value,
           projectDepsInternal
         )
         val maybeNoCache =
@@ -378,7 +376,7 @@ object ScalafixPlugin extends AutoPlugin {
             Arg.Config(scalafixConf),
             Arg.Rules(shell.rules),
             Arg.ScalaVersion(scalaVersion.value),
-            Arg.ScalacOptions(scalacOptions.in(config, compile).value),
+            Arg.ScalacOptions((config / compile / scalacOptions).value),
             Arg.ParsedArgs(shell.extra)
           )
         val rulesThatWillRun = mainInterface.rulesThatWillRun()
@@ -412,7 +410,7 @@ object ScalafixPlugin extends AutoPlugin {
       val files = filesToFix(shellArgs, config).value
       runArgs(
         mainInterface.withArgs(Arg.Paths(files)),
-        streams.in(config, scalafix).value
+        (config / scalafix / streams).value
       )
     }
 
@@ -423,9 +421,9 @@ object ScalafixPlugin extends AutoPlugin {
       config: ConfigKey
   ): Def.Initialize[Task[Unit]] =
     Def.taskDyn {
-      val dependencies = allDependencies.in(config).value
+      val dependencies = (config / allDependencies).value
       val files = filesToFix(shellArgs, config).value
-      val scalacOpts = scalacOptions.in(config, compile).value
+      val scalacOpts = (config / compile / scalacOptions).value
       val errors = new SemanticRuleValidator(
         new SemanticdbNotFound(ruleNames, scalaVersion.value)
       ).findErrors(files, dependencies, scalacOpts, mainArgs)
@@ -433,19 +431,19 @@ object ScalafixPlugin extends AutoPlugin {
         val task = Def.task {
           // don't use fullClasspath as it results in a cyclic dependency via compile when scalafixOnCompile := true
           val classpath =
-            dependencyClasspath.in(config).value.map(_.data.toPath) :+
-              classDirectory.in(config).value.toPath
+            (config / dependencyClasspath).value.map(_.data.toPath) :+
+              (config / classDirectory).value.toPath
           val semanticInterface = mainArgs.withArgs(
             Arg.Paths(files),
             Arg.Classpath(classpath)
           )
           runArgs(
             semanticInterface,
-            streams.in(config, scalafix).value
+            (config / scalafix / streams).value
           )
         }
         // sub-task of compile after which bytecode should not be modified
-        task.dependsOn(manipulateBytecode.in(config))
+        task.dependsOn(config / manipulateBytecode)
       } else {
         Def.task {
           if (errors.length == 1) {
@@ -662,7 +660,7 @@ object ScalafixPlugin extends AutoPlugin {
       } else {
         Def.task {
           for {
-            source <- unmanagedSources.in(config, scalafix).value
+            source <- (config / scalafix / unmanagedSources).value
             if source.exists()
             if isScalaFile(source)
           } yield source.toPath
@@ -672,8 +670,8 @@ object ScalafixPlugin extends AutoPlugin {
 
   private[sbt] val relaxScalacOptionsConfigSettings: Seq[Def.Setting[_]] =
     Seq(
-      scalacOptions.in(compile) := {
-        val options = scalacOptions.in(compile).value
+      compile / scalacOptions := {
+        val options = (compile / scalacOptions).value
         if (!scalafixInvoked.value) options
         else
           options.filterNot { option =>

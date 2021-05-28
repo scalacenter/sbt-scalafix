@@ -12,7 +12,7 @@ object FatalWarningsPlugin extends AutoPlugin {
   override def requires: Plugins = ScalafixPlugin
 
   override def projectSettings: Seq[Def.Setting[_]] = Seq(
-    scalacOptions.in(Test, compile) := Seq(
+    Test / compile / scalacOptions := Seq(
       "-Xfatal-warnings",
       "-Ywarn-unused"
     )

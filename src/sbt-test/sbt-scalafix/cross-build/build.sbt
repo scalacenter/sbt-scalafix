@@ -33,10 +33,8 @@ lazy val scala212 = project
   .configs(IntegrationTest)
   .settings(
     Defaults.itSettings,
-    unmanagedSources.in(Compile, scalafix) :=
-      unmanagedSources
-        .in(Compile)
-        .value
+    Compile / scalafix / unmanagedSources :=
+      (Compile / unmanagedSources).value
         .filterNot(_.getAbsolutePath.contains("IgnoreMe")),
     scalaVersion := Versions.scala212,
     scalafixSettings

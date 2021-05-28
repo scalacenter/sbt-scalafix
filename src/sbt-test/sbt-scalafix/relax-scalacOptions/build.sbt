@@ -9,7 +9,7 @@ scalacOptions ++= Seq(
   "-Xfatal-warnings",
   "-Ywarn-unused"
 )
-scalacOptions.in(Compile, compile) ++= Seq(
+Compile / compile / scalacOptions ++= Seq(
   // generate errors on procedure syntax
   "-Wconf:cat=deprecation:e",
   "-Xfuture",
@@ -20,7 +20,12 @@ TaskKey[Unit]("checkLastCompilationCached") := {
   val thisProject = thisProjectRef.value
 
   // readText expects a fully resolved scope (no This)
-  val compileIncScope = Global.in(thisProject, Compile, compileIncremental.key)
+  val compileIncScope = Scope(
+    Select(thisProject),
+    Select(Compile),
+    Select(compileIncremental.key),
+    Zero
+  )
   val reader = str.readText(streamScopedKey(compileIncScope), None)
   val lines = IO.readLines(reader)
 
@@ -32,7 +37,7 @@ TaskKey[Unit]("checkLastCompilationCached") := {
 }
 
 TaskKey[Unit]("checkZincAnalysisPresent") := {
-  val isPresent = previousCompile.in(Compile).value.analysis.isPresent()
+  val isPresent = (Compile / previousCompile).value.analysis.isPresent()
   assert(isPresent, "zinc analysis not found")
 }
 
