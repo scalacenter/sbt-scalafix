@@ -5,25 +5,15 @@ on:
       - main
   pull_request:
 jobs:
-  test:
-    name: ${{ matrix.command }}
+  jdk8:
+    name: JDK8 tests
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        command:
-          - "++2.12.11 test scripted"
-          - "++2.10.7 test 'scripted sbt-scalafix/* skip-windows/*'"
     steps:
       - uses: actions/checkout@v2
       - uses: olafurpg/setup-scala@v10
-      - if: ${{ matrix.command == '++2.10.7 test ''scripted sbt-scalafix/* skip-windows/*''' }}
-        run: |
-          find . -regex .*relax-scalacOptions/test -exec sed -i '/> checkLastCompilationCached/d' {} \;
-          find . -regex .*relax-scalacOptions/test -exec sed -i '/> checkZincAnalysisPresent/d' {} \;
-      - run: sbt ${{ matrix.command }}
+      - run: sbt test scripted
   jdk11:
-    name: JDK11
+    name: JDK11 tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
