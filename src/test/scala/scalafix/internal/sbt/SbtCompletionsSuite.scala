@@ -99,7 +99,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
         |DisableSyntax
         |  Reports an error for disabled features such as var or XML literals.
         |ExplicitResultTypes
-        |  Inserts type annotations for inferred public members. Only compatible with Scala 2.11.12, 2.12.11, 2.12.12, 2.12.13, 2.13.4, 2.13.5, 2.13.6.
+        |  Inserts type annotations for inferred public members. Only compatible with Scala 2.11.12, 2.12.12, 2.12.13, 2.12.14, 2.13.4, 2.13.5, 2.13.6.
         |LeakingImplicitClassVal
         |  Adds 'private' to val parameters of implicit value classes
         |NoAutoTupling
