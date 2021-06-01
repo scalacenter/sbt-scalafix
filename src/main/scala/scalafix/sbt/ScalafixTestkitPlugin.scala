@@ -37,11 +37,11 @@ object ScalafixTestkitPlugin extends AutoPlugin {
     List(
       scalafixTestkitInputScalacOptions := scalacOptions.value,
       scalafixTestkitInputScalaVersion := scalaVersion.value,
-      resourceGenerators.in(Test) += Def.task {
+      Test / resourceGenerators += Def.task {
         val props = new java.util.Properties()
         val values = Map[String, Seq[File]](
           "sourceroot" ->
-            List(baseDirectory.in(ThisBuild).value),
+            List((ThisBuild / baseDirectory).value),
           "inputClasspath" ->
             scalafixTestkitInputClasspath.value.map(_.data),
           "inputSourceDirectories" ->
@@ -61,7 +61,7 @@ object ScalafixTestkitPlugin extends AutoPlugin {
           scalafixTestkitInputScalacOptions.value.mkString("|")
         )
         val out =
-          managedResourceDirectories.in(Test).value.head /
+          (Test / managedResourceDirectories).value.head /
             "scalafix-testkit.properties"
         IO.write(props, "Input data for scalafix testkit", out)
         List(out)

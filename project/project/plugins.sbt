@@ -1,2 +1,2 @@
-unmanagedSources.in(Compile) +=
-  baseDirectory.in(ThisBuild).value.getParentFile / "Dependencies.scala"
+Compile / unmanagedSources +=
+  (ThisBuild / baseDirectory).value.getParentFile / "Dependencies.scala"

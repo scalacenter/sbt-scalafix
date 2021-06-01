@@ -1,3 +1,3 @@
 val app = project.settings(
-  scalaSource.in(Compile) := baseDirectory.value
+  Compile / scalaSource := baseDirectory.value
 )

@@ -6,7 +6,6 @@ import java.nio.file.Files
 import coursierapi.{MavenRepository, Repository}
 import org.scalactic.source.Position
 import sbt._
-import sbt.internal.sbtscalafix.Compat
 import scalafix.interfaces.ScalafixError
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -26,7 +25,7 @@ class ScalafixAPISuite extends AnyFunSuite {
   test("ScalafixPlugin.cli") {
     assume(!Properties.isWin)
     val baos = new ByteArrayOutputStream()
-    val logger = Compat.ConsoleLogger(new PrintStream(baos))
+    val logger = ConsoleLogger(new PrintStream(baos))
     val interface = ScalafixInterface
       .fromToolClasspath(
         "2.12",

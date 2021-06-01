@@ -8,15 +8,13 @@ import coursierapi.Repository
 import sbt.KeyRanks.Invisible
 import sbt.Keys._
 import sbt._
-import sbt.internal.sbtscalafix.Caching._
-import sbt.internal.sbtscalafix.{Compat, JLineAccess}
+import sbt.internal.sbtscalafix.JLineAccess
 import sbt.plugins.JvmPlugin
 import scalafix.interfaces.ScalafixError
 import scalafix.internal.sbt.Arg.ToolClasspath
 import scalafix.internal.sbt._
 
 import scala.collection.JavaConverters.collectionAsScalaIterableConverter
-import scala.util.Try
 import scala.util.control.NoStackTrace
 
 object ScalafixPlugin extends AutoPlugin {
@@ -116,7 +114,7 @@ object ScalafixPlugin extends AutoPlugin {
           // global streams, causing issues for cache storage. This does not happen for Tasks, so we define a dummy one
           // to acquire a distinct streams instance for each InputTask.
           scalafixDummyTask := (()),
-          streams.in(scalafix) := streams.in(scalafixDummyTask).value
+          scalafix / streams := (scalafixDummyTask / streams).value
         )
       )
     @deprecated("This setting is no longer used", "0.6.0")
@@ -173,8 +171,8 @@ object ScalafixPlugin extends AutoPlugin {
   private lazy val cachingStyle = {
     val useLastModifiedCachingStyle =
       sys.props.get("sbt-scalafix.uselastmodified") == Some("true")
-    if (useLastModifiedCachingStyle) lastModifiedStyle
-    else hashStyle
+    if (useLastModifiedCachingStyle) FileInfo.lastModified
+    else FileInfo.hash
   }
 
   override lazy val projectConfigurations: Seq[Configuration] =
@@ -209,12 +207,12 @@ object ScalafixPlugin extends AutoPlugin {
     scalafixDependencies := Nil,
     commands += ScalafixEnable.command,
     scalafixInterfaceProvider := ScalafixInterface.fromToolClasspath(
-      scalafixScalaBinaryVersion.in(ThisBuild).value,
-      scalafixDependencies = scalafixDependencies.in(ThisBuild).value,
-      scalafixCustomResolvers = scalafixResolvers.in(ThisBuild).value
+      (ThisBuild / scalafixScalaBinaryVersion).value,
+      scalafixDependencies = (ThisBuild / scalafixDependencies).value,
+      scalafixCustomResolvers = (ThisBuild / scalafixResolvers).value
     ),
     scalafixCompletions := new ScalafixCompletions(
-      workingDirectory = baseDirectory.in(ThisBuild).value.toPath,
+      workingDirectory = (ThisBuild / baseDirectory).value.toPath,
       // Unfortunately, local rules will not show up as completions in the parser, as that parser can only
       // depend on settings, while local rules classpath must be looked up via tasks
       loadedRules = () => scalafixInterfaceProvider.value().availableRules(),
@@ -232,7 +230,7 @@ object ScalafixPlugin extends AutoPlugin {
       scalafixScalaBinaryVersion := "2.12"
     )
 
-  lazy val stdoutLogger = Compat.ConsoleLogger(System.out)
+  lazy val stdoutLogger = ConsoleLogger(System.out)
 
   private def scalafixArgsFromShell(
       shell: ShellArgs,
@@ -346,29 +344,27 @@ object ScalafixPlugin extends AutoPlugin {
       val errorLogger =
         new PrintStream(
           LoggingOutputStream(
-            streams.in(config, scalafix).value.log,
+            (config / scalafix / streams).value.log,
             Level.Error
           )
         )
-      val projectDepsInternal = products.in(ScalafixConfig).value ++
-        internalDependencyClasspath.in(ScalafixConfig).value.map(_.data)
+      val projectDepsInternal = (ScalafixConfig / products).value ++
+        (ScalafixConfig / internalDependencyClasspath).value.map(_.data)
       val projectDepsExternal =
-        externalDependencyClasspath
-          .in(ScalafixConfig)
-          .value
+        (ScalafixConfig / externalDependencyClasspath).value
           .flatMap(_.get(moduleID.key))
 
       if (shellArgs.rules.isEmpty && shellArgs.extra == List("--help")) {
         scalafixHelp
       } else {
-        val scalafixConf = scalafixConfig.in(config).value.map(_.toPath)
+        val scalafixConf = (config / scalafixConfig).value.map(_.toPath)
         val (shell, mainInterface0) = scalafixArgsFromShell(
           shellArgs,
           scalafixInterfaceProvider.value,
           scalafixInterfaceCache.value,
           projectDepsExternal,
-          scalafixDependencies.in(ThisBuild).value,
-          scalafixResolvers.in(ThisBuild).value,
+          (ThisBuild / scalafixDependencies).value,
+          (ThisBuild / scalafixResolvers).value,
           projectDepsInternal
         )
         val maybeNoCache =
@@ -380,7 +376,7 @@ object ScalafixPlugin extends AutoPlugin {
             Arg.Config(scalafixConf),
             Arg.Rules(shell.rules),
             Arg.ScalaVersion(scalaVersion.value),
-            Arg.ScalacOptions(scalacOptions.in(config, compile).value),
+            Arg.ScalacOptions((config / compile / scalacOptions).value),
             Arg.ParsedArgs(shell.extra)
           )
         val rulesThatWillRun = mainInterface.rulesThatWillRun()
@@ -414,7 +410,7 @@ object ScalafixPlugin extends AutoPlugin {
       val files = filesToFix(shellArgs, config).value
       runArgs(
         mainInterface.withArgs(Arg.Paths(files)),
-        streams.in(config, scalafix).value
+        (config / scalafix / streams).value
       )
     }
 
@@ -425,9 +421,9 @@ object ScalafixPlugin extends AutoPlugin {
       config: ConfigKey
   ): Def.Initialize[Task[Unit]] =
     Def.taskDyn {
-      val dependencies = allDependencies.in(config).value
+      val dependencies = (config / allDependencies).value
       val files = filesToFix(shellArgs, config).value
-      val scalacOpts = scalacOptions.in(config, compile).value
+      val scalacOpts = (config / compile / scalacOptions).value
       val errors = new SemanticRuleValidator(
         new SemanticdbNotFound(ruleNames, scalaVersion.value)
       ).findErrors(files, dependencies, scalacOpts, mainArgs)
@@ -435,19 +431,19 @@ object ScalafixPlugin extends AutoPlugin {
         val task = Def.task {
           // don't use fullClasspath as it results in a cyclic dependency via compile when scalafixOnCompile := true
           val classpath =
-            dependencyClasspath.in(config).value.map(_.data.toPath) :+
-              classDirectory.in(config).value.toPath
+            (config / dependencyClasspath).value.map(_.data.toPath) :+
+              (config / classDirectory).value.toPath
           val semanticInterface = mainArgs.withArgs(
             Arg.Paths(files),
             Arg.Classpath(classpath)
           )
           runArgs(
             semanticInterface,
-            streams.in(config, scalafix).value
+            (config / scalafix / streams).value
           )
         }
         // sub-task of compile after which bytecode should not be modified
-        task.dependsOn(manipulateBytecode.in(config))
+        task.dependsOn(config / manipulateBytecode)
       } else {
         Def.task {
           if (errors.length == 1) {
@@ -477,8 +473,19 @@ object ScalafixPlugin extends AutoPlugin {
       // used to signal that one of the argument cannot be reliably stamped
       object StampingImpossible extends RuntimeException with NoStackTrace
 
-      implicit val stamper = new CacheKeysStamper {
-        override protected def stamp: Arg.CacheKey => Unit = {
+      import sjsonnew._
+      import sjsonnew.BasicJsonProtocol._
+
+      val argWriter = new JsonWriter[Arg.CacheKey] {
+
+        override final def write[J](
+            obj: Arg.CacheKey,
+            builder: Builder[J]
+        ): Unit = stamp(obj)(builder)
+
+        private def stamp[J](
+            obj: Arg.CacheKey
+        )(implicit builder: Builder[J]): Unit = obj match {
           case Arg.ToolClasspath(customURIs, customDependencies, _) =>
             val files = customURIs
               .map(uri => Paths.get(uri).toFile)
@@ -548,14 +555,21 @@ object ScalafixPlugin extends AutoPlugin {
           } else false
         }
 
-        def stampFile(file: File): String = {
+        private def stampFile(file: File): String = {
           // ensure the file exists and is not a directory
           if (file.isFile)
             Hash.toHex(Hash(file))
           else
             ""
         }
+
+        private def write[J, A: JsonWriter](obj: A)(implicit
+            builder: Builder[J]
+        ): Unit = implicitly[JsonWriter[A]].write(obj, builder)
       }
+
+      // we actually don't need to read anything back, see https://github.com/sbt/sbt/pull/5513
+      implicit val argFormat = liftFormat(argWriter)
 
       def diffWithPreviousRuns[T](f: (Boolean, Set[File]) => T): T = {
         val tracker = Tracked.inputChanged(streams.cacheDirectory / "args") {
@@ -599,13 +613,7 @@ object ScalafixPlugin extends AutoPlugin {
               .toList
             accumulateAndRunForStaleTargets(ruleTargetDiffs)
         }
-        Try(tracker(cacheKeyArgs)).recover {
-          // in sbt 1.x, this is not necessary as any exception thrown during stamping is already silently ignored,
-          // but having this here helps keeping code as common as possible
-          // https://github.com/sbt/util/blob/v1.0.0/util-tracking/src/main/scala/sbt/util/Tracked.scala#L180
-          case _ @StampingImpossible =>
-            f(true, Set.empty)
-        }.get
+        tracker(cacheKeyArgs)
       }
 
       diffWithPreviousRuns { (cacheKeyArgsChanged, staleTargets) =>
@@ -652,7 +660,7 @@ object ScalafixPlugin extends AutoPlugin {
       } else {
         Def.task {
           for {
-            source <- unmanagedSources.in(config, scalafix).value
+            source <- (config / scalafix / unmanagedSources).value
             if source.exists()
             if isScalaFile(source)
           } yield source.toPath
@@ -662,8 +670,8 @@ object ScalafixPlugin extends AutoPlugin {
 
   private[sbt] val relaxScalacOptionsConfigSettings: Seq[Def.Setting[_]] =
     Seq(
-      scalacOptions.in(compile) := {
-        val options = scalacOptions.in(compile).value
+      compile / scalacOptions := {
+        val options = (compile / scalacOptions).value
         if (!scalafixInvoked.value) options
         else
           options.filterNot { option =>
@@ -676,9 +684,9 @@ object ScalafixPlugin extends AutoPlugin {
         else
           // maximize chance to get a zinc cache hit when running scalafix, even though we have
           // potentially added/removed scalacOptions for that specific invocation
-          Compat.addIgnoredScalacOptions(
-            options,
-            scalacOptionsToRelax.map(_.pattern())
+          options.withIgnoredScalacOptions(
+            options.ignoredScalacOptions() ++
+              scalacOptionsToRelax.map(_.pattern())
           )
       },
       manipulateBytecode := {
@@ -688,7 +696,7 @@ object ScalafixPlugin extends AutoPlugin {
           // prevent storage of the analysis with relaxed scalacOptions - despite not depending explicitly on compile,
           // it is being triggered for parent configs/projects through evaluation of dependencyClasspath (TrackAlways)
           // in the scope where scalafix is invoked
-          Compat.withHasModified(analysis, false)
+          analysis.withHasModified(false)
         }
       }
     )
