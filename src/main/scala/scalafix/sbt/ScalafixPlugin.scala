@@ -68,19 +68,20 @@ object ScalafixPlugin extends AutoPlugin {
       }
     val scalafixResolvers: SettingKey[Seq[Repository]] =
       settingKey[Seq[Repository]](
-        "Optional list of Maven/Ivy repositories to use for fetching custom rules."
+        "Optional list of Maven/Ivy repositories to use for fetching custom rules. " +
+          "Must be set in ThisBuild."
       )
     val scalafixDependencies: SettingKey[Seq[ModuleID]] =
       settingKey[Seq[ModuleID]](
         "Optional list of custom rules to install from Maven Central. " +
-          "This setting is read from the global scope so it only needs to be defined once in the build."
+          "Must be set in ThisBuild."
       )
     val scalafixScalaBinaryVersion: SettingKey[String] =
       settingKey[String](
-        "The Scala binary version used for scalafix execution. Defaults to 2.12. " +
-          s"Rules must be compiled against that binary version, or for advanced rules such as " +
-          s"ExplicitResultTypes which have a full cross-version, against the corresponding full" +
-          s"version that scalafix is built against."
+        "The Scala binary version used for scalafix execution. Must be set in ThisBuild. "
+          + "Defaults to 2.12. Rules must be compiled against that binary version, or for "
+          + "advanced rules such as ExplicitResultTypes which have a full cross-version, "
+          + "against the corresponding full version that scalafix is built against."
       )
     val scalafixConfig: SettingKey[Option[File]] =
       settingKey[Option[File]](
@@ -96,8 +97,12 @@ object ScalafixPlugin extends AutoPlugin {
       inConfig(config)(
         relaxScalacOptionsConfigSettings ++ Seq(
           scalafix := {
-            // force detection of usage of `scalafixCaching` to workaround https://github.com/sbt/sbt/issues/5647
-            val _ = scalafixCaching.?.value
+            // force evaluation of keys looked up in the same scope (config) within
+            // dynamic tasks to workaround https://github.com/sbt/sbt/issues/5647
+            val _ = Seq(
+              scalafixCaching.?.value,
+              scalafixConfig.?.value
+            )
             scalafixInputTask(config).evaluated
           },
           compile := Def.taskDyn {
