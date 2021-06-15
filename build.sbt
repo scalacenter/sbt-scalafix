@@ -3,7 +3,7 @@ inThisBuild(
     Test / parallelExecution := false,
     scalafixDependencies := List(
       // Custom rule published to Maven Central https://github.com/scalacenter/example-scalafix-rule
-      "ch.epfl.scala" %% "example-scalafix-rule" % "1.4.0"
+      "ch.epfl.scala" %% "example-scalafix-rule" % "1.6.0"
     )
   )
 )

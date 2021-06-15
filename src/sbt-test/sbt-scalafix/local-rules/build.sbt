@@ -4,7 +4,7 @@ inThisBuild(
   List(
     scalafixDependencies := List(
       // Custom rule cross-published to Maven Central https://github.com/scalacenter/example-scalafix-rule
-      "ch.epfl.scala" %% "example-scalafix-rule" % "1.4.0"
+      "ch.epfl.scala" %% "example-scalafix-rule" % "1.6.0"
     ),
     resolvers += Resolver.sonatypeRepo("snapshots"),
     scalaVersion := "2.13.0", // out of sync with scalafix.sbt.BuildInfo.scala213 on purpose
