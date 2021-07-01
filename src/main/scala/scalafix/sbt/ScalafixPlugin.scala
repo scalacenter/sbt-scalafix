@@ -183,15 +183,20 @@ object ScalafixPlugin extends AutoPlugin {
   override lazy val projectConfigurations: Seq[Configuration] =
     Seq(ScalafixConfig)
 
-  override lazy val projectSettings: Seq[Def.Setting[_]] =
-    Seq(Compile, Test).flatMap(c => inConfig(c)(scalafixConfigSettings(c))) ++
-      inConfig(ScalafixConfig)(
-        Defaults.configSettings :+ (sourcesInBase := false)
-      ) ++
-      Seq(
-        ivyConfigurations += ScalafixConfig,
-        scalafixAll := scalafixAllInputTask.evaluated
+  override lazy val projectSettings: Seq[Def.Setting[_]] = Def.settings(
+    Seq(Compile, Test).flatMap(c => inConfig(c)(scalafixConfigSettings(c))),
+    inConfig(ScalafixConfig)(
+      Def.settings(
+        Defaults.configSettings,
+        sourcesInBase := false,
+        // local copy of https://github.com/sbt/sbt/blob/e4231ac03903e174bc9975ee00d34064a1d1f373/main/src/main/scala/sbt/Keys.scala#L400
+        // so that it does not break on sbt version below 1.4.0
+        SettingKey[Boolean]("bspEnabled") := false
       )
+    ),
+    ivyConfigurations += ScalafixConfig,
+    scalafixAll := scalafixAllInputTask.evaluated
+  )
 
   override lazy val globalSettings: Seq[Def.Setting[_]] = Seq(
     scalafixConfig := None, // let scalafix-cli try to infer $CWD/.scalafix.conf
