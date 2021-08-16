@@ -84,7 +84,8 @@ class SbtCompletionsSuite extends AnyFunSuite {
   checkCompletion("all", SkipWindows) { (_, displays) =>
     val obtained = displays.mkString("\n").trim
     val expected =
-      """|--auto-suppress-linter-errors
+      """|
+        |--auto-suppress-linter-errors
         |--check
         |--diff
         |--diff-base=
@@ -107,7 +108,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
         |NoValInForComprehension
         |  Removes deprecated val inside for-comprehension binders
         |ProcedureSyntax
-        |  Replaces deprecated procedure syntax with explicit ': Unit ='
+        |  Replaces deprecated procedure syntax with explicit ': Unit ='This rule is specific to scala 2, since procedure syntax is not supported in Scala 3
         |RemoveUnused
         |  Removes unused imports and terms that reported by the compiler under -Ywarn-unused
         |SemanticRule
