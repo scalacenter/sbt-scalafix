@@ -104,7 +104,7 @@ class LoggingOutputStreamSuite extends AnyFunSuite with Matchers {
   test("capture multi-byte characters") {
     withStubLogger(Level.Warn) { (outputStream, logs) =>
       val messageWithNonAsciiChar = "il était un petit navire"
-      messageWithNonAsciiChar.getBytes.length must be > messageWithNonAsciiChar.length //assert test is correct
+      messageWithNonAsciiChar.getBytes.length must be > messageWithNonAsciiChar.length // assert test is correct
       outputStream.write(s"$messageWithNonAsciiChar$sep".getBytes)
       logs.map(_._2) must be(mutable.Seq(messageWithNonAsciiChar))
     }
