@@ -4,7 +4,7 @@ TaskKey[Unit]("check") := {
   val expectedRepositories: Seq[String] = Seq(
     // Repository.central()
     "https://repo1.maven.org/maven2",
-    //Repository.ivy2Local()
+    // Repository.ivy2Local()
     ".ivy2/local/",
     "https://oss.sonatype.org/content/repositories/public",
     // custom repository
