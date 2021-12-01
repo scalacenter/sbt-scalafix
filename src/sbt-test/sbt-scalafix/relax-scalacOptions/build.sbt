@@ -12,6 +12,8 @@ scalacOptions ++= Seq(
 Compile / compile / scalacOptions ++= Seq(
   // generate errors on procedure syntax
   "-Wconf:cat=deprecation:e",
+  // suppress the warning that is coming from IgnoreWarning
+  "-Wconf:src=scala/IgnoreWarning.scala:s",
   "-Xfuture",
   "-deprecation"
 )

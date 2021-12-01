@@ -732,5 +732,5 @@ object ScalafixPlugin extends AutoPlugin {
     }
 
   private val scalacOptionsToRelax =
-    List("-Xfatal-warnings", "-Werror", "-Wconf.*").map(_.r.pattern)
+    List("-Xfatal-warnings", "-Werror", "-Wconf.*:(e|error)").map(_.r.pattern)
 }
