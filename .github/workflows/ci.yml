@@ -29,7 +29,7 @@ jobs:
       - uses: olafurpg/setup-scala@v13
         with:
           java-version: 17
-      - run: sbt test scripted
+      - run: sbt "test; scripted sbt-scalafix/*"
   windows:
     name: Windows tests
     runs-on: windows-latest
