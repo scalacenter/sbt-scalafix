@@ -12,9 +12,15 @@ object FatalWarningsPlugin extends AutoPlugin {
   override def requires: Plugins = ScalafixPlugin
 
   override def projectSettings: Seq[Def.Setting[_]] = Seq(
-    Test / compile / scalacOptions := Seq(
-      "-Xfatal-warnings",
-      "-Ywarn-unused"
-    )
+    Test / compile / scalacOptions := {
+      val old = (Test / compile / scalacOptions).value
+      val strict = Seq(
+        "-Xfatal-warnings",
+        "-Ywarn-unused"
+      )
+      // For sbt 1.3+ where SemanticdbPlugin is available and preferred to manual tweaking,
+      // scalafixEnable does not manage to enable Semanticdb when scalacOptions are overriden
+      if (sbtVersion.value.split("\\.")(1).toInt >= 3) old ++ strict else strict
+    }
   )
 }
