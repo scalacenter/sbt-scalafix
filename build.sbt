@@ -50,8 +50,12 @@ scalaVersion := "2.12.15"
 // keep this as low as possible to avoid running into binary incompatibility such as https://github.com/sbt/sbt/issues/5049
 pluginCrossBuild / sbtVersion := "1.2.1"
 
-// first release that can build 2.13 (as it bring a Zinc version with a compiler-bridge published for 2.13)
-scriptedSbt := "1.2.7"
+scriptedSbt := {
+  if (System.getProperty("java.specification.version").toDouble < 17)
+    "1.2.7" // first release that can build 2.13 (as it bring a Zinc version with a compiler-bridge published for 2.13)
+  else
+    "1.5.5" // first release that supports JDK17
+}
 
 libraryDependencies += compilerPlugin(scalafixSemanticdb)
 

@@ -32,12 +32,10 @@ lazy val scala213 = project.settings(
 TaskKey[Unit]("check") := {
   // nothing should change for the 2.10 project
   assert((scala210 / scalaVersion).value == "2.10.4")
-  assert((scala210 / libraryDependencies).value.isEmpty)
   assert((scala210 / Compile / compile / scalacOptions).value.isEmpty)
 
   // 2.12.0 should be overidden to 2.12.X
   assert((overridesSettings / scalaVersion).value == V.scala212)
-  assert((overridesSettings / libraryDependencies).value.nonEmpty)
   assert(
     (overridesSettings / Compile / compile / scalacOptions).value
       .contains("-Yrangepos")
