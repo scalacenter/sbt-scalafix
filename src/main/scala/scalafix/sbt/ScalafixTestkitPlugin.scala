@@ -37,14 +37,15 @@ object ScalafixTestkitPlugin extends AutoPlugin {
   override def buildSettings: Seq[Def.Setting[_]] =
     List(
       // This makes it simpler to use sbt-scalafix SNAPSHOTS: such snapshots may bring scalafix-* SNAPSHOTS which is fine in the
-      // meta build as the same resolver (declared in project/plugins.sbt) is used. However, since it is advised in the docs and the g8
-      // template to build testkit-enabled projects against scalafix-testkit:_root_.scalafix.sbt.BuildInfo.scalafixVersion, the same
-      // resolver is needed here as well.
+      // meta build as the same resolver (declared in project/plugins.sbt) is used. However, since testkit-enabled projects are
+      // built against a version of scalafix-testkit dictated by scalafix.sbt.BuildInfo.scalafixVersion, the same resolver is
+      // needed here as well.
       includePluginResolvers := true
     )
 
   override def projectSettings: Seq[Def.Setting[_]] =
     List(
+      libraryDependencies += "ch.epfl.scala" % "scalafix-testkit" % BuildInfo.scalafixVersion % Test cross CrossVersion.full,
       scalafixTestkitInputScalacOptions := scalacOptions.value,
       scalafixTestkitInputScalaVersion := scalaVersion.value,
       Test / resourceGenerators += Def.task {
