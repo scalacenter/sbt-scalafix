@@ -28,9 +28,19 @@ object ScalafixTestkitPlugin extends AutoPlugin {
   }
   import autoImport._
 
+  // Since we currently build against sbt 1.2.1 and https://github.com/sbt/sbt/blob/6664cbe/main/src/main/scala/sbt/Keys.scala#L414
+  // was introduced in sbt 1.3.1, we redefine that setting key to assign it, with the gotcha that it only has an effect if the
+  // client uses sbt 1.3.1 or later.
+  private val includePluginResolvers =
+    settingKey[Boolean]("Include the resolvers from the metabuild.")
+
   override def buildSettings: Seq[Def.Setting[_]] =
     List(
-      resolvers += Resolver.sonatypeRepo("snapshots")
+      // This makes it simpler to use sbt-scalafix SNAPSHOTS: such snapshots may bring scalafix-* SNAPSHOTS which is fine in the
+      // meta build as the same resolver (declared in project/plugins.sbt) is used. However, since it is advised in the docs and the g8
+      // template to build testkit-enabled projects against scalafix-testkit:_root_.scalafix.sbt.BuildInfo.scalafixVersion, the same
+      // resolver is needed here as well.
+      includePluginResolvers := true
     )
 
   override def projectSettings: Seq[Def.Setting[_]] =
