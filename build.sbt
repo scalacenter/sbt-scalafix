@@ -48,6 +48,9 @@ libraryDependencies ++= List(
 scalaVersion := "2.12.15"
 
 // keep this as low as possible to avoid running into binary incompatibility such as https://github.com/sbt/sbt/issues/5049
+// check if following hacks can be removed upon bumping:
+// - SemanticdbPlugin
+// - includePluginResolvers
 pluginCrossBuild / sbtVersion := "1.2.1"
 
 scriptedSbt := {
