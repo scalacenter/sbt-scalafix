@@ -1,3 +1,4 @@
 > scalafixEnable
-> scalafix dependency:SemanticRule@ch.epfl.scala:example-scalafix-rule:1.4.0
+> scalafix dependency:SemanticRule@ch.epfl.scala::example-scalafix-rule:1.4.0
+> Test / scalafix dependency:SemanticRule@ch.epfl.scala:example-scalafix-rule:1.4.0
 > check
