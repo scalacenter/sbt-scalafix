@@ -9,14 +9,14 @@ jobs:
     name: JDK8 tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: olafurpg/setup-scala@v13
       - run: sbt test scripted
   jdk11:
     name: JDK11 tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: olafurpg/setup-scala@v13
         with:
           java-version: adopt@1.11
@@ -25,7 +25,7 @@ jobs:
     name: JDK17 tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: olafurpg/setup-scala@v13
         with:
           java-version: 17
@@ -34,7 +34,7 @@ jobs:
     name: Windows tests
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: olafurpg/setup-scala@v13
       - run: sbt ci-windows
         shell: bash
@@ -42,6 +42,6 @@ jobs:
     name: Scalafmt
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: olafurpg/setup-scala@v13
       - run: ./bin/scalafmt --test
