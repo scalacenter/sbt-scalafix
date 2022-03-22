@@ -3,7 +3,6 @@ package scalafix.sbt
 import java.io.PrintStream
 import java.nio.file.{Path, Paths}
 
-import com.geirsson.{coursiersmall => cs}
 import coursierapi.Repository
 import sbt.KeyRanks.Invisible
 import sbt.Keys._
@@ -53,19 +52,6 @@ object ScalafixPlugin extends AutoPlugin {
         "Make scalafix invocations incremental. On by default."
       )
 
-    import scala.language.implicitConversions
-    @deprecated(
-      "Usage of coursiersmall.Repository is deprecated, use coursierapi.Repository instead",
-      "0.9.17"
-    )
-    implicit def coursiersmall2coursierapi(
-        csRepository: cs.Repository
-    ): Repository =
-      csRepository match {
-        case m: cs.Repository.Maven => coursierapi.MavenRepository.of(m.root)
-        case i: cs.Repository.Ivy => coursierapi.IvyRepository.of(i.root)
-        case cs.Repository.Ivy2Local => coursierapi.Repository.ivy2Local()
-      }
     val scalafixResolvers: SettingKey[Seq[Repository]] =
       settingKey[Seq[Repository]](
         "Optional list of Maven/Ivy repositories to use for fetching custom rules. " +
@@ -122,22 +108,6 @@ object ScalafixPlugin extends AutoPlugin {
           scalafix / streams := (scalafixDummyTask / streams).value
         )
       )
-    @deprecated("This setting is no longer used", "0.6.0")
-    val scalafixSourceroot: SettingKey[File] =
-      settingKey[File]("Unused")
-    @deprecated("Use scalacOptions += -Yrangepos instead", "0.6.0")
-    def scalafixScalacOptions: Def.Initialize[Seq[String]] =
-      Def.setting(Nil)
-    @deprecated("Use addCompilerPlugin(semanticdb-scalac) instead", "0.6.0")
-    def scalafixLibraryDependencies: Def.Initialize[List[ModuleID]] =
-      Def.setting(Nil)
-
-    @deprecated(
-      "Use addCompilerPlugin(scalafixSemanticdb) and scalacOptions += \"-Yrangepos\" instead",
-      "0.6.0"
-    )
-    def scalafixSettings: Seq[Def.Setting[_]] =
-      Nil
   }
 
   import autoImport._
