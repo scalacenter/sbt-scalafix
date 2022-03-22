@@ -1,5 +1,3 @@
-import com.geirsson.coursiersmall.Repository // deprecated, but checks source compatibility
-
 inThisBuild(
   List(
     scalaVersion := "2.12.14",
