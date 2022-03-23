@@ -37,15 +37,11 @@ class SemanticdbNotFound(
   def message: String = {
     val names = ruleNames.mkString(", ")
 
-    val recommendedSetting =
-      if (SemanticdbPlugin.available) semanticdbPluginSetup(scalaVersion)
-      else manualSetup
-
     s"""|The scalac compiler should produce semanticdb files to run semantic rules like $names.
       |To fix this problem for this sbt shell session, run `scalafixEnable` and try again.
       |To fix this problem permanently for your build, add the following settings to build.sbt:
       |
-      |$recommendedSetting
+      |${semanticdbPluginSetup(scalaVersion)}
       |""".stripMargin
   }
 
@@ -57,10 +53,5 @@ class SemanticdbNotFound(
       |    semanticdbVersion := scalafixSemanticdb.revision
       |  )
       |)
-      |""".stripMargin
-
-  private val manualSetup =
-    s"""addCompilerPlugin(scalafixSemanticdb)
-      |scalacOptions += "-Yrangepos"
       |""".stripMargin
 }
