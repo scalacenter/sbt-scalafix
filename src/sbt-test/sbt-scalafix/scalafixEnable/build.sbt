@@ -15,7 +15,7 @@ lazy val scala211_old = project.settings(
 
 // 2.11.x is supported
 lazy val scala211 = project.settings(
-  // semanticdb-scalac_2.11.11 no longer available, became available as of 2.0.0
+  // semanticdb-scalac_2.11.11 no longer available after 4.1.9
   scalaVersion := "2.11.11"
 )
 
@@ -46,7 +46,7 @@ TaskKey[Unit]("check") := {
 
   assert((scala211 / semanticdbEnabled).value == true)
   assert((scala211 / scalaVersion).value == "2.11.11")
-  assert((scala211 / semanticdbCompilerPlugin).value.revision == "4.1.0")
+  assert((scala211 / semanticdbCompilerPlugin).value.revision == "4.1.9")
   assert(
     (scala211 / Compile / compile / scalacOptions).value
       .count(_ == "-Yrangepos") == 1

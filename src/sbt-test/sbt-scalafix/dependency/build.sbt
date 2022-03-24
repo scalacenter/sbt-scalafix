@@ -1,4 +1,4 @@
-scalaVersion := "2.12.12"
+scalaVersion := "2.12.7"
 
 TaskKey[Unit]("check") := {
   val a = IO.read((Compile / sourceDirectory).value / "scala" / "A.scala")
