@@ -116,7 +116,7 @@ object ScalafixEnable {
                   scalaVersion := {
                     val v = recommendedSemanticdbScalacScalaV.toString
                     sLog.value.warn(
-                      s"Forcing scalaVersion $v in project " +
+                      s"Forcing scalaVersion to $v in project " +
                         s"${project.ref.project} since no semanticdb-scalac " +
                         s"version binary-compatible with $recommendedSemanticdbV " +
                         s"and cross-published for scala " +
@@ -125,26 +125,23 @@ object ScalafixEnable {
                     )
                     v
                   },
-                  semanticdbCompilerPlugin :=
-                    semanticdbCompilerPlugin.value
-                      .withRevision(recommendedSemanticdbV.toString)
+                  semanticdbVersion := recommendedSemanticdbV.toString
                 )
               case Success(available)
                   if available.contains(recommendedSemanticdbV) =>
                 Seq(
-                  semanticdbCompilerPlugin :=
-                    semanticdbCompilerPlugin.value
-                      .withRevision(recommendedSemanticdbV.toString)
+                  semanticdbVersion := recommendedSemanticdbV.toString
                 )
               case Success(earliestAvailable :: tail) =>
                 val futureVersion =
                   SemanticSelector.apply(s">${recommendedSemanticdbV}")
+
                 if (earliestAvailable.matchesSemVer(futureVersion)) {
                   Seq(
-                    semanticdbCompilerPlugin := {
+                    semanticdbVersion := {
                       val v = earliestAvailable.toString
                       sLog.value.info(
-                        s"Using semanticdb-scalac $v in project " +
+                        s"Setting semanticdbVersion to $v in project " +
                           s"${project.ref.project} since the version " +
                           s"${recommendedSemanticdbV} tracked by scalafix " +
                           s"${BuildInfo.scalafixVersion} will not be " +
@@ -152,30 +149,36 @@ object ScalafixEnable {
                           s"${project.scalaVersion0.toString} - " +
                           s"consider upgrading sbt-scalafix"
                       )
-                      semanticdbCompilerPlugin.value.withRevision(v)
+                      v
                     }
                   )
                 } else {
                   val latestAvailable =
                     tail.lastOption.getOrElse(earliestAvailable)
-                  Seq(
-                    semanticdbCompilerPlugin := {
-                      val v = latestAvailable.toString
-                      sLog.value.info(
-                        s"Using semanticdb-scalac $v in project " +
-                          s"${project.ref.project} since the version " +
-                          s"${recommendedSemanticdbV} tracked by scalafix " +
-                          s"${BuildInfo.scalafixVersion} is no longer " +
-                          s"published for scala " +
-                          s"${project.scalaVersion0.toString} - " +
-                          s"consider bumping scala"
-                      )
-                      semanticdbCompilerPlugin.value.withRevision(v)
-                    }
-                  )
+                    Seq(
+                      semanticdbVersion := {
+                        val v = latestAvailable.toString
+                        sLog.value.info(
+                          s"Setting semanticdbVersion to $v in project " +
+                            s"${project.ref.project} since the version " +
+                            s"${recommendedSemanticdbV} tracked by scalafix " +
+                            s"${BuildInfo.scalafixVersion} is no longer " +
+                            s"published for scala " +
+                            s"${project.scalaVersion0.toString} - " +
+                            s"consider bumping scala"
+                        )
+                        v
+                      }
+                    )
                 }
             }
-          } :+ (semanticdbEnabled := true)
+          } ++ Seq(
+          semanticdbEnabled := true,
+          // support sbt 1.3.[0-3] which does not contain
+          // https://github.com/sbt/sbt/pull/5202
+          (semanticdbCompilerPlugin := semanticdbCompilerPlugin.value
+            .withRevision((semanticdbVersion).value))
+        )
       settings <-
         inScope(ThisScope.copy(project = Select(project.ref)))(
           scalacOptionsSettings ++ enableSemanticdbPlugin
