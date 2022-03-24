@@ -22,29 +22,15 @@ object Arg {
       repositories: Seq[Repository]
   ) extends Arg
       with CacheKey {
+
+    import scalafix.internal.sbt.Implicits._
+
     override def apply(sa: ScalafixArguments): ScalafixArguments =
       sa.withToolClasspath(
         customURIs.map(_.toURL).asJava,
         customDependencies.map(_.asCoursierCoordinates).asJava,
         repositories.asJava
       )
-
-    private implicit class XtensionModuleID(m: ModuleID) {
-      def asCoursierCoordinates: String = {
-        m.crossVersion match {
-          case _: Disabled =>
-            s"${m.organization}:${m.name}:${m.revision}"
-          case _: CrossVersion.Binary =>
-            s"${m.organization}::${m.name}:${m.revision}"
-          case _: CrossVersion.Full =>
-            s"${m.organization}:::${m.name}:${m.revision}"
-          case other =>
-            throw new InvalidArgument(
-              s"Unsupported crossVersion $other for dependency $m"
-            )
-        }
-      }
-    }
   }
 
   case class Rules(rules: Seq[String]) extends Arg with CacheKey {
