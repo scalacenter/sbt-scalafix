@@ -9,6 +9,7 @@ import scalafix.sbt.InvalidArgument
 
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
+import java.io.PrintStream
 
 sealed trait Arg extends (ScalafixArguments => ScalafixArguments)
 
@@ -133,8 +134,16 @@ object ScalafixInterface {
         )
         .newArguments()
         .withMainCallback(callback)
+      val printStream =
+        new PrintStream(
+          LoggingOutputStream(
+            logger,
+            Level.Info
+          )
+        )
       new ScalafixInterface(scalafixArguments, Nil)
         .withArgs(
+          Arg.PrintStream(printStream),
           Arg.ToolClasspath(
             Nil,
             scalafixDependencies,
