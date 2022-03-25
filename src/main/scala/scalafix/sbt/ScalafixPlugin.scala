@@ -224,13 +224,10 @@ object ScalafixPlugin extends AutoPlugin {
     val (dependencyRules, rules) =
       shell.rules.partition(_.startsWith("dependency:"))
     val parsed = dependencyRules.map {
-      case DependencyRule.Parsed(ruleName, org, art, ver) =>
+      case DependencyRule.Binary(ruleName, org, art, ver) =>
         DependencyRule(ruleName, org %% art % ver)
-      case DependencyRule.Deprecated(ruleName, org, art, ver) =>
-        stdoutLogger.warn(
-          s"${DependencyRule.deprecatedFormat} is deprecated, please use ${DependencyRule.format} instead"
-        )
-        DependencyRule(ruleName, org %% art % ver)
+      case DependencyRule.Full(ruleName, org, art, ver) =>
+        DependencyRule(ruleName, (org %% art % ver).cross(CrossVersion.full))
       case els =>
         stdoutLogger.error(
           s"""|Invalid rule:    $els

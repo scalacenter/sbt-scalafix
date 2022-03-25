@@ -9,13 +9,10 @@ case class DependencyRule(
 )
 
 object DependencyRule {
-  lazy val Deprecated: Regex =
-    "dependency:(.+)@(.+):(.+):(.+)".r
-  def deprecatedFormat: String =
-    "dependency:$RULE_NAME@$ORGANIZATION:$ARTIFACT_NAME:$VERSION"
-
-  lazy val Parsed: Regex =
-    "dependency:(.+)@(.+)::(.+):(.+)".r
+  lazy val Binary: Regex =
+    "dependency:(.+)@([^:]+)::?([^:]+):([^:]+)".r
+  lazy val Full: Regex =
+    "dependency:(.+)@([^:]+):::([^:]+):([^:]+)".r
   def format: String =
     "dependency:$RULE_NAME@$ORGANIZATION::$ARTIFACT_NAME:$VERSION"
 }
