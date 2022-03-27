@@ -1,5 +1,7 @@
 lazy val V = _root_.scalafix.sbt.BuildInfo
 
+ThisBuild / resolvers += Resolver.sonatypeRepo("public")
+
 lazy val rulesCrossVersions = Seq(V.scala213, V.scala212, V.scala211)
 lazy val scala3Version = "3.0.0"
 
