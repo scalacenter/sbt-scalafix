@@ -25,7 +25,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
 
   val exampleDependency = {
     import sbt._
-    "ch.epfl.scala" %% "example-scalafix-rule" % "1.4.0"
+    "ch.epfl.scala" %% "example-scalafix-rule" % "2.0.0-RC1"
   }
   val mainArgs =
     ScalafixInterface
@@ -100,7 +100,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
         |DisableSyntax
         |  Reports an error for disabled features such as var or XML literals.
         |ExplicitResultTypes
-        |  Inserts type annotations for inferred public members. Only compatible with Scala 2.11.12, 2.12.13, 2.12.14, 2.12.15, 2.13.6, 2.13.7, 2.13.8.
+        |  Inserts type annotations for inferred public members. Only compatible with Scala 2.x.
         |LeakingImplicitClassVal
         |  Adds 'private' to val parameters of implicit value classes
         |NoAutoTupling
