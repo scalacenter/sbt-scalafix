@@ -109,6 +109,8 @@ class SbtCompletionsSuite extends AnyFunSuite {
         |  Removes deprecated val inside for-comprehension binders
         |ProcedureSyntax
         |  Replaces deprecated procedure syntax with explicit ': Unit ='
+        |RedundantSyntax
+        |  Removes redundant syntax such as `final` modifiers on an object
         |RemoveUnused
         |  Removes unused imports and terms that reported by the compiler under -Ywarn-unused
         |SemanticRule
