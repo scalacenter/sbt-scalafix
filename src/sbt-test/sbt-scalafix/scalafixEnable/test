@@ -5,3 +5,9 @@
 -> scala212/test:compile
 > scala212/scalafixAll RemoveUnused
 > scala212/test:compile
+
+-> checkVersion
+> ++2.12.15 -v
+> checkVersion
+> scalafixEnable
+> checkVersion

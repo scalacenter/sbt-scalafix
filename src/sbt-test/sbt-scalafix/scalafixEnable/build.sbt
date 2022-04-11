@@ -28,7 +28,8 @@ lazy val scala212 = project.settings(
 // 2.13.x is supported
 lazy val scala213 = project.settings(
   // semanticdb-scalac_2.13.4 available in 4.4.10, became available as of 4.4.0
-  scalaVersion := "2.13.4"
+  scalaVersion := "2.13.4",
+  crossScalaVersions := Seq("2.12.15")
 )
 
 TaskKey[Unit]("check") := {
@@ -67,4 +68,8 @@ TaskKey[Unit]("check") := {
     (scala213 / Test / compile / scalacOptions).value
       .count(_ == "-Yrangepos") == 1
   )
+}
+
+TaskKey[Unit]("checkVersion") := {
+  assert((scala213 / scalaVersion).value == "2.12.15")
 }
