@@ -184,6 +184,6 @@ object ScalafixEnable {
           scalacOptionsSettings ++ enableSemanticdbPlugin
         )
     } yield settings
-    extracted.appendWithoutSession(settings, s)
+    extracted.appendWithSession(settings, s)
   }
 }
