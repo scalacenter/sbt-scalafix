@@ -1,1 +1,4 @@
-> scalafix
+-> Compile / scalafix --check
+> Test / scalafix --check
+> Compile / scalafix
+> Compile / scalafix --check
