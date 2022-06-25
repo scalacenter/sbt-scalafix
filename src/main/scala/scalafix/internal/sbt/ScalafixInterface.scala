@@ -8,7 +8,6 @@ import scalafix.interfaces.{Scalafix => ScalafixAPI, _}
 import scalafix.sbt.InvalidArgument
 
 import scala.collection.JavaConverters._
-import scala.util.control.NonFatal
 import java.io.PrintStream
 
 sealed trait Arg extends (ScalafixArguments => ScalafixArguments)
@@ -88,7 +87,9 @@ class ScalafixInterface private (
   def withArgs(args: Arg*): ScalafixInterface = {
     val newScalafixArguments = args.foldLeft(scalafixArguments) { (acc, arg) =>
       try arg(acc)
-      catch { case NonFatal(e) => throw new InvalidArgument(e.getMessage) }
+      catch {
+        case e: ScalafixException => throw new InvalidArgument(e.getMessage)
+      }
     }
     new ScalafixInterface(newScalafixArguments, this.args ++ args)
   }
@@ -101,7 +102,9 @@ class ScalafixInterface private (
 
   def rulesThatWillRun(): Seq[ScalafixRule] =
     try scalafixArguments.rulesThatWillRun().asScala
-    catch { case NonFatal(e) => throw new InvalidArgument(e.getMessage) }
+    catch {
+      case e: ScalafixException => throw new InvalidArgument(e.getMessage)
+    }
 
   def validate(): Option[ScalafixException] =
     Option(scalafixArguments.validate().orElse(null))
