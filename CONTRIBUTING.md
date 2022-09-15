@@ -20,4 +20,4 @@ main branch.  You can read more about it at http://scalafmt.org
 
 ## TL;DR
 
-If you are unsure about anything, don't hesitate to ask in the [gitter channel](https://gitter.im/scalacenter/scalafix).
+If you are unsure about anything, don't hesitate to ask in the [Discord channel](https://discord.gg/8AHaqGx3Qj).
