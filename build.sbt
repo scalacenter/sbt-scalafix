@@ -38,7 +38,7 @@ commands += Command.command("ci-windows") { s =>
 }
 
 // Dependencies
-resolvers += Resolver.sonatypeRepo("public")
+resolvers ++= Resolver.sonatypeOssRepos("public")
 libraryDependencies ++= Dependencies.all
 libraryDependencies ++= List(
   "com.lihaoyi" %% "fansi" % "0.4.0" % Test,
