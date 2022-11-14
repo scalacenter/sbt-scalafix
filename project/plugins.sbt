@@ -1,4 +1,4 @@
-resolvers += Resolver.sonatypeRepo("public")
+resolvers ++= Resolver.sonatypeOssRepos("public")
 addSbtPlugin("com.geirsson" % "sbt-ci-release" % "1.5.7")
 
 libraryDependencies += "org.scala-sbt" %% "scripted-plugin" % sbtVersion.value
