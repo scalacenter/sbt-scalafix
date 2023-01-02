@@ -7,6 +7,6 @@ object Dependencies {
   val all = List(
     "org.eclipse.jgit" % "org.eclipse.jgit" % "5.13.1.202206130422-r",
     "ch.epfl.scala" % "scalafix-interfaces" % scalafixVersion,
-    "io.get-coursier" % "interface" % "1.0.11"
+    "io.get-coursier" % "interface" % "1.0.12"
   )
 }
