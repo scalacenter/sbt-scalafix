@@ -42,7 +42,7 @@ resolvers ++= Resolver.sonatypeOssRepos("public")
 libraryDependencies ++= Dependencies.all
 libraryDependencies ++= List(
   "com.lihaoyi" %% "fansi" % "0.4.0" % Test,
-  "org.scalatest" %% "scalatest" % "3.2.14" % Test
+  "org.scalatest" %% "scalatest" % "3.2.15" % Test
 )
 
 scalaVersion := "2.12.17"
