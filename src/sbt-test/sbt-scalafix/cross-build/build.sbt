@@ -16,19 +16,10 @@ lazy val root = project
   .in(file("."))
   .aggregate(
     javaProject,
-    scala211,
-    scala210,
     scala212,
     scala213
   )
 
-lazy val scala210 = project.settings(
-  scalaVersion := "2.10.7"
-)
-lazy val scala211 = project.settings(
-  scalaVersion := Versions.scala211,
-  scalafixSettings
-)
 lazy val scala212 = project
   .configs(IntegrationTest)
   .settings(
