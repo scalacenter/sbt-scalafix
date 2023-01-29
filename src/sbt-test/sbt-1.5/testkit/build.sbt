@@ -6,7 +6,9 @@ lazy val scala3Version = "3.0.0"
 inThisBuild(
   List(
     semanticdbEnabled := true,
-    semanticdbVersion := scalafixSemanticdb.revision
+    semanticdbVersion := scalafixSemanticdb.revision,
+    // need for sbt <1.7.0 as includePluginResolvers has no effect, see https://github.com/sbt/sbt/pull/6853
+    resolvers += Resolver.sonatypeRepo("public")
   )
 )
 
