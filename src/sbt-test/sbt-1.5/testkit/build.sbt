@@ -1,12 +1,14 @@
 lazy val V = _root_.scalafix.sbt.BuildInfo
 
-lazy val rulesCrossVersions = Seq(V.scala213, V.scala212, V.scala211)
+lazy val rulesCrossVersions = Seq(V.scala213, V.scala212)
 lazy val scala3Version = "3.0.0"
 
 inThisBuild(
   List(
     semanticdbEnabled := true,
-    semanticdbVersion := scalafixSemanticdb.revision
+    semanticdbVersion := scalafixSemanticdb.revision,
+    // need for sbt <1.7.0 as includePluginResolvers has no effect, see https://github.com/sbt/sbt/pull/6853
+    resolvers += Resolver.sonatypeRepo("public")
   )
 )
 
@@ -26,7 +28,7 @@ lazy val input = projectMatrix
       scalacOptions += "-Xsource:3"
     )
   )
-  .jvmPlatform(scalaVersions = Seq(V.scala212, V.scala211))
+  .jvmPlatform(scalaVersions = Seq(V.scala212))
 
 lazy val output = projectMatrix
   .defaultAxes(VirtualAxis.jvm)
@@ -69,11 +71,6 @@ lazy val tests = projectMatrix
   .customRow(
     scalaVersions = Seq(V.scala212),
     axisValues = Seq(TargetAxis(V.scala212), VirtualAxis.jvm),
-    settings = Seq()
-  )
-  .customRow(
-    scalaVersions = Seq(V.scala211),
-    axisValues = Seq(TargetAxis(V.scala211), VirtualAxis.jvm),
     settings = Seq()
   )
   .dependsOn(rules)

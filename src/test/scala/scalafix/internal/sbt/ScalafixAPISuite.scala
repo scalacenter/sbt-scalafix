@@ -16,8 +16,13 @@ class ScalafixAPISuite extends AnyFunSuite {
   def assertNoDiff(obtained: String, expected: String)(implicit
       pos: Position
   ): Unit = {
+    def removeSnapshotInfo(s: String) =
+      s.replaceAllLiterally(
+        "[info] Using SNAPSHOT artifacts for Scalafix and/or external rules, binary compatibility checks disabled",
+        ""
+      )
     def strip(s: String) = s.trim.replaceAll("\r\n", "\n")
-    val obtainedStrip = strip(obtained)
+    val obtainedStrip = strip(removeSnapshotInfo(obtained))
     val expectedStrip = strip(expected)
     assert(obtainedStrip == expectedStrip)
   }

@@ -14,10 +14,10 @@ object BuildInfo {
     property("scala213")
   def scala212: String =
     property("scala212")
-  def scala211: String =
-    property("scala211")
+  @deprecated("Scala 2.11 is no longer supported", ">0.10.4")
+  def scala211: String = ???
   def supportedScalaVersions: List[String] =
-    List(scala213, scala212, scala211)
+    List(scala213, scala212)
 
   private val propertiesPath = "scalafix-interfaces.properties"
 

@@ -129,6 +129,11 @@ object ScalafixInterface {
             "Rules such as ExplicitResultTypes requiring the project version to match the Scalafix " +
             "version are unsupported for the moment."
         )
+      else if (scalafixBinaryScalaVersion == "2.11")
+        logger.error(
+          "Scala 2.11 is no longer supported. Please downgrade to the final version supporting " +
+            "it: sbt-scalafix 0.10.4."
+        )
       val callback = new ScalafixLogger(logger)
       val scalafixArguments = ScalafixAPI
         .fetchAndClassloadInstance(

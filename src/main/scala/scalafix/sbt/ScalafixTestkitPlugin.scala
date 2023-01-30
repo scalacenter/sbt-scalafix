@@ -33,7 +33,7 @@ object ScalafixTestkitPlugin extends AutoPlugin {
       // This makes it simpler to use sbt-scalafix SNAPSHOTS: such snapshots may bring scalafix-* SNAPSHOTS which is fine in the
       // meta build as the same resolver (declared in project/plugins.sbt) is used. However, since testkit-enabled projects are
       // built against a version of scalafix-testkit dictated by scalafix.sbt.BuildInfo.scalafixVersion, the same resolver is
-      // needed here as well.
+      // needed here as well. Unfortunately it works only for sbt 1.7+, see https://github.com/sbt/sbt/pull/6849.
       includePluginResolvers := true
     )
 
