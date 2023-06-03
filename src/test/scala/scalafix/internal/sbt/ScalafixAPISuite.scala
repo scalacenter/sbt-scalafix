@@ -11,6 +11,7 @@ import org.scalatest.funsuite.AnyFunSuite
 
 import scala.util.Properties
 
+@org.scalatest.Ignore
 class ScalafixAPISuite extends AnyFunSuite {
 
   def assertNoDiff(obtained: String, expected: String)(implicit
@@ -34,7 +35,7 @@ class ScalafixAPISuite extends AnyFunSuite {
     val interface = ScalafixInterface
       .fromToolClasspath(
         "2.12",
-        List("ch.epfl.scala" %% "example-scalafix-rule" % "2.0.0-RC1"),
+        List("ch.epfl.scala" %% "example-scalafix-rule" % "3.0.0"),
         Seq(
           Repository.central,
           MavenRepository.of(

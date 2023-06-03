@@ -107,6 +107,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
         |  Inserts explicit tuples for adapted argument lists for compatibility with -Yno-adapted-args
         |NoValInForComprehension
         |  Removes deprecated val inside for-comprehension binders
+        |OrganizeImports
         |ProcedureSyntax
         |  Replaces deprecated procedure syntax with explicit ': Unit ='
         |RedundantSyntax
