@@ -2,13 +2,13 @@ package fix
 
 import scalafix.testkit._
 import scala.util.control.NonFatal
-import org.scalatest.FunSuiteLike
+import org.scalatest.funsuite.AnyFunSuiteLike
 import org.scalatest.exceptions.TestFailedException
 
 object IntputOutputSuite {
   def main(args: Array[String]): Unit = {
     if (Array("--save-expect").sameElements(args)) {
-      val suite = new AbstractSemanticRuleSuite with FunSuiteLike {
+      val suite = new AbstractSemanticRuleSuite with AnyFunSuiteLike {
         override val props = TestkitProperties.loadFromResources()
         override val isSaveExpect = true
 
@@ -30,6 +30,6 @@ object IntputOutputSuite {
   }
 }
 
-class IntputOutputSuite extends AbstractSemanticRuleSuite with FunSuiteLike {
+class IntputOutputSuite extends AbstractSemanticRuleSuite with AnyFunSuiteLike {
   runAllTests()
 }
