@@ -11,7 +11,6 @@ import org.scalatest.funsuite.AnyFunSuite
 
 import scala.util.Properties
 
-@org.scalatest.Ignore
 class ScalafixAPISuite extends AnyFunSuite {
 
   def assertNoDiff(obtained: String, expected: String)(implicit
