@@ -159,4 +159,25 @@ object ScalafixInterface {
           )
         )
     })
+
+  def fromClassloader(
+      classloader: () => ClassLoader,
+      logger: Logger = ConsoleLogger(System.out)
+  ): () => ScalafixInterface = () => {
+    val callback = new ScalafixLogger(logger)
+    val scalafixArguments = ScalafixAPI
+      .classloadInstance(classloader())
+      .newArguments()
+      .withMainCallback(callback)
+    val printStream =
+      new PrintStream(
+        LoggingOutputStream(
+          logger,
+          Level.Info
+        )
+      )
+    new ScalafixInterface(scalafixArguments, Nil)
+      .withArgs(Arg.PrintStream(printStream))
+  }
+
 }
