@@ -15,7 +15,7 @@ lazy val scala211 = project
 lazy val scala212 = project
   .in(file("scala212"))
   .settings(
-    scalaVersion := "2.12.18" // supported by semanticdb-scalac
+    scalaVersion := "2.13.11" // supported by semanticdb-scalac
   )
 
 lazy val scala3 = project
