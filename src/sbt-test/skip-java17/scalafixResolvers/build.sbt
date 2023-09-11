@@ -1,4 +1,4 @@
-scalaVersion := "2.12.7"
+scalaVersion := "2.12.18"
 
 TaskKey[Unit]("check") := {
   val expectedRepositories: Seq[String] = Seq(

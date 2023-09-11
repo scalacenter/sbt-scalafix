@@ -15,6 +15,7 @@ import scalafix.internal.sbt._
 
 import scala.collection.JavaConverters.collectionAsScalaIterableConverter
 import scala.util.control.NoStackTrace
+import sbt.librarymanagement.ResolveException
 
 object ScalafixPlugin extends AutoPlugin {
   override def trigger: PluginTrigger = allRequirements
@@ -164,6 +165,37 @@ object ScalafixPlugin extends AutoPlugin {
         SettingKey[Boolean]("bspEnabled") := false
       )
     ),
+    update := {
+      object SemanticdbScalac {
+        def unapply(id: ModuleID): Option[String] =
+          if (
+            id.organization == scalafixSemanticdb.organization &&
+            id.name.startsWith(scalafixSemanticdb.name)
+          ) Some(id.revision)
+          else None
+      }
+
+      update.result.value match {
+        case Value(v) => v
+        case Inc(inc: Incomplete) =>
+          Incomplete.allExceptions(inc).toList match {
+            case (resolveException: ResolveException) :: Nil =>
+              resolveException.failed.headOption match {
+                case Some(SemanticdbScalac(rev)) =>
+                  val scalaV = scalaVersion.value
+                  val msg = s"The SemanticDB scalac plugin version ${rev} set up " +
+                    "via `semanticdbVersion` does follow the version recommended " +
+                    "for Scalafix, but is not supported for the outdated Scala " +
+                    s"version ${scalaV}. Please upgrade to a more recent Scala " +
+                    "patch version or uninstall sbt-scalafix."
+                  throw inc.copy(message = Some(msg))
+                case _ =>
+              }
+            case _ =>
+          }
+          throw inc
+      }
+    },
     ivyConfigurations += ScalafixConfig,
     scalafixAll := scalafixAllInputTask.evaluated
   )
