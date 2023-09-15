@@ -17,6 +17,10 @@ checkLogs := {
     .takeWhile(_ != null)
     .force
   assert(
-    logLines.exists(_.contains("Please upgrade to a more recent Scala patch version or uninstall sbt-scalafix"))
+    logLines.exists(
+      _.contains(
+        "Please upgrade to a more recent Scala patch version or uninstall sbt-scalafix"
+      )
+    )
   )
 }
