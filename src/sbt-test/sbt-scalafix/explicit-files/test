@@ -22,6 +22,18 @@
 > scalafix -f=src/main/scala/OK.scala
 
 
+# QUESTIONNABLE USAGES
+# --------------------
+
+# Targeting valid files from an aggregated project succeeds:
+# only the project for which the `--files` value is valid runs the invocation
+> scalafix -f=ok_and_ko/src/main/scala/OK.scala
+
+# Targeting valid files both from an aggregating project and from one of its aggregated project fails:
+# no project can validate both `--files` value, so the aggregating project shows the failure
+-> scalafix -f=ok_and_ko/src/main/scala/OK.scala -f=src/main/scala/OK.scala
+
+
 # INCORRECT USAGES
 # ----------------
 
