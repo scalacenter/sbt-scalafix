@@ -10,8 +10,11 @@ import sbt.complete.DefaultParsers._
 
 class ScalafixCompletions(
     workingDirectory: Path,
+    // Unfortunately, local rules will not show up as completions in the parser, as that parser can only
+    // depend on settings, while local rules classpath must be looked up via tasks
     loadedRules: () => Seq[ScalafixRule],
-    terminalWidth: Option[Int]
+    terminalWidth: Option[Int],
+    allowedTargetFilesPrefixes: Seq[Path] // Nil means all values are valid
 ) {
 
   private type P = Parser[String]
@@ -28,14 +31,18 @@ class ScalafixCompletions(
       valueParser: ArgP
   ): KVArgP = {
     val keyParser = Parser.oneOf((key +: keyAliases).map(literal)).examples(key)
-    val sepValueParser = (sep ~> valueParser).!!!("missing or invalid value")
+    val sepValueParser =
+      if (valueParser.toString.contains("!!!")) sep ~> valueParser
+      else (sep ~> valueParser).!!!("missing or invalid value")
     keyParser.^^^(sepValueParser)
   }
 
   private def uri(protocol: String): Parser[ShellArgs.Rule] =
     token(protocol + ":") ~> NotQuoted.map(x => ShellArgs.Rule(s"$protocol:$x"))
 
-  private val filepathParser: Parser[Path] = {
+  private def filepathParser(
+      filterPrefixes: Option[Seq[Path]] = None
+  ): Parser[Path] = {
     def toAbsolutePath(path: Path, cwd: Path): Path = {
       if (path.isAbsolute) path
       else cwd.resolve(path)
@@ -65,12 +72,25 @@ class ScalafixCompletions(
       }
     }
 
+    def isAllowedPrefix(path: Path): Boolean = filterPrefixes match {
+      case Some(prefixes) =>
+        val absolutePath = path.toAbsolutePath.toString
+        prefixes.map(_.toAbsolutePath.toString).exists { prefix =>
+          absolutePath.startsWith(prefix) || prefix.startsWith(absolutePath)
+        }
+      case None => true
+    }
+
     string
-      .examples(new AbsolutePathExamples(workingDirectory))
+      .examples(
+        exampleSource = new AbsolutePathExamples(workingDirectory),
+        maxNumberOfExamples = 25,
+        removeInvalidExamples = true
+      )
       .map { f =>
         toAbsolutePath(Paths.get(f), workingDirectory)
       }
-      .filter(f => Files.exists(f), x => x)
+      .filter(f => Files.exists(f) && isAllowedPrefix(f), x => x)
   }
 
   private val namedRule: P = {
@@ -130,7 +150,7 @@ class ScalafixCompletions(
   def hide(p: P): P = p.examples()
 
   def parser: Parser[ShellArgs] = {
-    val pathParser: Parser[Path] = token(filepathParser)
+    val pathParser: Parser[Path] = token(filepathParser())
     val fileRule: Parser[ShellArgs.Rule] =
       (token("file:") ~> pathParser)
         .map(path => ShellArgs.Rule(path.toUri.toString))
@@ -166,7 +186,15 @@ class ScalafixCompletions(
         gitDiffParser.map(v => ShellArgs.Extra("--diff-base", Some(v)))
       }
       val files: KVArgP = valueAfterKey("--files", "-f") {
-        pathParser.map(v => ShellArgs.File(v.toString))
+        val errorMessage =
+          if (allowedTargetFilesPrefixes.nonEmpty)
+            "--files value(s) must reference existing files or directories in unmanagedSourceDirectories; " +
+              "are you running scalafix on the right project / Configuration?"
+          else
+            "--files can only be used on project-level invocations (i.e. myproject / scalafix --files=f.scala)"
+        token(filepathParser(Some(allowedTargetFilesPrefixes)))
+          .map(v => ShellArgs.File(v.toString))
+          .!!!(errorMessage)
       }
       val rules: KVArgP = valueAfterKey("--rules", "-r")(rule)
 
