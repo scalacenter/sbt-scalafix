@@ -127,13 +127,6 @@ object ScalafixPlugin extends AutoPlugin {
       Invisible
     )
 
-  private val scalafixCompletions: SettingKey[ScalafixCompletions] =
-    SettingKey(
-      "scalafixCompletions",
-      "Implementation detail - do not use",
-      Invisible
-    )
-
   // Memoize ScalafixInterface instances initialized with a custom tool classpath across projects & configurations
   // during task execution, to amortize the classloading cost when invoking scalafix concurrently on many targets
   private val scalafixInterfaceCache
@@ -223,13 +216,6 @@ object ScalafixPlugin extends AutoPlugin {
       scalafixDependencies = (ThisBuild / scalafixDependencies).value,
       scalafixCustomResolvers = (ThisBuild / scalafixResolvers).value
     ),
-    scalafixCompletions := new ScalafixCompletions(
-      workingDirectory = (ThisBuild / baseDirectory).value.toPath,
-      // Unfortunately, local rules will not show up as completions in the parser, as that parser can only
-      // depend on settings, while local rules classpath must be looked up via tasks
-      loadedRules = () => scalafixInterfaceProvider.value().availableRules(),
-      terminalWidth = Some(JLineAccess.terminalWidth)
-    ),
     scalafixInterfaceCache := new BlockingCache[
       ToolClasspath,
       ScalafixInterface
@@ -299,14 +285,22 @@ object ScalafixPlugin extends AutoPlugin {
 
   }
 
-  private def scalafixAllInputTask(): Def.Initialize[InputTask[Unit]] =
-    // workaround https://github.com/sbt/sbt/issues/3572 by invoking directly what Def.inputTaskDyn would via macro
-    InputTask
-      .createDyn(InputTask.initParserAsInput(scalafixCompletions(_.parser)))(
-        Def.task(shellArgs =>
-          scalafixAllTask(shellArgs, thisProject.value, resolvedScoped.value)
-        )
+  private def scalafixAllInputTask(): Def.Initialize[InputTask[Unit]] = {
+    val parser = Def.setting(
+      new ScalafixCompletions(
+        workingDirectory = (ThisBuild / baseDirectory).value.toPath,
+        loadedRules = () => scalafixInterfaceProvider.value().availableRules(),
+        terminalWidth = Some(JLineAccess.terminalWidth),
+        allowedTargetFilesPrefixes = Nil
       )
+    )(_.parser)
+    // workaround https://github.com/sbt/sbt/issues/3572 by invoking directly what Def.inputTaskDyn would via macro
+    InputTask.createDyn(InputTask.initParserAsInput(parser))(
+      Def.task(shellArgs =>
+        scalafixAllTask(shellArgs, thisProject.value, resolvedScoped.value)
+      )
+    )
+  }
 
   private def scalafixAllTask(
       shellArgs: ShellArgs,
@@ -343,12 +337,23 @@ object ScalafixPlugin extends AutoPlugin {
 
   private def scalafixInputTask(
       config: Configuration
-  ): Def.Initialize[InputTask[Unit]] =
+  ): Def.Initialize[InputTask[Unit]] = {
+    val parser = Def.setting(
+      new ScalafixCompletions(
+        workingDirectory = (ThisBuild / baseDirectory).value.toPath,
+        loadedRules = () => scalafixInterfaceProvider.value().availableRules(),
+        terminalWidth = Some(JLineAccess.terminalWidth),
+        allowedTargetFilesPrefixes =
+          (scalafix / unmanagedSourceDirectories).value.map(_.toPath)
+      )
+    )(_.parser)
+
     // workaround https://github.com/sbt/sbt/issues/3572 by invoking directly what Def.inputTaskDyn would via macro
     InputTask
-      .createDyn(InputTask.initParserAsInput(scalafixCompletions(_.parser)))(
+      .createDyn(InputTask.initParserAsInput(parser))(
         Def.task(shellArgs => scalafixTask(shellArgs, config))
       )
+  }
 
   private def scalafixTask(
       shellArgs: ShellArgs,

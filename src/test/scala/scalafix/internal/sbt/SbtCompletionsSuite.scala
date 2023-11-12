@@ -41,10 +41,11 @@ class SbtCompletionsSuite extends AnyFunSuite {
       )()
   val loadedRules = mainArgs.availableRules.toList
 
-  val parser = new ScalafixCompletions(
+  val defaultParser = new ScalafixCompletions(
     workingDirectory = fs.workingDirectory.toAbsolutePath,
     loadedRules = () => loadedRules,
-    terminalWidth = None
+    terminalWidth = None,
+    allowedTargetFilesPrefixes = Seq(fs.workingDirectory.resolve("foo"))
   ).parser
 
   def checkCompletion(name: String, testTags: Tag*)(
@@ -58,7 +59,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
       val input = " " + option
 
       val completions =
-        Parser.completions(parser, input, 0).get.toList.sortBy(_.display)
+        Parser.completions(defaultParser, input, 0).get.toList.sortBy(_.display)
 
       val appends = completions.map(_.append)
       val displays = completions.map(_.display)
@@ -68,6 +69,14 @@ class SbtCompletionsSuite extends AnyFunSuite {
   }
 
   def checkArgs(
+      name: String,
+      testTags: Tag*
+  )(assertArgs: Either[String, ShellArgs] => Unit): Unit =
+    checkArgs(defaultParser)(name, testTags*)(assertArgs)
+
+  def checkArgs(
+      parser: Parser[ShellArgs]
+  )(
       name: String,
       testTags: Tag*
   )(assertArgs: Either[String, ShellArgs] => Unit): Unit = {
@@ -137,6 +146,12 @@ class SbtCompletionsSuite extends AnyFunSuite {
     assert(appends == Seq("es="))
   }
 
+  checkCompletion("--files=") { (appends, _) =>
+    // allowedTargetFilesPrefixes affects `--files=` completion since bar and buzz are missing
+    assert(!appends.contains("bar"))
+    assert(!appends.contains("buzz"))
+  }
+
   // only provide values suggestion after the key of a key/value arg
   checkCompletion("--diff-base ") { (appends, _) =>
     assert(appends.nonEmpty)
@@ -165,8 +180,9 @@ class SbtCompletionsSuite extends AnyFunSuite {
 
   checkCompletion("--rules file:bar/../", SkipWindows) { (appends, displays) =>
     // resolve parent directories
-    assert(appends.contains("foo"))
-    assert(displays.contains("bar/../foo"))
+    // allowedTargetFilesPrefixes does not affect `file:` completion as buzz is not part of them
+    assert(appends.contains("buzz")) 
+    assert(displays.contains("bar/../buzz"))
   }
 
   // shortcut for --rules
@@ -180,36 +196,82 @@ class SbtCompletionsSuite extends AnyFunSuite {
   }
 
   checkArgs("--files --test") { args =>
-    assert(args == Left("""missing or invalid value
-      | --files --test
-      |               ^""".stripMargin))
+    assert(
+      args == Left(
+        """--files value(s) must reference existing files or directories in unmanagedSourceDirectories; are you running scalafix on the right project / Configuration?
+          | --files --test
+          |               ^""".stripMargin
+      )
+    )
   }
 
   checkArgs("--test --rules=Foo --files=NotHere", SkipWindows) { args =>
     assert(args == Left("""--files=NotHere
-      |missing or invalid value
+      |--files value(s) must reference existing files or directories in unmanagedSourceDirectories; are you running scalafix on the right project / Configuration?
       | --test --rules=Foo --files=NotHere
       |                                   ^""".stripMargin))
   }
 
   checkArgs("--test  -f= --rules=Foo", SkipWindows) { args =>
     assert(args == Left("""Expected non-whitespace character
-      |missing or invalid value
+      |--files value(s) must reference existing files or directories in unmanagedSourceDirectories; are you running scalafix on the right project / Configuration?
       | --test  -f= --rules=Foo
       |            ^""".stripMargin))
   }
 
   checkArgs("--test  -f --rules=Foo", SkipWindows) { args =>
-    assert(args == Left("""missing or invalid value
-      | --test  -f --rules=Foo
-      |                       ^""".stripMargin))
+    assert(
+      args == Left(
+        """--files value(s) must reference existing files or directories in unmanagedSourceDirectories; are you running scalafix on the right project / Configuration?
+          | --test  -f --rules=Foo
+          |                       ^""".stripMargin
+      )
+    )
   }
 
   checkArgs("--test --rules=Foo -f", SkipWindows) { args =>
     assert(args == Left("""-f
-      |missing or invalid value
+      |Expected '='
+      |Expected ' '
       | --test --rules=Foo -f
       |                      ^""".stripMargin))
+  }
+
+  checkArgs("--test -f foo/f.scala", SkipWindows) { args =>
+    assert(
+      args == Right(
+        ShellArgs(
+          files = fs.workingDirectory.toAbsolutePath
+            .resolve("foo/f.scala")
+            .toString :: Nil,
+          extra = "--test" :: Nil
+        )
+      )
+    )
+  }
+
+  checkArgs("--test -f bar/b.scala", SkipWindows) { args =>
+    assert(
+      args == Left(
+        """--files value(s) must reference existing files or directories in unmanagedSourceDirectories; are you running scalafix on the right project / Configuration?
+          | --test -f bar/b.scala
+          |                      ^""".stripMargin
+      )
+    )
+  }
+
+  checkArgs(
+    new ScalafixCompletions(
+      workingDirectory = fs.workingDirectory.toAbsolutePath,
+      loadedRules = () => Nil,
+      terminalWidth = None,
+      allowedTargetFilesPrefixes = Nil
+    ).parser
+  )("--test --files=foo", SkipWindows) { args =>
+    assert(args == Left("""--files=foo
+      |--files can only be used on project-level invocations (i.e. myproject / scalafix --files=f.scala)
+      | --test --files=foo
+      |                   ^""".stripMargin))
   }
 
 }

@@ -1,14 +1,38 @@
--> scalafix
+> ok_only / scalafix
+-> ok_and_ko / scalafix
 
--> scalafix -f=explicit/src/main/scala/KO.scala
--> scalafix --files=explicit/src/main/scala/KO.scala
 
--> scalafix -f=explicit/src/main/scala/OK.scala --files=explicit/src/main/scala/KO.scala
--> scalafix --files=explicit/src/main/scala/OK.scala -f=explicit/src/main/scala/KO.scala
--> scalafix -f=explicit/src/main/scala/KO.scala -f=explicit/src/main/scala/OK.scala
+# CORRECT USAGES
+# --------------
 
-> scalafix -f=explicit/src/main/scala/OK.scala
-> scalafix --files=explicit/src/main/scala/OK.scala
+# Targeting valid files within a project containing invalid files succeeds, with or without a key/value separator
+> ok_and_ko / scalafix -f=ok_and_ko/src/main/scala/OK.scala
+> ok_and_ko / scalafix --files=ok_and_ko/src/main/scala/OK.scala
+> ok_and_ko / scalafix -f ok_and_ko/src/main/scala/OK.scala
+> ok_and_ko / scalafix --files ok_and_ko/src/main/scala/OK.scala
 
-> scalafix -f explicit/src/main/scala/OK.scala
-> scalafix --files explicit/src/main/scala/OK.scala
+# Targeting invalid files fails
+-> ok_and_ko / scalafix -f=ok_and_ko/src/main/scala/KO.scala
+
+# Targeting valid and invalid files fails
+-> ok_and_ko / scalafix -f=ok_and_ko/src/main/scala/OK.scala -f=ok_and_ko/src/main/scala/KO.scala
+-> ok_and_ko / scalafix -f=ok_and_ko/src/main/scala/KO.scala -f=ok_and_ko/src/main/scala/OK.scala
+
+# Targeting valid files from the root project succeeds
+> scalafix -f=src/main/scala/OK.scala
+
+
+# INCORRECT USAGES
+# ----------------
+
+# Targeting non-existing files fails
+-> ok_only / scalafix -f=ok_only/src/main/scala/NotHere.scala
+
+# Targeting with scalafixAll valid files from the correct project fails
+-> ok_only / scalafixAll -f=ok_only/src/main/scala/OK.scala
+
+# Targeting valid files from a different project fails
+-> ok_only / scalafix -f=ok_and_ko/src/main/scala/OK.scala
+
+# Targeting valid files from a different configuration fails
+-> ok_only / Test / scalafix -f=ok_only/src/main/scala/OK.scala
