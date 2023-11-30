@@ -1,0 +1,6 @@
+> +compile
+
+> +scalafix
+
+$ must-mirror src/main/scala-2/Main.scala src/main/scala-2/Main.scala.expected
+$ must-mirror src/main/scala-3/Main.scala src/main/scala-3/Main.scala.expected
