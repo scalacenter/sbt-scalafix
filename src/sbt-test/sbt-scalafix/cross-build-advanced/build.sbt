@@ -16,8 +16,6 @@ lazy val root = project
       } else { (scalaBinaryVersion).value }
     },
     scalafixConfig := {
-      println(s"Scala Binary Version: ${scalaVersion.value}")
-      println(s"Scalafix Scala Binary Version: ${scalafixScalaBinaryVersion.?.value}")
       if (scalaBinaryVersion.value == "3")
          Some(file(".scalafix-3.conf"))
       else
