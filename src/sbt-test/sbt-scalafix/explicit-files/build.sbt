@@ -5,7 +5,7 @@ Global / semanticdbVersion := scalafixSemanticdb.revision
 
 inThisBuild(
   List(
-    scalaVersion := Versions.scala212,  
+    scalaVersion := Versions.scala212,
     scalacOptions += "-Ywarn-unused",
     semanticdbEnabled := true
   )
