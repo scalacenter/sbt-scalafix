@@ -159,9 +159,9 @@ object ScalafixPlugin extends AutoPlugin {
       )
     ),
     scalafixInterfaceProvider := ScalafixInterface.fromToolClasspath(
-      (scalafixScalaBinaryVersion).value,
-      scalafixDependencies = (scalafixDependencies).value,
-      scalafixCustomResolvers = (scalafixResolvers).value
+      scalafixScalaBinaryVersion.value,
+      scalafixDependencies = scalafixDependencies.value,
+      scalafixCustomResolvers = scalafixResolvers.value
     ),
     update := {
       object SemanticdbScalac {
