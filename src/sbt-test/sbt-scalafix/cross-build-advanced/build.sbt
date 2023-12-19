@@ -11,9 +11,8 @@ lazy val root = project
     crossScalaVersions := Seq(Versions.scala212, Versions.scala213, scala3Version),
     scalacOptions ++= (if (scalaVersion.value.startsWith("2")) Seq("-Ywarn-unused") else Seq()),
     scalafixScalaBinaryVersion := {
-      if ((scalaBinaryVersion).value == "3") {
-        (scalafixScalaBinaryVersion).value
-      } else { (scalaBinaryVersion).value }
+      if (scalaBinaryVersion.value == "3") scalafixScalaBinaryVersion.value
+      else scalaBinaryVersion.value
     },
     scalafixConfig := {
       if (scalaBinaryVersion.value == "3")
