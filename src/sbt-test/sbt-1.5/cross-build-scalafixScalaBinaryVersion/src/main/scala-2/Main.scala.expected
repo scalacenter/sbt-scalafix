@@ -1,0 +1,5 @@
+import scala.Int
+
+object Main {
+  def foo(a: Int): Float = a + 2.0f
+}

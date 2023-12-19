@@ -158,6 +158,11 @@ object ScalafixPlugin extends AutoPlugin {
         SettingKey[Boolean]("bspEnabled") := false
       )
     ),
+    scalafixInterfaceProvider := ScalafixInterface.fromToolClasspath(
+      scalafixScalaBinaryVersion.value,
+      scalafixDependencies = scalafixDependencies.value,
+      scalafixCustomResolvers = scalafixResolvers.value
+    ),
     update := {
       object SemanticdbScalac {
         def unapply(id: ModuleID): Option[String] =
@@ -211,11 +216,6 @@ object ScalafixPlugin extends AutoPlugin {
         ),
     scalafixDependencies := Nil,
     commands += ScalafixEnable.command,
-    scalafixInterfaceProvider := ScalafixInterface.fromToolClasspath(
-      (ThisBuild / scalafixScalaBinaryVersion).value,
-      scalafixDependencies = (ThisBuild / scalafixDependencies).value,
-      scalafixCustomResolvers = (ThisBuild / scalafixResolvers).value
-    ),
     scalafixInterfaceCache := new BlockingCache[
       ToolClasspath,
       ScalafixInterface

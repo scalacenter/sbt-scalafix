@@ -116,6 +116,11 @@ object ScalafixInterface {
     private lazy val _value = scala.util.Try(thunk())
     override def apply(): T = _value.get
   }
+  private val fromToolClasspathMemo: BlockingCache[
+    (String, Seq[ModuleID], Seq[Repository]),
+    ScalafixInterface
+  ] = new BlockingCache
+
   def fromToolClasspath(
       scalafixBinaryScalaVersion: String,
       scalafixDependencies: Seq[ModuleID],
@@ -123,40 +128,48 @@ object ScalafixInterface {
       logger: Logger = ConsoleLogger(System.out)
   ): () => ScalafixInterface =
     new LazyValue({ () =>
-      if (scalafixBinaryScalaVersion.startsWith("3"))
-        logger.error(
-          "To use Scalafix on Scala 3 projects, you must unset `scalafixBinaryScalaVersion`. " +
-            "Rules such as ExplicitResultTypes requiring the project version to match the Scalafix " +
-            "version are unsupported for the moment."
-        )
-      else if (scalafixBinaryScalaVersion == "2.11")
-        logger.error(
-          "Scala 2.11 is no longer supported. Please downgrade to the final version supporting " +
-            "it: sbt-scalafix 0.10.4."
-        )
-      val callback = new ScalafixLogger(logger)
-      val scalafixArguments = ScalafixAPI
-        .fetchAndClassloadInstance(
+      fromToolClasspathMemo.getOrElseUpdate(
+        (
           scalafixBinaryScalaVersion,
-          scalafixCustomResolvers.asJava
-        )
-        .newArguments()
-        .withMainCallback(callback)
-      val printStream =
-        new PrintStream(
-          LoggingOutputStream(
-            logger,
-            Level.Info
-          )
-        )
-      new ScalafixInterface(scalafixArguments, Nil)
-        .withArgs(
-          Arg.PrintStream(printStream),
-          Arg.ToolClasspath(
-            Nil,
-            scalafixDependencies,
-            scalafixCustomResolvers
-          )
-        )
+          scalafixDependencies,
+          scalafixCustomResolvers
+        ), {
+          if (scalafixBinaryScalaVersion.startsWith("3"))
+            logger.error(
+              "To use Scalafix on Scala 3 projects, you must unset `scalafixBinaryScalaVersion`. " +
+                "Rules such as ExplicitResultTypes requiring the project version to match the Scalafix " +
+                "version are unsupported for the moment."
+            )
+          else if (scalafixBinaryScalaVersion == "2.11")
+            logger.error(
+              "Scala 2.11 is no longer supported. Please downgrade to the final version supporting " +
+                "it: sbt-scalafix 0.10.4."
+            )
+          val callback = new ScalafixLogger(logger)
+          val scalafixArguments = ScalafixAPI
+            .fetchAndClassloadInstance(
+              scalafixBinaryScalaVersion,
+              scalafixCustomResolvers.asJava
+            )
+            .newArguments()
+            .withMainCallback(callback)
+          val printStream =
+            new PrintStream(
+              LoggingOutputStream(
+                logger,
+                Level.Info
+              )
+            )
+          new ScalafixInterface(scalafixArguments, Nil)
+            .withArgs(
+              Arg.PrintStream(printStream),
+              Arg.ToolClasspath(
+                Nil,
+                scalafixDependencies,
+                scalafixCustomResolvers
+              )
+            )
+        }
+      )
     })
 }
