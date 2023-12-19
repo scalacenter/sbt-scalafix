@@ -116,10 +116,10 @@ object ScalafixInterface {
     private lazy val _value = scala.util.Try(thunk())
     override def apply(): T = _value.get
   }
-  private val fromToolClasspathMemo: scala.collection.mutable.HashMap[
+  private val fromToolClasspathMemo: BlockingCache[
     (String, Seq[ModuleID], Seq[Repository]),
     ScalafixInterface
-  ] = scala.collection.mutable.HashMap.empty
+  ] = new BlockingCache
 
   def fromToolClasspath(
       scalafixBinaryScalaVersion: String,
