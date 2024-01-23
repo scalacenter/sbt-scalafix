@@ -9,7 +9,7 @@ import sbt.Keys._
 import sbt._
 import sbt.internal.sbtscalafix.JLineAccess
 import sbt.plugins.JvmPlugin
-import scalafix.interfaces.ScalafixError
+import scalafix.interfaces.{ScalafixError, ScalafixMainCallback}
 import scalafix.internal.sbt.Arg.ToolClasspath
 import scalafix.internal.sbt._
 
@@ -75,6 +75,10 @@ object ScalafixPlugin extends AutoPlugin {
         "Optional location to .scalafix.conf file to specify which scalafix rules should run. " +
           "Defaults to the build base directory if a .scalafix.conf file exists."
       )
+
+    val scalafixCallback: SettingKey[ScalafixMainCallback] =
+      settingKey[ScalafixMainCallback]("")
+
     val scalafixSemanticdb: ModuleID =
       scalafixSemanticdb(BuildInfo.scalametaVersion)
     def scalafixSemanticdb(scalametaVersion: String): ModuleID =
@@ -158,10 +162,13 @@ object ScalafixPlugin extends AutoPlugin {
         SettingKey[Boolean]("bspEnabled") := false
       )
     ),
+    scalafixCallback := new ScalafixLogger(ScalafixInterface.defaultLogger),
     scalafixInterfaceProvider := ScalafixInterface.fromToolClasspath(
       scalafixScalaBinaryVersion.value,
       scalafixDependencies = scalafixDependencies.value,
-      scalafixCustomResolvers = scalafixResolvers.value
+      scalafixCustomResolvers = scalafixResolvers.value,
+      logger = ScalafixInterface.defaultLogger,
+      callback = scalafixCallback.value
     ),
     update := {
       object SemanticdbScalac {

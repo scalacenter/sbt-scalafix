@@ -121,11 +121,28 @@ object ScalafixInterface {
     ScalafixInterface
   ] = new BlockingCache
 
+  private[scalafix] val defaultLogger: Logger = ConsoleLogger(System.out)
+
   def fromToolClasspath(
       scalafixBinaryScalaVersion: String,
       scalafixDependencies: Seq[ModuleID],
       scalafixCustomResolvers: Seq[Repository],
-      logger: Logger = ConsoleLogger(System.out)
+      logger: Logger = defaultLogger
+  ): () => ScalafixInterface =
+    fromToolClasspath(
+      scalafixBinaryScalaVersion = scalafixBinaryScalaVersion,
+      scalafixDependencies = scalafixDependencies,
+      scalafixCustomResolvers = scalafixCustomResolvers,
+      logger = logger,
+      callback = new ScalafixLogger(logger)
+    )
+
+  def fromToolClasspath(
+      scalafixBinaryScalaVersion: String,
+      scalafixDependencies: Seq[ModuleID],
+      scalafixCustomResolvers: Seq[Repository],
+      logger: Logger,
+      callback: ScalafixMainCallback
   ): () => ScalafixInterface =
     new LazyValue({ () =>
       fromToolClasspathMemo.getOrElseUpdate(
@@ -145,7 +162,6 @@ object ScalafixInterface {
               "Scala 2.11 is no longer supported. Please downgrade to the final version supporting " +
                 "it: sbt-scalafix 0.10.4."
             )
-          val callback = new ScalafixLogger(logger)
           val scalafixArguments = ScalafixAPI
             .fetchAndClassloadInstance(
               scalafixBinaryScalaVersion,
