@@ -56,19 +56,17 @@ object ScalafixPlugin extends AutoPlugin {
     val scalafixResolvers: SettingKey[Seq[Repository]] =
       settingKey[Seq[Repository]](
         "Optional list of Maven/Ivy repositories to use for fetching custom rules. " +
-          "Must be set in ThisBuild."
+          "Can be set in ThisBuild or at project-level."
       )
     val scalafixDependencies: SettingKey[Seq[ModuleID]] =
       settingKey[Seq[ModuleID]](
         "Optional list of custom rules to install from Maven Central. " +
-          "Must be set in ThisBuild."
+          "Can be set in ThisBuild or at project-level."
       )
     val scalafixScalaBinaryVersion: SettingKey[String] =
       settingKey[String](
-        "The Scala binary version used for scalafix execution. Must be set in ThisBuild. "
-          + "Defaults to 2.12. Rules must be compiled against that binary version, or for "
-          + "advanced rules such as ExplicitResultTypes which have a full cross-version, "
-          + "against the corresponding full version that scalafix is built against."
+        "The Scala binary version used for scalafix execution. Can be set in ThisBuild or at project-level. " +
+          "Custom rules must be compiled against that binary version. Defaults to 2.12."
       )
     val scalafixConfig: SettingKey[Option[File]] =
       settingKey[Option[File]](
