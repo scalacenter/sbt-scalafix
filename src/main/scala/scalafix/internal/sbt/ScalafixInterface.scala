@@ -127,20 +127,6 @@ object ScalafixInterface {
       scalafixBinaryScalaVersion: String,
       scalafixDependencies: Seq[ModuleID],
       scalafixCustomResolvers: Seq[Repository],
-      logger: Logger = defaultLogger
-  ): () => ScalafixInterface =
-    fromToolClasspath(
-      scalafixBinaryScalaVersion = scalafixBinaryScalaVersion,
-      scalafixDependencies = scalafixDependencies,
-      scalafixCustomResolvers = scalafixCustomResolvers,
-      logger = logger,
-      callback = new ScalafixLogger(logger)
-    )
-
-  def fromToolClasspath(
-      scalafixBinaryScalaVersion: String,
-      scalafixDependencies: Seq[ModuleID],
-      scalafixCustomResolvers: Seq[Repository],
       logger: Logger,
       callback: ScalafixMainCallback
   ): () => ScalafixInterface =

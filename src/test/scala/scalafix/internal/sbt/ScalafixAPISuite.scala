@@ -41,7 +41,8 @@ class ScalafixAPISuite extends AnyFunSuite {
             "https://oss.sonatype.org/content/repositories/snapshots"
           )
         ),
-        logger
+        logger,
+        new ScalafixLogger(logger)
       )()
       .withArgs(Arg.PrintStream(new PrintStream(baos)))
     val tmp = Files.createTempFile("scalafix", "Tmp.scala")

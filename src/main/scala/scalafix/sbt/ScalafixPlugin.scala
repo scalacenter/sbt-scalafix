@@ -77,7 +77,10 @@ object ScalafixPlugin extends AutoPlugin {
       )
 
     val scalafixCallback: SettingKey[ScalafixMainCallback] =
-      settingKey[ScalafixMainCallback]("")
+      settingKey[ScalafixMainCallback](
+        "The handler for the diagnostics emitted during scalafix execution. Can be set in ThisBuild or at project-level. " +
+          "Defaults to a wrapper around `sbt.Logger`."
+      )
 
     val scalafixSemanticdb: ModuleID =
       scalafixSemanticdb(BuildInfo.scalametaVersion)
@@ -162,13 +165,12 @@ object ScalafixPlugin extends AutoPlugin {
         SettingKey[Boolean]("bspEnabled") := false
       )
     ),
-    scalafixCallback := new ScalafixLogger(ScalafixInterface.defaultLogger),
     scalafixInterfaceProvider := ScalafixInterface.fromToolClasspath(
       scalafixScalaBinaryVersion.value,
       scalafixDependencies = scalafixDependencies.value,
       scalafixCustomResolvers = scalafixResolvers.value,
       logger = ScalafixInterface.defaultLogger,
-      callback = scalafixCallback.value
+      callback = (ThisBuild / scalafixCallback).value
     ),
     update := {
       object SemanticdbScalac {
@@ -206,6 +208,7 @@ object ScalafixPlugin extends AutoPlugin {
   )
 
   override lazy val globalSettings: Seq[Def.Setting[_]] = Seq(
+    scalafixCallback := new ScalafixLogger(ScalafixInterface.defaultLogger),
     scalafixConfig := None, // let scalafix-cli try to infer $CWD/.scalafix.conf
     scalafixOnCompile := false,
     scalafixCaching := true,
