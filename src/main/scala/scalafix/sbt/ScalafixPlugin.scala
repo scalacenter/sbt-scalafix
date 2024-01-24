@@ -78,7 +78,7 @@ object ScalafixPlugin extends AutoPlugin {
 
     val scalafixCallback: SettingKey[ScalafixMainCallback] =
       settingKey[ScalafixMainCallback](
-        "The handler for the diagnostics emitted during scalafix execution. Can be set in ThisBuild or at project-level. " +
+        "The handler for the diagnostics emitted during scalafix execution. Must be set in ThisBuild. " +
           "Defaults to a wrapper around `sbt.Logger`."
       )
 
