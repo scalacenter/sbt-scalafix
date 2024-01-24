@@ -9,7 +9,7 @@ import sbt.Keys._
 import sbt._
 import sbt.internal.sbtscalafix.JLineAccess
 import sbt.plugins.JvmPlugin
-import scalafix.interfaces.ScalafixError
+import scalafix.interfaces.{ScalafixError, ScalafixMainCallback}
 import scalafix.internal.sbt.Arg.ToolClasspath
 import scalafix.internal.sbt._
 
@@ -73,6 +73,13 @@ object ScalafixPlugin extends AutoPlugin {
         "Optional location to .scalafix.conf file to specify which scalafix rules should run. " +
           "Defaults to the build base directory if a .scalafix.conf file exists."
       )
+
+    val scalafixCallback: SettingKey[ScalafixMainCallback] =
+      settingKey[ScalafixMainCallback](
+        "The handler for the diagnostics emitted during scalafix execution. Must be set in ThisBuild. " +
+          "Defaults to a wrapper around `sbt.Logger`."
+      )
+
     val scalafixSemanticdb: ModuleID =
       scalafixSemanticdb(BuildInfo.scalametaVersion)
     def scalafixSemanticdb(scalametaVersion: String): ModuleID =
@@ -159,7 +166,9 @@ object ScalafixPlugin extends AutoPlugin {
     scalafixInterfaceProvider := ScalafixInterface.fromToolClasspath(
       scalafixScalaBinaryVersion.value,
       scalafixDependencies = scalafixDependencies.value,
-      scalafixCustomResolvers = scalafixResolvers.value
+      scalafixCustomResolvers = scalafixResolvers.value,
+      logger = ScalafixInterface.defaultLogger,
+      callback = (ThisBuild / scalafixCallback).value
     ),
     update := {
       object SemanticdbScalac {
@@ -197,6 +206,7 @@ object ScalafixPlugin extends AutoPlugin {
   )
 
   override lazy val globalSettings: Seq[Def.Setting[_]] = Seq(
+    scalafixCallback := new ScalafixLogger(ScalafixInterface.defaultLogger),
     scalafixConfig := None, // let scalafix-cli try to infer $CWD/.scalafix.conf
     scalafixOnCompile := false,
     scalafixCaching := true,

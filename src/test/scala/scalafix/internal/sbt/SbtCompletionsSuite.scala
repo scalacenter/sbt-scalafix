@@ -37,7 +37,9 @@ class SbtCompletionsSuite extends AnyFunSuite {
           MavenRepository.of(
             "https://oss.sonatype.org/content/repositories/snapshots"
           )
-        )
+        ),
+        ScalafixInterface.defaultLogger,
+        new ScalafixLogger(ScalafixInterface.defaultLogger)
       )()
   val loadedRules = mainArgs.availableRules.toList
 
