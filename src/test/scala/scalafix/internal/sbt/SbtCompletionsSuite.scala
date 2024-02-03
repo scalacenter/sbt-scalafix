@@ -119,12 +119,13 @@ class SbtCompletionsSuite extends AnyFunSuite {
         |NoValInForComprehension
         |  Removes deprecated val inside for-comprehension binders
         |OrganizeImports
+        |  Organize import statements
         |ProcedureSyntax
         |  Replaces deprecated procedure syntax with explicit ': Unit ='
         |RedundantSyntax
         |  Removes redundant syntax such as `final` modifiers on an object
         |RemoveUnused
-        |  Removes unused imports and terms that reported by the compiler under -Ywarn-unused
+        |  Removes unused imports and terms that reported by the compiler under -Wunused
         |SemanticRule
         |SyntacticRule
         |class:
