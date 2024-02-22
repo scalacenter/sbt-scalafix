@@ -1,6 +1,6 @@
 inThisBuild(
   List(
-    scalaVersion := "2.12.18"
+    scalaVersion := "2.12.19"
   )
 )
 
