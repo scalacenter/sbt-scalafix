@@ -1,3 +1,7 @@
+# make sure unmanagedSources does not silently exclude 000-chmoded files on recent
+# sbt versions (where input files are stamped with Hash by default)
+> set unmanagedSources / inputFileStamper := sbt.nio.FileStamper.LastModified
+
 # a re-run after a no-op, successful run should be cached
 > set scalafixConfig := Some(file("files/DisableSyntaxNull.scalafix.conf"))
 $ mkdir src/main/scala
