@@ -51,10 +51,14 @@ scalaVersion := "2.12.19"
 pluginCrossBuild / sbtVersion := "1.3.1"
 
 scriptedSbt := {
-  if (System.getProperty("java.specification.version").toDouble < 17)
-    "1.3.0"
-  else
+  val jdk = System.getProperty("java.specification.version").toDouble
+
+  if (jdk >= 21)
+    "1.9.0" // first release that supports JDK21
+  else if (jdk >= 17)
     "1.5.5" // first release that supports JDK17
+  else
+    "1.3.0"
 }
 
 libraryDependencies += compilerPlugin(scalafixSemanticdb)
