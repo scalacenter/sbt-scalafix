@@ -31,7 +31,7 @@ jobs:
       - uses: coursier/setup-action@v1
         with:
           jvm: temurin:17
-      - run: sbt "test; scripted sbt-scalafix/*"
+      - run: sbt "test; scripted sbt-*/* skip-windows/*"
   jdk21:
     name: JDK21 tests
     runs-on: ubuntu-latest
@@ -40,7 +40,7 @@ jobs:
       - uses: olafurpg/setup-scala@v14
         with:
           jvm: temurin:17
-      - run: sbt "test; scripted sbt-scalafix/*"
+      - run: sbt "test; scripted sbt-*/* skip-windows/*"
   windows:
     name: Windows tests
     runs-on: windows-latest
