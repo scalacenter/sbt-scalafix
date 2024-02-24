@@ -1,12 +1,15 @@
-inThisBuild(
-  List(
-    scalaVersion := "2.12.19",
-    semanticdbEnabled := true,
-    semanticdbVersion := scalafixSemanticdb.revision
-  )
-)
+// support sbt 1.3.x, see https://github.com/sbt/sbt/issues/5110
+Global / semanticdbVersion := scalafixSemanticdb.revision
+ThisBuild / semanticdbEnabled := true
 
-lazy val example = project
+lazy val scala212 = project
   .settings(
+    scalaVersion := "2.12.19",
     scalacOptions += "-Ywarn-unused"
+  )
+
+lazy val scala213 = project
+  .settings(
+    scalaVersion := "2.13.13",
+    scalacOptions += "-Wunused"
   )
