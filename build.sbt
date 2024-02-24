@@ -50,17 +50,6 @@ scalaVersion := "2.12.19"
 // keep this as low as possible to avoid running into binary incompatibility such as https://github.com/sbt/sbt/issues/5049
 pluginCrossBuild / sbtVersion := "1.3.1"
 
-scriptedSbt := {
-  val jdk = System.getProperty("java.specification.version").toDouble
-
-  if (jdk >= 21)
-    "1.9.0" // first release that supports JDK21
-  else if (jdk >= 17)
-    "1.5.5" // first release that supports JDK17
-  else
-    "1.3.0"
-}
-
 libraryDependencies += compilerPlugin(scalafixSemanticdb)
 
 scalacOptions ++= List("-Ywarn-unused", "-Yrangepos")
