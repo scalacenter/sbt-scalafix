@@ -37,10 +37,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: olafurpg/setup-scala@v14
+      - uses: coursier/setup-action@v1
         with:
-          jvm: temurin:17
-      - run: sbt "test; scripted sbt-*/* skip-windows/*"
+          jvm: temurin:21
+      - run: sbt "test; scripted sbt-scalafix/* skip-windows/*"
   windows:
     name: Windows tests
     runs-on: windows-latest

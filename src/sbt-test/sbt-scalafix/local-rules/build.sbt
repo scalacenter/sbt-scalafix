@@ -7,7 +7,7 @@ inThisBuild(
       "ch.epfl.scala" %% "example-scalafix-rule" % "1.4.0"
     ),
     resolvers += Resolver.sonatypeRepo("snapshots"),
-    scalaVersion := "2.13.0", // out of sync with scalafix.sbt.BuildInfo.scala213 on purpose
+    scalaVersion := "2.13.11", // out of sync with scalafix.sbt.BuildInfo.scala213 on purpose
     scalafixScalaBinaryVersion :=
       // this should be the default in sbt-scalafix 1.0
       CrossVersion.binaryScalaVersion(scalaVersion.value)
@@ -24,7 +24,7 @@ val rules = project
 val service = project
   .dependsOn(rules % ScalafixConfig)
   .settings(
-    libraryDependencies += "com.nequissimus" %% "sort-imports" % "0.5.2" % ScalafixConfig
+    libraryDependencies += "ch.epfl.scala" %% "example-scalafix-rule" % "3.0.0" % ScalafixConfig
   )
 
 val sameproject = project
