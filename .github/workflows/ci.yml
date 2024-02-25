@@ -47,6 +47,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: coursier/setup-action@v1
+        with:
+          jvm: temurin:17
       - run: sbt ci-windows
         shell: bash
   checks:
