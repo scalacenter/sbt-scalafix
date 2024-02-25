@@ -72,6 +72,7 @@ scalacOptions ++= List(
 // Scripted
 enablePlugins(ScriptedPlugin)
 sbtPlugin := true
+scriptedParallelInstances := 4
 scriptedBufferLog := false
 scriptedLaunchOpts ++= Seq(
   "-Xmx2048M",
