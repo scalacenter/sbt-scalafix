@@ -8,16 +8,22 @@ lazy val root = project
   .in(file("."))
   .settings(
     scalaVersion := Versions.scala212,
-    crossScalaVersions := Seq(Versions.scala212, Versions.scala213, scala3Version),
-    scalacOptions ++= (if (scalaVersion.value.startsWith("2")) Seq("-Ywarn-unused") else Seq()),
+    crossScalaVersions := Seq(
+      Versions.scala212,
+      Versions.scala213,
+      scala3Version
+    ),
+    scalacOptions ++= (if (scalaVersion.value.startsWith("2"))
+                         Seq("-Ywarn-unused")
+                       else Seq()),
     scalafixScalaBinaryVersion := {
       if (scalaBinaryVersion.value == "3") scalafixScalaBinaryVersion.value
       else scalaBinaryVersion.value
     },
     scalafixConfig := {
       if (scalaBinaryVersion.value == "3")
-         Some(file(".scalafix-3.conf"))
+        Some(file(".scalafix-3.conf"))
       else
-         Some(file(".scalafix-2.conf"))
+        Some(file(".scalafix-2.conf"))
     }
   )
