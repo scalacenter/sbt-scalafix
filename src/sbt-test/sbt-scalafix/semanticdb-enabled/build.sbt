@@ -4,7 +4,7 @@ ThisBuild / semanticdbEnabled := true
 
 lazy val scala212 = project
   .settings(
-    scalaVersion := "2.12.19",
+    scalaVersion := "2.13.13",
     scalacOptions += "-Ywarn-unused"
   )
 
