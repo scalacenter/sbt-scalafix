@@ -34,7 +34,7 @@ class ScalafixAPISuite extends AnyFunSuite {
     val interface = ScalafixInterface
       .fromToolClasspath(
         "2.12",
-        List("ch.epfl.scala" %% "example-scalafix-rule" % "3.0.0"),
+        List("ch.epfl.scala" %% "example-scalafix-rule" % "4.0.0"),
         Seq(
           Repository.central,
           MavenRepository.of(
