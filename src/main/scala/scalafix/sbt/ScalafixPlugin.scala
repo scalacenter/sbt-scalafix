@@ -132,7 +132,8 @@ object ScalafixPlugin extends AutoPlugin {
       Invisible
     )
 
-  private val scalafixInterfaceProvider: SettingKey[() => ScalafixInterface] =
+  private val scalafixInterfaceProvider
+      : SettingKey[Seq[Repository] => ScalafixInterface] =
     SettingKey(
       "scalafixInterfaceProvider",
       "Implementation detail - do not use",
@@ -149,12 +150,51 @@ object ScalafixPlugin extends AutoPlugin {
       Invisible
     )
 
+  private val adaptSbtResolvers = Def.task {
+    val credentialsByHost = Credentials
+      .allDirect(credentials.value)
+      .map(dc =>
+        dc.host -> coursierapi.Credentials.of(
+          dc.userName,
+          dc.passwd
+        )
+      )
+      .toMap
+
+    resolvers.value.flatMap(resolver => {
+      val adaptedRepo = CoursierRepoResolvers.repository(
+        resolver,
+        stdoutLogger,
+        credentialsByHost
+      )
+      if (adaptedRepo.isEmpty) {
+        stdoutLogger.warn(
+          s"Defined resolver $resolver cannot be converted to coursier repository, thus will be ignored by scalafix."
+        )
+      }
+      adaptedRepo
+    })
+  }
+
   private lazy val cachingStyle = {
     val useLastModifiedCachingStyle =
       sys.props.get("sbt-scalafix.uselastmodified") == Some("true")
     if (useLastModifiedCachingStyle) FileInfo.lastModified
     else FileInfo.hash
   }
+
+  private lazy val defaultScalafixResolvers =
+    // Repository.defaults() defaults to Repository.ivy2Local() and Repository.central(). These can be overridden per
+    // env variable, e.g., export COURSIER_REPOSITORIES="ivy2Local|central|sonatype:releases|jitpack|https://corporate.com/repo".
+    // See https://github.com/coursier/coursier/blob/master/modules/coursier/jvm/src/main/scala/coursier/PlatformResolve.scala#L19-L68
+    // and https://get-coursier.io/docs/other-repositories for more details.
+    // Also see src/sbt-test/sbt-scalafix/scalafixResolvers/test for a scripted test preserving this behavior.
+    Repository.defaults().asScala.toSeq ++
+      Seq(
+        coursierapi.MavenRepository.of(
+          "https://oss.sonatype.org/content/repositories/public"
+        )
+      )
 
   override lazy val projectConfigurations: Seq[Configuration] =
     Seq(ScalafixConfig)
@@ -170,13 +210,17 @@ object ScalafixPlugin extends AutoPlugin {
         SettingKey[Boolean]("bspEnabled") := false
       )
     ),
-    scalafixInterfaceProvider := ScalafixInterface.fromToolClasspath(
-      scalafixScalaBinaryVersion.value,
-      scalafixDependencies = scalafixDependencies.value,
-      scalafixCustomResolvers = scalafixResolvers.value,
-      logger = ScalafixInterface.defaultLogger,
-      callback = (ThisBuild / scalafixCallback).value
-    ),
+    scalafixInterfaceProvider := { (customResolvers: Seq[Repository]) =>
+      ScalafixInterface
+        .fromToolClasspath(
+          scalafixScalaBinaryVersion.value,
+          scalafixDependencies = scalafixDependencies.value,
+          scalafixCustomResolvers = customResolvers,
+          logger = ScalafixInterface.defaultLogger,
+          callback = (ThisBuild / scalafixCallback).value
+        )
+        .apply()
+    },
     update := {
       object SemanticdbScalac {
         def unapply(id: ModuleID): Option[String] =
@@ -217,18 +261,7 @@ object ScalafixPlugin extends AutoPlugin {
     scalafixConfig := None, // let scalafix-cli try to infer $CWD/.scalafix.conf
     scalafixOnCompile := false,
     scalafixCaching := true,
-    scalafixResolvers :=
-      // Repository.defaults() defaults to Repository.ivy2Local() and Repository.central(). These can be overridden per
-      // env variable, e.g., export COURSIER_REPOSITORIES="ivy2Local|central|sonatype:releases|jitpack|https://corporate.com/repo".
-      // See https://github.com/coursier/coursier/blob/master/modules/coursier/jvm/src/main/scala/coursier/PlatformResolve.scala#L19-L68
-      // and https://get-coursier.io/docs/other-repositories for more details.
-      // Also see src/sbt-test/sbt-scalafix/scalafixResolvers/test for a scripted test preserving this behavior.
-      Repository.defaults().asScala.toSeq ++
-        Seq(
-          coursierapi.MavenRepository.of(
-            "https://oss.sonatype.org/content/repositories/public"
-          )
-        ),
+    scalafixResolvers := defaultScalafixResolvers,
     scalafixDependencies := Nil,
     commands += ScalafixEnable.command,
     scalafixInterfaceCache := new BlockingCache[
@@ -305,7 +338,11 @@ object ScalafixPlugin extends AutoPlugin {
     val parser = Def.setting(
       new ScalafixCompletions(
         workingDirectory = (ThisBuild / baseDirectory).value.toPath,
-        loadedRules = () => scalafixInterfaceProvider.value().availableRules(),
+        loadedRules = () =>
+          scalafixInterfaceProvider
+            // sbt Credentials is task, so unfortunately it cannot be showed up here
+            .value(scalafixResolvers.value)
+            .availableRules(),
         terminalWidth = Some(JLineAccess.terminalWidth),
         allowedTargetFilesPrefixes = Nil,
         jgitCompletion = scalafixJGitCompletion.value
@@ -358,7 +395,11 @@ object ScalafixPlugin extends AutoPlugin {
     val parser = Def.setting(
       new ScalafixCompletions(
         workingDirectory = (ThisBuild / baseDirectory).value.toPath,
-        loadedRules = () => scalafixInterfaceProvider.value().availableRules(),
+        loadedRules = () =>
+          // sbt Credentials is task, so unfortunately it cannot be showed up here
+          scalafixInterfaceProvider
+            .value(scalafixResolvers.value)
+            .availableRules(),
         terminalWidth = Some(JLineAccess.terminalWidth),
         allowedTargetFilesPrefixes =
           (scalafix / unmanagedSourceDirectories).value.map(_.toPath),
@@ -395,9 +436,11 @@ object ScalafixPlugin extends AutoPlugin {
         scalafixHelp
       } else {
         val scalafixConf = (config / scalafixConfig).value.map(_.toPath)
+        val resolvers =
+          (adaptSbtResolvers.value ++ scalafixResolvers.value).distinct
         val (shell, mainInterface0) = scalafixArgsFromShell(
           shellArgs,
-          scalafixInterfaceProvider.value,
+          () => scalafixInterfaceProvider.value(resolvers),
           scalafixInterfaceCache.value,
           projectDepsExternal,
           (ThisBuild / scalafixDependencies).value,
@@ -432,7 +475,7 @@ object ScalafixPlugin extends AutoPlugin {
   private def scalafixHelp: Def.Initialize[Task[Unit]] =
     Def.task {
       scalafixInterfaceProvider
-        .value()
+        .value((adaptSbtResolvers.value ++ scalafixResolvers.value).distinct)
         .withArgs(Arg.ParsedArgs(List("--help")))
         .run()
       ()
