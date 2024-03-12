@@ -341,7 +341,7 @@ object ScalafixPlugin extends AutoPlugin {
         loadedRules = () =>
           scalafixInterfaceProvider
             // sbt Credentials is a task, so unfortunately it cannot be showed up here
-            .value(scalafixResolvers.value)
+            .value((ThisBuild / scalafixResolvers).value)
             .availableRules(),
         terminalWidth = Some(JLineAccess.terminalWidth),
         allowedTargetFilesPrefixes = Nil,
@@ -398,7 +398,7 @@ object ScalafixPlugin extends AutoPlugin {
         loadedRules = () =>
           // sbt Credentials is a task, so unfortunately it cannot be showed up here
           scalafixInterfaceProvider
-            .value(scalafixResolvers.value)
+            .value((ThisBuild / scalafixResolvers).value)
             .availableRules(),
         terminalWidth = Some(JLineAccess.terminalWidth),
         allowedTargetFilesPrefixes =
@@ -437,14 +437,14 @@ object ScalafixPlugin extends AutoPlugin {
       } else {
         val scalafixConf = (config / scalafixConfig).value.map(_.toPath)
         val resolvers =
-          (adaptSbtResolvers.value ++ scalafixResolvers.value).distinct
+          (adaptSbtResolvers.value ++ (ThisBuild / scalafixResolvers).value).distinct
         val (shell, mainInterface0) = scalafixArgsFromShell(
           shellArgs,
           () => scalafixInterfaceProvider.value(resolvers),
           scalafixInterfaceCache.value,
           projectDepsExternal,
           (ThisBuild / scalafixDependencies).value,
-          (ThisBuild / scalafixResolvers).value,
+          resolvers,
           projectDepsInternal
         )
         val maybeNoCache =
@@ -474,8 +474,10 @@ object ScalafixPlugin extends AutoPlugin {
 
   private def scalafixHelp: Def.Initialize[Task[Unit]] =
     Def.task {
+      val resolvers =
+        (adaptSbtResolvers.value ++ (ThisBuild / scalafixResolvers).value).distinct
       scalafixInterfaceProvider
-        .value((adaptSbtResolvers.value ++ scalafixResolvers.value).distinct)
+        .value(resolvers)
         .withArgs(Arg.ParsedArgs(List("--help")))
         .run()
       ()
