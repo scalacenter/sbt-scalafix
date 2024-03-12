@@ -169,7 +169,7 @@ object ScalafixPlugin extends AutoPlugin {
       )
       if (adaptedRepo.isEmpty) {
         stdoutLogger.warn(
-          s"Defined resolver $resolver cannot be converted to coursier repository, thus will be ignored by scalafix."
+          s"Defined resolver $resolver cannot be converted to coursier repository, it will be ignored by scalafix."
         )
       }
       adaptedRepo
@@ -340,7 +340,7 @@ object ScalafixPlugin extends AutoPlugin {
         workingDirectory = (ThisBuild / baseDirectory).value.toPath,
         loadedRules = () =>
           scalafixInterfaceProvider
-            // sbt Credentials is task, so unfortunately it cannot be showed up here
+            // sbt Credentials is a task, so unfortunately it cannot be showed up here
             .value(scalafixResolvers.value)
             .availableRules(),
         terminalWidth = Some(JLineAccess.terminalWidth),
@@ -396,7 +396,7 @@ object ScalafixPlugin extends AutoPlugin {
       new ScalafixCompletions(
         workingDirectory = (ThisBuild / baseDirectory).value.toPath,
         loadedRules = () =>
-          // sbt Credentials is task, so unfortunately it cannot be showed up here
+          // sbt Credentials is a task, so unfortunately it cannot be showed up here
           scalafixInterfaceProvider
             .value(scalafixResolvers.value)
             .availableRules(),
