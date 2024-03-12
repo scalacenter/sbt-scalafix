@@ -4,4 +4,3 @@
 -XX:ReservedCodeCacheSize=1024m
 -XX:+TieredCompilation
 -Dfile.encoding=UTF-8
--Dadd-opens=java.base/java.util=ALL-UNNAMED
