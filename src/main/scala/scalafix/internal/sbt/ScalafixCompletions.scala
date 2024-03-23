@@ -14,7 +14,8 @@ class ScalafixCompletions(
     // depend on settings, while local rules classpath must be looked up via tasks
     loadedRules: () => Seq[ScalafixRule],
     terminalWidth: Option[Int],
-    allowedTargetFilesPrefixes: Seq[Path] // Nil means all values are valid
+    allowedTargetFilesPrefixes: Seq[Path], // Nil means all values are valid
+    jgitCompletion: JGitCompletion
 ) {
 
   private type P = Parser[String]
@@ -116,7 +117,6 @@ class ScalafixCompletions(
   private val namedRule2: Parser[ShellArgs.Rule] =
     namedRule.map(s => ShellArgs.Rule(s))
   private lazy val gitDiffParser: P = {
-    val jgitCompletion = new JGitCompletion(workingDirectory)
     token(
       NotQuoted,
       TokenCompletions.fixed((seen, _) => {
