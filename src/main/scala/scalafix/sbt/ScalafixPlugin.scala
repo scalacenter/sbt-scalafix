@@ -241,9 +241,7 @@ object ScalafixPlugin extends AutoPlugin {
   override def buildSettings: Seq[Def.Setting[_]] =
     Seq(
       scalafixScalaBinaryVersion := "2.12",
-      scalafixJGitCompletion := new JGitCompletion(
-        (ThisBuild / baseDirectory).value.toPath
-      )
+      scalafixJGitCompletion := new JGitCompletion(baseDirectory.value.toPath)
     )
 
   lazy val stdoutLogger = ConsoleLogger(System.out)
@@ -310,7 +308,7 @@ object ScalafixPlugin extends AutoPlugin {
         loadedRules = () => scalafixInterfaceProvider.value().availableRules(),
         terminalWidth = Some(JLineAccess.terminalWidth),
         allowedTargetFilesPrefixes = Nil,
-        jgitCompletion = (ThisBuild / scalafixJGitCompletion).value
+        jgitCompletion = scalafixJGitCompletion.value
       )
     )(_.parser)
     // workaround https://github.com/sbt/sbt/issues/3572 by invoking directly what Def.inputTaskDyn would via macro
@@ -364,7 +362,7 @@ object ScalafixPlugin extends AutoPlugin {
         terminalWidth = Some(JLineAccess.terminalWidth),
         allowedTargetFilesPrefixes =
           (scalafix / unmanagedSourceDirectories).value.map(_.toPath),
-        jgitCompletion = (ThisBuild / scalafixJGitCompletion).value
+        jgitCompletion = scalafixJGitCompletion.value
       )
     )(_.parser)
 
