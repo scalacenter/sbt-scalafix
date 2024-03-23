@@ -47,7 +47,8 @@ class SbtCompletionsSuite extends AnyFunSuite {
     workingDirectory = fs.workingDirectory.toAbsolutePath,
     loadedRules = () => loadedRules,
     terminalWidth = None,
-    allowedTargetFilesPrefixes = Seq(fs.workingDirectory.resolve("foo"))
+    allowedTargetFilesPrefixes = Seq(fs.workingDirectory.resolve("foo")),
+    jgitCompletion = new JGitCompletion(fs.workingDirectory.toAbsolutePath)
   ).parser
 
   def checkCompletion(name: String, testTags: Tag*)(
@@ -268,7 +269,8 @@ class SbtCompletionsSuite extends AnyFunSuite {
       workingDirectory = fs.workingDirectory.toAbsolutePath,
       loadedRules = () => Nil,
       terminalWidth = None,
-      allowedTargetFilesPrefixes = Nil
+      allowedTargetFilesPrefixes = Nil,
+      jgitCompletion = new JGitCompletion(fs.workingDirectory.toAbsolutePath)
     ).parser
   )("--test --files=foo", SkipWindows) { args =>
     assert(args == Left("""--files=foo
