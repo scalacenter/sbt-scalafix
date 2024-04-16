@@ -1,0 +1,3 @@
+# even resolver was only set for sbt resolvers, dependency fetching works fine and scalafix can be used normally
+> scalafix SyntacticRule
+> scalafix --check SyntacticRule
