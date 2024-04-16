@@ -2,16 +2,15 @@ package scalafix.sbt
 
 import java.io.PrintStream
 import java.nio.file.{Path, Paths}
-
 import coursierapi.Repository
 import sbt.KeyRanks.Invisible
-import sbt.Keys._
-import sbt._
+import sbt.Keys.*
+import sbt.{Def, *}
 import sbt.internal.sbtscalafix.JLineAccess
 import sbt.plugins.JvmPlugin
 import scalafix.interfaces.{ScalafixError, ScalafixMainCallback}
 import scalafix.internal.sbt.Arg.ToolClasspath
-import scalafix.internal.sbt._
+import scalafix.internal.sbt.*
 
 import scala.collection.JavaConverters.collectionAsScalaIterableConverter
 import scala.util.control.NoStackTrace
@@ -150,31 +149,32 @@ object ScalafixPlugin extends AutoPlugin {
       Invisible
     )
 
-  private val adaptSbtResolvers = Def.task {
-    val credentialsByHost = Credentials
-      .allDirect(credentials.value)
-      .map(dc =>
-        dc.host -> coursierapi.Credentials.of(
-          dc.userName,
-          dc.passwd
+  private val adaptSbtResolvers: Def.Initialize[Task[Seq[Repository]]] =
+    Def.task {
+      val credentialsByHost = Credentials
+        .allDirect(credentials.value)
+        .map(dc =>
+          dc.host -> coursierapi.Credentials.of(
+            dc.userName,
+            dc.passwd
+          )
         )
-      )
-      .toMap
+        .toMap
 
-    resolvers.value.flatMap(resolver => {
-      val adaptedRepo = CoursierRepoResolvers.repository(
-        resolver,
-        stdoutLogger,
-        credentialsByHost
-      )
-      if (adaptedRepo.isEmpty) {
-        stdoutLogger.warn(
-          s"Defined resolver $resolver cannot be converted to coursier repository, it will be ignored by scalafix."
+      resolvers.value.flatMap(resolver => {
+        val adaptedRepo = CoursierRepoResolvers.repository(
+          resolver,
+          stdoutLogger,
+          credentialsByHost
         )
-      }
-      adaptedRepo
-    })
-  }
+        if (adaptedRepo.isEmpty) {
+          stdoutLogger.warn(
+            s"Defined resolver $resolver cannot be converted to coursier repository, it will be ignored by scalafix."
+          )
+        }
+        adaptedRepo
+      })
+    }
 
   private lazy val cachingStyle = {
     val useLastModifiedCachingStyle =
