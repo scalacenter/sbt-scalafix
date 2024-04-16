@@ -162,17 +162,11 @@ object ScalafixPlugin extends AutoPlugin {
         .toMap
 
       resolvers.value.flatMap(resolver => {
-        val adaptedRepo = CoursierRepoResolvers.repository(
+        CoursierRepoResolvers.repository(
           resolver,
           stdoutLogger,
           credentialsByHost
         )
-        if (adaptedRepo.isEmpty) {
-          stdoutLogger.warn(
-            s"Defined resolver $resolver cannot be converted to coursier repository, it will be ignored by scalafix."
-          )
-        }
-        adaptedRepo
       })
     }
 
