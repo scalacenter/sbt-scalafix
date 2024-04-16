@@ -149,8 +149,8 @@ object ScalafixPlugin extends AutoPlugin {
       Invisible
     )
 
-  private val scalafixAdaptedSbtResolvers: TaskKey[Seq[Repository]] = TaskKey(
-    "scalafixAdaptedSbtResolvers",
+  private val scalafixAdaptSbtResolvers: TaskKey[Seq[Repository]] = TaskKey(
+    "scalafixAdaptSbtResolvers",
     "Implementation detail - do not use",
     Invisible
   )
@@ -247,32 +247,32 @@ object ScalafixPlugin extends AutoPlugin {
       ToolClasspath,
       ScalafixInterface
     ],
-    scalafixAdaptedSbtResolvers := {
-      val logger = streams.value.log
-
-      val credentialsByHost = Credentials
-        .allDirect(credentials.value)
-        .map(dc =>
-          dc.host -> coursierapi.Credentials.of(
-            dc.userName,
-            dc.passwd
-          )
-        )
-        .toMap
-
-      resolvers.value.flatMap(resolver => {
-        CoursierRepoResolvers.repository(
-          resolver,
-          logger,
-          credentialsByHost
-        )
-      })
-    },
     concurrentRestrictions += Tags.exclusiveGroup(Scalafix)
   )
 
   override def buildSettings: Seq[Def.Setting[_]] =
     Seq(
+      scalafixAdaptedSbtResolvers := {
+        val logger = streams.value.log
+
+        val credentialsByHost = Credentials
+          .allDirect(credentials.value)
+          .map(dc =>
+            dc.host -> coursierapi.Credentials.of(
+              dc.userName,
+              dc.passwd
+            )
+          )
+          .toMap
+
+        resolvers.value.flatMap(resolver => {
+          CoursierRepoResolvers.repository(
+            resolver,
+            logger,
+            credentialsByHost
+          )
+        })
+      },
       scalafixScalaBinaryVersion := "2.12",
       scalafixJGitCompletion := new JGitCompletion(baseDirectory.value.toPath)
     )
@@ -437,7 +437,7 @@ object ScalafixPlugin extends AutoPlugin {
       } else {
         val scalafixConf = (config / scalafixConfig).value.map(_.toPath)
         val resolvers =
-          ((ThisBuild / scalafixAdaptedSbtResolvers).value ++ (ThisBuild / scalafixResolvers).value).distinct
+          ((ThisBuild / scalafixAdaptSbtResolvers).value ++ (ThisBuild / scalafixResolvers).value).distinct
         val (shell, mainInterface0) = scalafixArgsFromShell(
           shellArgs,
           () => scalafixInterfaceProvider.value(resolvers),
@@ -475,7 +475,7 @@ object ScalafixPlugin extends AutoPlugin {
   private def scalafixHelp: Def.Initialize[Task[Unit]] =
     Def.task {
       val resolvers =
-        ((ThisBuild / scalafixAdaptedSbtResolvers).value ++ (ThisBuild / scalafixResolvers).value).distinct
+        ((ThisBuild / scalafixAdaptSbtResolvers).value ++ (ThisBuild / scalafixResolvers).value).distinct
       scalafixInterfaceProvider
         .value(resolvers)
         .withArgs(Arg.ParsedArgs(List("--help")))
