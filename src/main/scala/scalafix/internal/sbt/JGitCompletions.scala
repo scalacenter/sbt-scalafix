@@ -18,27 +18,35 @@ class JGitCompletion(cwd: Path) {
     RepositoryCache.FileKey
       .isGitRepository(cwd.resolve(DOT_GIT).toFile, FS.DETECTED)
 
-  private val (refList, refs) =
+  val branchesAndTags: List[String] = {
     if (isGitRepository) {
       val builder = new FileRepositoryBuilder()
       val repo = builder.readEnvironment().setWorkTree(cwd.toFile).build()
-      val refList0 =
+      val refList =
         repo.getRefDatabase().getRefsByPrefix(RefDatabase.ALL).asScala
-      val git = new Git(repo)
-      val refs0 =
-        Try(git.log().setMaxCount(20).call().asScala.toList).getOrElse(Nil)
-      (refList0, refs0)
+      refList.map { ref => Repository.shortenRefName(ref.getName) }.toList
     } else {
-      (Nil, Nil)
+      Nil
     }
-
-  val branchesAndTags: List[String] =
-    refList.map { ref => Repository.shortenRefName(ref.getName) }.toList
+  }
 
   private val dateFormatter = new GitDateFormatter(
     GitDateFormatter.Format.RELATIVE
   )
-  val last20Commits: List[(String, String)] =
+  val last20Commits: List[(String, String)] = {
+    val refs = {
+      if (isGitRepository) {
+        val builder = new FileRepositoryBuilder()
+        val repo = builder.readEnvironment().setWorkTree(cwd.toFile).build()
+        val git = new Git(repo)
+        val refs0 =
+          Try(git.log().setMaxCount(20).call().asScala.toList).getOrElse(Nil)
+        refs0
+      } else {
+        Nil
+      }
+    }
+
     refs.map { ref =>
       val relativeCommitTime =
         dateFormatter.formatDate(refs.head.getCommitterIdent)
@@ -46,4 +54,5 @@ class JGitCompletion(cwd: Path) {
       val short = ref.getShortMessage
       (s"$abrev -- $short ($relativeCommitTime)", abrev)
     }
+  }
 }
