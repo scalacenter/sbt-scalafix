@@ -151,6 +151,8 @@ object ScalafixPlugin extends AutoPlugin {
 
   private val adaptSbtResolvers: Def.Initialize[Task[Seq[Repository]]] =
     Def.task {
+      val logger = streams.value.log
+
       val credentialsByHost = Credentials
         .allDirect(credentials.value)
         .map(dc =>
@@ -164,7 +166,7 @@ object ScalafixPlugin extends AutoPlugin {
       resolvers.value.flatMap(resolver => {
         CoursierRepoResolvers.repository(
           resolver,
-          stdoutLogger,
+          logger,
           credentialsByHost
         )
       })
