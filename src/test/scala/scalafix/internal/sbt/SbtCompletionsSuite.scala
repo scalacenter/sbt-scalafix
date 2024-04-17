@@ -29,12 +29,16 @@ class SbtCompletionsSuite extends AnyFunSuite {
   }
   val mainArgs =
     ScalafixInterface(
+      new BlockingCache(),
       "2.12",
-      Seq(exampleDependency),
-      Seq(
-        Repository.central,
-        MavenRepository.of(
-          "https://oss.sonatype.org/content/repositories/snapshots"
+      Arg.ToolClasspath(
+        Nil,
+        Seq(exampleDependency),
+        Seq(
+          Repository.central,
+          MavenRepository.of(
+            "https://oss.sonatype.org/content/repositories/snapshots"
+          )
         )
       ),
       ScalafixInterface.defaultLogger,

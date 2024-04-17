@@ -4,6 +4,7 @@ import java.nio.file.Path
 import java.{util => jutil}
 import coursierapi.Repository
 import sbt._
+import sbt.io.RegularFileFilter
 import scalafix.interfaces.{Scalafix => ScalafixAPI, _}
 import scalafix.sbt.InvalidArgument
 
@@ -31,6 +32,16 @@ object Arg {
         customDependencies.map(_.asCoursierCoordinates).asJava,
         repositories.asJava
       )
+
+    def mutableFiles: Seq[File] =
+      customURIs
+        .map(uri => java.nio.file.Paths.get(uri).toFile)
+        .flatMap {
+          case classDirectory if classDirectory.isDirectory =>
+            classDirectory.**(RegularFileFilter).get
+          case jar =>
+            Seq(jar)
+        }
   }
 
   case class Rules(rules: Seq[String]) extends Arg with CacheKey {
@@ -81,7 +92,7 @@ object Arg {
 
 class ScalafixInterface private (
     scalafixArguments: ScalafixArguments, // hide it to force usage of withArgs so we can intercept arguments
-    val args: Seq[Arg]
+    val args: Seq[Arg] = Nil
 ) {
 
   def withArgs(args: Arg*): ScalafixInterface = {
@@ -113,60 +124,103 @@ class ScalafixInterface private (
 
 object ScalafixInterface {
 
-  private val providerMemoization: BlockingCache[
-    (String, Seq[ModuleID], Seq[Repository]),
-    ScalafixInterface
-  ] = new BlockingCache
+  type Cache = BlockingCache[
+    (
+        String, // scalafixScalaBinaryVersion
+        Option[Arg.ToolClasspath]
+    ),
+    (
+        ScalafixInterface,
+        Seq[Long] // mutable files stamping
+    )
+  ]
 
   private[scalafix] val defaultLogger: Logger = ConsoleLogger(System.out)
 
   def apply(
+      cache: Cache,
       scalafixScalaBinaryVersion: String,
-      scalafixDependencies: Seq[ModuleID],
-      scalafixResolvers: Seq[Repository],
+      toolClasspath: Arg.ToolClasspath,
       logger: Logger,
       callback: ScalafixMainCallback
-  ): ScalafixInterface =
-    providerMemoization.getOrElseUpdate(
+  ): ScalafixInterface = {
+
+    // Build or retrieve from the cache the scalafix interface that can run
+    // built-in rules. This is the most costly instantiation, which should be
+    // shared as much as possible.
+    val (buildinRulesInterface, _) = cache.compute(
       (
         scalafixScalaBinaryVersion,
-        scalafixDependencies,
-        scalafixResolvers
-      ), {
-        if (scalafixScalaBinaryVersion.startsWith("3"))
-          logger.error(
-            "To use Scalafix on Scala 3 projects, you must unset `scalafixScalaBinaryVersion`. " +
-              "Rules such as ExplicitResultTypes requiring the project version to match the Scalafix " +
-              "version are unsupported for the moment."
-          )
-        else if (scalafixScalaBinaryVersion == "2.11")
-          logger.error(
-            "Scala 2.11 is no longer supported. Please downgrade to the final version supporting " +
-              "it: sbt-scalafix 0.10.4."
-          )
-        val scalafixArguments = ScalafixAPI
-          .fetchAndClassloadInstance(
-            scalafixScalaBinaryVersion,
-            scalafixResolvers.asJava
-          )
-          .newArguments()
-          .withMainCallback(callback)
-        val printStream =
-          new PrintStream(
-            LoggingOutputStream(
-              logger,
-              Level.Info
+        None
+      ),
+      {
+        case Some(_) =>
+          // cache hit, don't update
+          None
+        case None =>
+          // cache miss, resolve scalafix artifacts and classload them
+          if (scalafixScalaBinaryVersion.startsWith("3"))
+            logger.error(
+              "To use Scalafix on Scala 3 projects, you must unset `scalafixScalaBinaryVersion`. " +
+                "Rules such as ExplicitResultTypes requiring the project version to match the Scalafix " +
+                "version are unsupported for the moment."
+            )
+          else if (scalafixScalaBinaryVersion == "2.11")
+            logger.error(
+              "Scala 2.11 is no longer supported. Please downgrade to the final version supporting " +
+                "it: sbt-scalafix 0.10.4."
+            )
+          val scalafixArguments = ScalafixAPI
+            .fetchAndClassloadInstance(
+              scalafixScalaBinaryVersion,
+              toolClasspath.repositories.asJava
+            )
+            .newArguments()
+            .withMainCallback(callback)
+
+          val printStream = Arg.PrintStream(
+            new PrintStream(
+              LoggingOutputStream(
+                logger,
+                Level.Info
+              )
             )
           )
-        new ScalafixInterface(scalafixArguments, Nil)
-          .withArgs(
-            Arg.PrintStream(printStream),
-            Arg.ToolClasspath(
-              Nil,
-              scalafixDependencies,
-              scalafixResolvers
+
+          Some(
+            (
+              new ScalafixInterface(scalafixArguments).withArgs(printStream),
+              Nil
             )
           )
       }
     )
+
+    // stamp the files that might change, to potentialy force invalidation
+    // of the corresponding cache entry
+    val currentStamps =
+      toolClasspath.mutableFiles.map(IO.getModifiedTimeOrZero)
+
+    val (toolClasspathInterface, _) = cache.compute(
+      (
+        scalafixScalaBinaryVersion,
+        Some(toolClasspath)
+      ),
+      {
+        case Some((_, oldStamps)) if (currentStamps == oldStamps) =>
+          // cache hit, don't update
+          None
+        case _ =>
+          // cache miss or stale stamps, resolve custom rules artifacts and classload them
+          Some(
+            (
+              buildinRulesInterface.withArgs(toolClasspath),
+              currentStamps
+            )
+          )
+      }
+    )
+
+    toolClasspathInterface
+  }
 }

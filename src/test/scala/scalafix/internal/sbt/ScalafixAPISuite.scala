@@ -32,12 +32,16 @@ class ScalafixAPISuite extends AnyFunSuite {
     val baos = new ByteArrayOutputStream()
     val logger = ConsoleLogger(new PrintStream(baos))
     val interface = ScalafixInterface(
+      new BlockingCache(),
       "2.12",
-      List("ch.epfl.scala" %% "example-scalafix-rule" % "4.0.0"),
-      Seq(
-        Repository.central,
-        MavenRepository.of(
-          "https://oss.sonatype.org/content/repositories/snapshots"
+      Arg.ToolClasspath(
+        Nil,
+        List("ch.epfl.scala" %% "example-scalafix-rule" % "4.0.0"),
+        Seq(
+          Repository.central,
+          MavenRepository.of(
+            "https://oss.sonatype.org/content/repositories/snapshots"
+          )
         )
       ),
       logger,
