@@ -5,3 +5,4 @@
 > set ThisBuild / resolvers += Resolver.sonatypeRepo("snapshots")
 -> scalafix --check SyntacticRule
 > scalafix SyntacticRule
+> scalafix --check SyntacticRule
