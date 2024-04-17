@@ -146,6 +146,7 @@ object ScalafixPlugin extends AutoPlugin {
             scalafixInterfaceCache.value,
             scalafixScalaBinaryVersion.value,
             toolClasspath = Arg.ToolClasspath(
+              // Local rules classpath must be looked up via tasks so they can't appear in completions
               Nil,
               scalafixDependencies.value,
               // scalafixSbtResolversAsCoursierRepositories can't be
