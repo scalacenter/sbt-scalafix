@@ -252,7 +252,7 @@ object ScalafixPlugin extends AutoPlugin {
 
   override def buildSettings: Seq[Def.Setting[_]] =
     Seq(
-      scalafixAdaptedSbtResolvers := {
+      scalafixAdaptSbtResolvers := {
         val logger = streams.value.log
 
         val credentialsByHost = Credentials
