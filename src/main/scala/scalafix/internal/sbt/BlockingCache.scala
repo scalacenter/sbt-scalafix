@@ -7,8 +7,7 @@ import scala.util.Try
 /** A basic thread-safe cache without any eviction. */
 class BlockingCache[K, V] {
 
-  // Number of keys is expected to be very small so the global lock should not be a bottleneck
-  private val underlying = ju.Collections.synchronizedMap(new ju.HashMap[K, V])
+  private val underlying = new ju.concurrent.ConcurrentHashMap[K, V]
 
   private case class SkipUpdate(prev: V) extends Exception
 
