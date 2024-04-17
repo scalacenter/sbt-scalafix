@@ -151,8 +151,9 @@ object ScalafixPlugin extends AutoPlugin {
       Invisible
     )
 
-  private val scalafixAdaptSbtResolvers: TaskKey[Seq[Repository]] = TaskKey(
-    "scalafixAdaptSbtResolvers",
+  private val scalafixSbtResolversAsCoursierRepositories
+      : TaskKey[Seq[Repository]] = TaskKey(
+    "scalafixSbtResolversAsCoursierRepositories",
     "Implementation detail - do not use",
     Invisible
   )
@@ -254,7 +255,7 @@ object ScalafixPlugin extends AutoPlugin {
 
   override def buildSettings: Seq[Def.Setting[_]] =
     Seq(
-      scalafixAdaptSbtResolvers := {
+      scalafixSbtResolversAsCoursierRepositories := {
         val logger = streams.value.log
 
         val credentialsByHost = Credentials
@@ -449,7 +450,7 @@ object ScalafixPlugin extends AutoPlugin {
       } else {
         val scalafixConf = (config / scalafixConfig).value.map(_.toPath)
         val resolvers =
-          ((ThisBuild / scalafixResolvers).value ++ (ThisBuild / scalafixAdaptSbtResolvers).value).distinct
+          ((ThisBuild / scalafixResolvers).value ++ (ThisBuild / scalafixSbtResolversAsCoursierRepositories).value).distinct
         val (shell, mainInterface0) = scalafixArgsFromShell(
           shellArgs,
           () => scalafixInterfaceProvider.value(resolvers),
@@ -487,7 +488,7 @@ object ScalafixPlugin extends AutoPlugin {
   private def scalafixHelp: Def.Initialize[Task[Unit]] =
     Def.task {
       val resolvers =
-        ((ThisBuild / scalafixResolvers).value ++ (ThisBuild / scalafixAdaptSbtResolvers).value).distinct
+        ((ThisBuild / scalafixResolvers).value ++ (ThisBuild / scalafixSbtResolversAsCoursierRepositories).value).distinct
       scalafixInterfaceProvider
         .value(resolvers)
         .withArgs(Arg.ParsedArgs(List("--help")))
