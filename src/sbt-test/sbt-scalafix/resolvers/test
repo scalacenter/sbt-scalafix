@@ -1,0 +1,8 @@
+# without the proper resolver/repository, invocation of the community rule fails
+-> scalafix SyntacticRule
+
+# once the proper resolver is setup via sbt, dependency fetching works fine and scalafix can be used normally
+> set ThisBuild / resolvers += Resolver.sonatypeRepo("snapshots")
+-> scalafix --check SyntacticRule
+> scalafix SyntacticRule
+> scalafix --check SyntacticRule

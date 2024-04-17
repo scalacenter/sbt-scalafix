@@ -2,20 +2,22 @@ package scalafix.sbt
 
 import java.io.PrintStream
 import java.nio.file.{Path, Paths}
-
 import coursierapi.Repository
 import sbt.KeyRanks.Invisible
-import sbt.Keys._
-import sbt._
+import sbt.Keys.*
+import sbt.*
 import sbt.internal.sbtscalafix.JLineAccess
+import sbt.internal.util.complete.Parser
 import sbt.plugins.JvmPlugin
 import scalafix.interfaces.{ScalafixError, ScalafixMainCallback}
 import scalafix.internal.sbt.Arg.ToolClasspath
-import scalafix.internal.sbt._
+import scalafix.internal.sbt.*
 
 import scala.collection.JavaConverters.collectionAsScalaIterableConverter
 import scala.util.control.NoStackTrace
 import sbt.librarymanagement.ResolveException
+
+import scala.util.Try
 
 object ScalafixPlugin extends AutoPlugin {
   override def trigger: PluginTrigger = allRequirements
@@ -132,12 +134,38 @@ object ScalafixPlugin extends AutoPlugin {
       Invisible
     )
 
-  private val scalafixInterfaceProvider: SettingKey[() => ScalafixInterface] =
+  private val scalafixInterfaceProvider
+      : SettingKey[Seq[Repository] => ScalafixInterface] =
     SettingKey(
       "scalafixInterfaceProvider",
       "Implementation detail - do not use",
       Invisible
     )
+
+  private def scalafixParser: Def.Initialize[Parser[ShellArgs]] =
+    Def.setting {
+      val allowedTargetFilesPrefixes =
+        // only set in a config-level scope (i.e. scalafix, and not scalafixAll)
+        (scalafix / unmanagedSourceDirectories).?.value.toSeq.flatten
+          .map(_.toPath)
+      new ScalafixCompletions(
+        workingDirectory = (ThisBuild / baseDirectory).value.toPath,
+        loadedRules = () =>
+          // `scalafixDependencies` might be resolvable only from one of the
+          // `scalafixSbtResolversAsCoursierRepositories` that we can't look up
+          // here, as it's a task and we are in a settings context. Therefore
+          // we fallback to an empty list of rules in case of resolution error
+          // to keep providing completions for the rest.
+          Try {
+            scalafixInterfaceProvider
+              .value((ThisBuild / scalafixResolvers).value)
+              .availableRules()
+          }.getOrElse(Seq.empty),
+        terminalWidth = Some(JLineAccess.terminalWidth),
+        allowedTargetFilesPrefixes = allowedTargetFilesPrefixes,
+        jgitCompletion = scalafixJGitCompletion.value
+      )
+    }(_.parser)
 
   // Memoize ScalafixInterface instances initialized with a custom tool classpath across projects & configurations
   // during task execution, to amortize the classloading cost when invoking scalafix concurrently on many targets
@@ -149,12 +177,32 @@ object ScalafixPlugin extends AutoPlugin {
       Invisible
     )
 
+  private val scalafixSbtResolversAsCoursierRepositories
+      : TaskKey[Seq[Repository]] = TaskKey(
+    "scalafixSbtResolversAsCoursierRepositories",
+    "Implementation detail - do not use",
+    Invisible
+  )
+
   private lazy val cachingStyle = {
     val useLastModifiedCachingStyle =
       sys.props.get("sbt-scalafix.uselastmodified") == Some("true")
     if (useLastModifiedCachingStyle) FileInfo.lastModified
     else FileInfo.hash
   }
+
+  private lazy val defaultScalafixResolvers =
+    // Repository.defaults() defaults to Repository.ivy2Local() and Repository.central(). These can be overridden per
+    // env variable, e.g., export COURSIER_REPOSITORIES="ivy2Local|central|sonatype:releases|jitpack|https://corporate.com/repo".
+    // See https://github.com/coursier/coursier/blob/master/modules/coursier/jvm/src/main/scala/coursier/PlatformResolve.scala#L19-L68
+    // and https://get-coursier.io/docs/other-repositories for more details.
+    // Also see src/sbt-test/sbt-scalafix/scalafixResolvers/test for a scripted test preserving this behavior.
+    Repository.defaults().asScala.toSeq ++
+      Seq(
+        coursierapi.MavenRepository.of(
+          "https://oss.sonatype.org/content/repositories/public"
+        )
+      )
 
   override lazy val projectConfigurations: Seq[Configuration] =
     Seq(ScalafixConfig)
@@ -170,13 +218,17 @@ object ScalafixPlugin extends AutoPlugin {
         SettingKey[Boolean]("bspEnabled") := false
       )
     ),
-    scalafixInterfaceProvider := ScalafixInterface.fromToolClasspath(
-      scalafixScalaBinaryVersion.value,
-      scalafixDependencies = scalafixDependencies.value,
-      scalafixCustomResolvers = scalafixResolvers.value,
-      logger = ScalafixInterface.defaultLogger,
-      callback = (ThisBuild / scalafixCallback).value
-    ),
+    scalafixInterfaceProvider := { (customResolvers: Seq[Repository]) =>
+      ScalafixInterface
+        .fromToolClasspath(
+          scalafixScalaBinaryVersion.value,
+          scalafixDependencies = scalafixDependencies.value,
+          scalafixCustomResolvers = customResolvers,
+          logger = ScalafixInterface.defaultLogger,
+          callback = (ThisBuild / scalafixCallback).value
+        )
+        .apply()
+    },
     update := {
       object SemanticdbScalac {
         def unapply(id: ModuleID): Option[String] =
@@ -217,18 +269,7 @@ object ScalafixPlugin extends AutoPlugin {
     scalafixConfig := None, // let scalafix-cli try to infer $CWD/.scalafix.conf
     scalafixOnCompile := false,
     scalafixCaching := true,
-    scalafixResolvers :=
-      // Repository.defaults() defaults to Repository.ivy2Local() and Repository.central(). These can be overridden per
-      // env variable, e.g., export COURSIER_REPOSITORIES="ivy2Local|central|sonatype:releases|jitpack|https://corporate.com/repo".
-      // See https://github.com/coursier/coursier/blob/master/modules/coursier/jvm/src/main/scala/coursier/PlatformResolve.scala#L19-L68
-      // and https://get-coursier.io/docs/other-repositories for more details.
-      // Also see src/sbt-test/sbt-scalafix/scalafixResolvers/test for a scripted test preserving this behavior.
-      Repository.defaults().asScala.toSeq ++
-        Seq(
-          coursierapi.MavenRepository.of(
-            "https://oss.sonatype.org/content/repositories/public"
-          )
-        ),
+    scalafixResolvers := defaultScalafixResolvers,
     scalafixDependencies := Nil,
     commands += ScalafixEnable.command,
     scalafixInterfaceCache := new BlockingCache[
@@ -240,6 +281,27 @@ object ScalafixPlugin extends AutoPlugin {
 
   override def buildSettings: Seq[Def.Setting[_]] =
     Seq(
+      scalafixSbtResolversAsCoursierRepositories := {
+        val logger = streams.value.log
+
+        val credentialsByHost = Credentials
+          .allDirect(credentials.value)
+          .map { dc =>
+            dc.host -> coursierapi.Credentials.of(
+              dc.userName,
+              dc.passwd
+            )
+          }
+          .toMap
+
+        resolvers.value.flatMap { resolver =>
+          CoursierRepoResolvers.repository(
+            resolver,
+            logger,
+            credentialsByHost
+          )
+        }
+      },
       scalafixScalaBinaryVersion := "2.12",
       scalafixJGitCompletion := new JGitCompletion(baseDirectory.value.toPath)
     )
@@ -302,17 +364,8 @@ object ScalafixPlugin extends AutoPlugin {
   }
 
   private def scalafixAllInputTask(): Def.Initialize[InputTask[Unit]] = {
-    val parser = Def.setting(
-      new ScalafixCompletions(
-        workingDirectory = (ThisBuild / baseDirectory).value.toPath,
-        loadedRules = () => scalafixInterfaceProvider.value().availableRules(),
-        terminalWidth = Some(JLineAccess.terminalWidth),
-        allowedTargetFilesPrefixes = Nil,
-        jgitCompletion = scalafixJGitCompletion.value
-      )
-    )(_.parser)
     // workaround https://github.com/sbt/sbt/issues/3572 by invoking directly what Def.inputTaskDyn would via macro
-    InputTask.createDyn(InputTask.initParserAsInput(parser))(
+    InputTask.createDyn(InputTask.initParserAsInput(scalafixParser))(
       Def.task(shellArgs =>
         scalafixAllTask(shellArgs, thisProject.value, resolvedScoped.value)
       )
@@ -355,22 +408,10 @@ object ScalafixPlugin extends AutoPlugin {
   private def scalafixInputTask(
       config: Configuration
   ): Def.Initialize[InputTask[Unit]] = {
-    val parser = Def.setting(
-      new ScalafixCompletions(
-        workingDirectory = (ThisBuild / baseDirectory).value.toPath,
-        loadedRules = () => scalafixInterfaceProvider.value().availableRules(),
-        terminalWidth = Some(JLineAccess.terminalWidth),
-        allowedTargetFilesPrefixes =
-          (scalafix / unmanagedSourceDirectories).value.map(_.toPath),
-        jgitCompletion = scalafixJGitCompletion.value
-      )
-    )(_.parser)
-
     // workaround https://github.com/sbt/sbt/issues/3572 by invoking directly what Def.inputTaskDyn would via macro
-    InputTask
-      .createDyn(InputTask.initParserAsInput(parser))(
-        Def.task(shellArgs => scalafixTask(shellArgs, config))
-      )
+    InputTask.createDyn(InputTask.initParserAsInput(scalafixParser))(
+      Def.task(shellArgs => scalafixTask(shellArgs, config))
+    )
   }
 
   private def scalafixTask(
@@ -395,13 +436,15 @@ object ScalafixPlugin extends AutoPlugin {
         scalafixHelp
       } else {
         val scalafixConf = (config / scalafixConfig).value.map(_.toPath)
+        val resolvers =
+          ((ThisBuild / scalafixResolvers).value ++ (ThisBuild / scalafixSbtResolversAsCoursierRepositories).value).distinct
         val (shell, mainInterface0) = scalafixArgsFromShell(
           shellArgs,
-          scalafixInterfaceProvider.value,
+          () => scalafixInterfaceProvider.value(resolvers),
           scalafixInterfaceCache.value,
           projectDepsExternal,
           (ThisBuild / scalafixDependencies).value,
-          (ThisBuild / scalafixResolvers).value,
+          resolvers,
           projectDepsInternal
         )
         val maybeNoCache =
@@ -431,8 +474,10 @@ object ScalafixPlugin extends AutoPlugin {
 
   private def scalafixHelp: Def.Initialize[Task[Unit]] =
     Def.task {
+      val resolvers =
+        ((ThisBuild / scalafixResolvers).value ++ (ThisBuild / scalafixSbtResolversAsCoursierRepositories).value).distinct
       scalafixInterfaceProvider
-        .value()
+        .value(resolvers)
         .withArgs(Arg.ParsedArgs(List("--help")))
         .run()
       ()
