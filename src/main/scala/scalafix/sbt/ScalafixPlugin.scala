@@ -58,11 +58,11 @@ object ScalafixPlugin extends AutoPlugin {
     val scalafixResolvers: SettingKey[Seq[Repository]] =
       settingKey[Seq[Repository]](
         "Optional list of Maven/Ivy repositories to use for fetching custom rules. " +
-          "Can be set in ThisBuild or at project-level."
+          "Must be set in ThisBuild."
       )
     val scalafixDependencies: SettingKey[Seq[ModuleID]] =
       settingKey[Seq[ModuleID]](
-        "Optional list of custom rules to install from Maven Central. " +
+        "Optional list of artifacts to resolve to run custom rules. " +
           "Can be set in ThisBuild or at project-level."
       )
     val scalafixScalaBinaryVersion: SettingKey[String] =
