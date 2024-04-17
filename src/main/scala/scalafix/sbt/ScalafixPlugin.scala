@@ -257,12 +257,12 @@ object ScalafixPlugin extends AutoPlugin {
 
         val credentialsByHost = Credentials
           .allDirect(credentials.value)
-          .map(dc =>
+          .map { dc =>
             dc.host -> coursierapi.Credentials.of(
               dc.userName,
               dc.passwd
             )
-          )
+          }
           .toMap
 
         resolvers.value.flatMap(resolver => {
