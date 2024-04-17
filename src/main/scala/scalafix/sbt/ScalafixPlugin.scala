@@ -16,6 +16,8 @@ import scala.collection.JavaConverters.collectionAsScalaIterableConverter
 import scala.util.control.NoStackTrace
 import sbt.librarymanagement.ResolveException
 
+import scala.util.Try
+
 object ScalafixPlugin extends AutoPlugin {
   override def trigger: PluginTrigger = allRequirements
   override def requires: Plugins = JvmPlugin
@@ -339,10 +341,15 @@ object ScalafixPlugin extends AutoPlugin {
       new ScalafixCompletions(
         workingDirectory = (ThisBuild / baseDirectory).value.toPath,
         loadedRules = () =>
-          scalafixInterfaceProvider
-            // sbt Credentials is a task, so unfortunately it cannot be showed up here
-            .value((ThisBuild / scalafixResolvers).value)
-            .availableRules(),
+          // since the introduce of scalafixSbtResolversAsCoursierRepositories
+          // loading rules here without converted sbt resolvers could cause trying to download dependencies that unable to resolve
+          // we simply recover it to empty external rules to maintain the main task runs well
+          Try {
+            scalafixInterfaceProvider
+              // sbt Credentials is a task, so unfortunately it cannot be showed up here
+              .value((ThisBuild / scalafixResolvers).value)
+              .availableRules()
+          }.getOrElse(Seq.empty),
         terminalWidth = Some(JLineAccess.terminalWidth),
         allowedTargetFilesPrefixes = Nil,
         jgitCompletion = scalafixJGitCompletion.value
@@ -396,10 +403,15 @@ object ScalafixPlugin extends AutoPlugin {
       new ScalafixCompletions(
         workingDirectory = (ThisBuild / baseDirectory).value.toPath,
         loadedRules = () =>
-          // sbt Credentials is a task, so unfortunately it cannot be showed up here
-          scalafixInterfaceProvider
-            .value((ThisBuild / scalafixResolvers).value)
-            .availableRules(),
+          // since the introduce of scalafixSbtResolversAsCoursierRepositories
+          // loading rules here without converted sbt resolvers could cause trying to download dependencies that unable to resolve
+          // we simply recover it to empty external rules to maintain the main task runs well
+          Try {
+            scalafixInterfaceProvider
+              // sbt Credentials is a task, so unfortunately it cannot be showed up here
+              .value((ThisBuild / scalafixResolvers).value)
+              .availableRules()
+          }.getOrElse(Seq.empty),
         terminalWidth = Some(JLineAccess.terminalWidth),
         allowedTargetFilesPrefixes =
           (scalafix / unmanagedSourceDirectories).value.map(_.toPath),
