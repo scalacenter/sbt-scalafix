@@ -31,19 +31,18 @@ class ScalafixAPISuite extends AnyFunSuite {
     assume(!Properties.isWin)
     val baos = new ByteArrayOutputStream()
     val logger = ConsoleLogger(new PrintStream(baos))
-    val interface = ScalafixInterface
-      .fromToolClasspath(
-        "2.12",
-        List("ch.epfl.scala" %% "example-scalafix-rule" % "4.0.0"),
-        Seq(
-          Repository.central,
-          MavenRepository.of(
-            "https://oss.sonatype.org/content/repositories/snapshots"
-          )
-        ),
-        logger,
-        new ScalafixLogger(logger)
-      )()
+    val interface = ScalafixInterface(
+      "2.12",
+      List("ch.epfl.scala" %% "example-scalafix-rule" % "4.0.0"),
+      Seq(
+        Repository.central,
+        MavenRepository.of(
+          "https://oss.sonatype.org/content/repositories/snapshots"
+        )
+      ),
+      logger,
+      new ScalafixLogger(logger)
+    )
       .withArgs(Arg.PrintStream(new PrintStream(baos)))
     val tmp = Files.createTempFile("scalafix", "Tmp.scala")
     tmp.toFile.deleteOnExit()

@@ -134,14 +134,6 @@ object ScalafixPlugin extends AutoPlugin {
       Invisible
     )
 
-  private val scalafixInterfaceProvider
-      : SettingKey[Seq[Repository] => ScalafixInterface] =
-    SettingKey(
-      "scalafixInterfaceProvider",
-      "Implementation detail - do not use",
-      Invisible
-    )
-
   private def scalafixParser: Def.Initialize[Parser[ShellArgs]] =
     Def.setting {
       val allowedTargetFilesPrefixes =
@@ -150,17 +142,22 @@ object ScalafixPlugin extends AutoPlugin {
           .map(_.toPath)
       new ScalafixCompletions(
         workingDirectory = (ThisBuild / baseDirectory).value.toPath,
-        loadedRules = () =>
+        loadedRules = { () =>
+          val scalafixInterface = ScalafixInterface(
+            scalafixScalaBinaryVersion.value,
+            scalafixDependencies = scalafixDependencies.value,
+            // scalafixSbtResolversAsCoursierRepositories can't be looked up here as it's a task
+            scalafixResolvers = (ThisBuild / scalafixResolvers).value,
+            logger = ScalafixInterface.defaultLogger,
+            callback = (ThisBuild / scalafixCallback).value
+          )
           // `scalafixDependencies` might be resolvable only from one of the
           // `scalafixSbtResolversAsCoursierRepositories` that we can't look up
           // here, as it's a task and we are in a settings context. Therefore
           // we fallback to an empty list of rules in case of resolution error
           // to keep providing completions for the rest.
-          Try {
-            scalafixInterfaceProvider
-              .value((ThisBuild / scalafixResolvers).value)
-              .availableRules()
-          }.getOrElse(Seq.empty),
+          Try(scalafixInterface.availableRules()).getOrElse(Seq.empty)
+        },
         terminalWidth = Some(JLineAccess.terminalWidth),
         allowedTargetFilesPrefixes = allowedTargetFilesPrefixes,
         jgitCompletion = scalafixJGitCompletion.value
@@ -218,17 +215,6 @@ object ScalafixPlugin extends AutoPlugin {
         SettingKey[Boolean]("bspEnabled") := false
       )
     ),
-    scalafixInterfaceProvider := { (customResolvers: Seq[Repository]) =>
-      ScalafixInterface
-        .fromToolClasspath(
-          scalafixScalaBinaryVersion.value,
-          scalafixDependencies = scalafixDependencies.value,
-          scalafixCustomResolvers = customResolvers,
-          logger = ScalafixInterface.defaultLogger,
-          callback = (ThisBuild / scalafixCallback).value
-        )
-        .apply()
-    },
     update := {
       object SemanticdbScalac {
         def unapply(id: ModuleID): Option[String] =
@@ -313,8 +299,8 @@ object ScalafixPlugin extends AutoPlugin {
       scalafixInterface: () => ScalafixInterface,
       scalafixInterfaceCache: BlockingCache[ToolClasspath, ScalafixInterface],
       projectDepsExternal: Seq[ModuleID],
-      baseDepsExternal: Seq[ModuleID],
-      baseResolvers: Seq[Repository],
+      projectScalafixDependencies: Seq[ModuleID],
+      buildAllResolvers: Seq[Repository],
       projectDepsInternal: Seq[File]
   ): (ShellArgs, ScalafixInterface) = {
     val (dependencyRules, rules) =
@@ -345,8 +331,8 @@ object ScalafixPlugin extends AutoPlugin {
       if (customToolClasspath) {
         val toolClasspath = ToolClasspath(
           projectDepsInternal0.map(_.toURI),
-          baseDepsExternal ++ projectDepsExternal ++ rulesDepsExternal,
-          baseResolvers
+          projectScalafixDependencies ++ projectDepsExternal ++ rulesDepsExternal,
+          buildAllResolvers
         )
         scalafixInterfaceCache.getOrElseUpdate(
           toolClasspath,
@@ -436,15 +422,23 @@ object ScalafixPlugin extends AutoPlugin {
         scalafixHelp
       } else {
         val scalafixConf = (config / scalafixConfig).value.map(_.toPath)
-        val resolvers =
+        val allResolvers =
           ((ThisBuild / scalafixResolvers).value ++ (ThisBuild / scalafixSbtResolversAsCoursierRepositories).value).distinct
+        val scalafixInterfaceProvider = () =>
+          ScalafixInterface(
+            scalafixScalaBinaryVersion.value,
+            scalafixDependencies = scalafixDependencies.value,
+            scalafixResolvers = allResolvers,
+            logger = ScalafixInterface.defaultLogger,
+            callback = (ThisBuild / scalafixCallback).value
+          )
         val (shell, mainInterface0) = scalafixArgsFromShell(
           shellArgs,
-          () => scalafixInterfaceProvider.value(resolvers),
+          scalafixInterfaceProvider,
           scalafixInterfaceCache.value,
           projectDepsExternal,
-          (ThisBuild / scalafixDependencies).value,
-          resolvers,
+          scalafixDependencies.value,
+          allResolvers,
           projectDepsInternal
         )
         val maybeNoCache =
@@ -474,10 +468,15 @@ object ScalafixPlugin extends AutoPlugin {
 
   private def scalafixHelp: Def.Initialize[Task[Unit]] =
     Def.task {
-      val resolvers =
+      val allResolvers =
         ((ThisBuild / scalafixResolvers).value ++ (ThisBuild / scalafixSbtResolversAsCoursierRepositories).value).distinct
-      scalafixInterfaceProvider
-        .value(resolvers)
+      ScalafixInterface(
+        scalafixScalaBinaryVersion.value,
+        scalafixDependencies = scalafixDependencies.value,
+        scalafixResolvers = allResolvers,
+        logger = ScalafixInterface.defaultLogger,
+        callback = (ThisBuild / scalafixCallback).value
+      )
         .withArgs(Arg.ParsedArgs(List("--help")))
         .run()
       ()
