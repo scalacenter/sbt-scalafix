@@ -7,6 +7,7 @@ import sbt.KeyRanks.Invisible
 import sbt.Keys.*
 import sbt.*
 import sbt.internal.sbtscalafix.JLineAccess
+import sbt.internal.util.complete.Parser
 import sbt.plugins.JvmPlugin
 import scalafix.interfaces.{ScalafixError, ScalafixMainCallback}
 import scalafix.internal.sbt.Arg.ToolClasspath
@@ -140,6 +141,27 @@ object ScalafixPlugin extends AutoPlugin {
       "Implementation detail - do not use",
       Invisible
     )
+
+  private def scalafixParser: Def.Initialize[Parser[ShellArgs]] =
+    Def.setting(
+      new ScalafixCompletions(
+        workingDirectory = (ThisBuild / baseDirectory).value.toPath,
+        loadedRules = () =>
+          // `scalafixDependencies` might be resolvable only from one of the
+          // `scalafixSbtResolversAsCoursierRepositories` that we can't look up
+          // here, as it's a task and we are in a settings context. Therefore
+          // we fallback to an empty list of rules in case of resolution error
+          // to keep providing completions for the rest.
+          Try {
+            scalafixInterfaceProvider
+              .value((ThisBuild / scalafixResolvers).value)
+              .availableRules()
+          }.getOrElse(Seq.empty),
+        terminalWidth = Some(JLineAccess.terminalWidth),
+        allowedTargetFilesPrefixes = Nil,
+        jgitCompletion = scalafixJGitCompletion.value
+      )
+    )(_.parser)
 
   // Memoize ScalafixInterface instances initialized with a custom tool classpath across projects & configurations
   // during task execution, to amortize the classloading cost when invoking scalafix concurrently on many targets
@@ -338,26 +360,8 @@ object ScalafixPlugin extends AutoPlugin {
   }
 
   private def scalafixAllInputTask(): Def.Initialize[InputTask[Unit]] = {
-    val parser = Def.setting(
-      new ScalafixCompletions(
-        workingDirectory = (ThisBuild / baseDirectory).value.toPath,
-        loadedRules = () =>
-          // since the introduce of scalafixSbtResolversAsCoursierRepositories
-          // loading rules here without converted sbt resolvers could cause trying to download dependencies that unable to resolve
-          // we simply recover it to empty external rules to maintain the main task runs well
-          Try {
-            scalafixInterfaceProvider
-              // sbt Credentials is a task, so unfortunately it cannot be showed up here
-              .value((ThisBuild / scalafixResolvers).value)
-              .availableRules()
-          }.getOrElse(Seq.empty),
-        terminalWidth = Some(JLineAccess.terminalWidth),
-        allowedTargetFilesPrefixes = Nil,
-        jgitCompletion = scalafixJGitCompletion.value
-      )
-    )(_.parser)
     // workaround https://github.com/sbt/sbt/issues/3572 by invoking directly what Def.inputTaskDyn would via macro
-    InputTask.createDyn(InputTask.initParserAsInput(parser))(
+    InputTask.createDyn(InputTask.initParserAsInput(scalafixParser))(
       Def.task(shellArgs =>
         scalafixAllTask(shellArgs, thisProject.value, resolvedScoped.value)
       )
@@ -400,29 +404,9 @@ object ScalafixPlugin extends AutoPlugin {
   private def scalafixInputTask(
       config: Configuration
   ): Def.Initialize[InputTask[Unit]] = {
-    val parser = Def.setting(
-      new ScalafixCompletions(
-        workingDirectory = (ThisBuild / baseDirectory).value.toPath,
-        loadedRules = () =>
-          // since the introduce of scalafixSbtResolversAsCoursierRepositories
-          // loading rules here without converted sbt resolvers could cause trying to download dependencies that unable to resolve
-          // we simply recover it to empty external rules to maintain the main task runs well
-          Try {
-            scalafixInterfaceProvider
-              // sbt Credentials is a task, so unfortunately it cannot be showed up here
-              .value((ThisBuild / scalafixResolvers).value)
-              .availableRules()
-          }.getOrElse(Seq.empty),
-        terminalWidth = Some(JLineAccess.terminalWidth),
-        allowedTargetFilesPrefixes =
-          (scalafix / unmanagedSourceDirectories).value.map(_.toPath),
-        jgitCompletion = scalafixJGitCompletion.value
-      )
-    )(_.parser)
-
     // workaround https://github.com/sbt/sbt/issues/3572 by invoking directly what Def.inputTaskDyn would via macro
     InputTask
-      .createDyn(InputTask.initParserAsInput(parser))(
+      .createDyn(InputTask.initParserAsInput(scalafixParser))(
         Def.task(shellArgs => scalafixTask(shellArgs, config))
       )
   }
