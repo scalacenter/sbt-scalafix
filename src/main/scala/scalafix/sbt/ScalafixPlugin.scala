@@ -415,25 +415,32 @@ object ScalafixPlugin extends AutoPlugin {
         (ScalafixConfig / externalDependencyClasspath).value
           .flatMap(_.get(moduleID.key))
 
-      if (shellArgs.rules.isEmpty && shellArgs.extra == List("--help")) {
-        scalafixHelp
+      val allResolvers =
+        ((ThisBuild / scalafixResolvers).value ++ (ThisBuild / scalafixSbtResolversAsCoursierRepositories).value).distinct
+      val (shell, baseInterface) = scalafixArgsFromShell(
+        shellArgs,
+        projectDepsExternal,
+        projectDepsInternal,
+        scalafixScalaBinaryVersion.value,
+        scalafixDependencies.value,
+        allResolvers,
+        (ThisBuild / scalafixCallback).value,
+        scalafixInterfaceCache.value
+      )
+
+      val informationalInvocation = shellArgs.extra
+        .intersect(List("--help", "-h", "--version", "-v"))
+        .nonEmpty
+
+      if (informationalInvocation) {
+        Def.task[Unit](
+          baseInterface.withArgs(Arg.ParsedArgs(shell.extra)).run()
+        )
       } else {
         val scalafixConf = (config / scalafixConfig).value.map(_.toPath)
-        val allResolvers =
-          ((ThisBuild / scalafixResolvers).value ++ (ThisBuild / scalafixSbtResolversAsCoursierRepositories).value).distinct
-        val (shell, mainInterface0) = scalafixArgsFromShell(
-          shellArgs,
-          projectDepsExternal,
-          projectDepsInternal,
-          scalafixScalaBinaryVersion.value,
-          scalafixDependencies.value,
-          allResolvers,
-          (ThisBuild / scalafixCallback).value,
-          scalafixInterfaceCache.value
-        )
         val maybeNoCache =
           if (shell.noCache || !scalafixCaching.value) Seq(Arg.NoCache) else Nil
-        val mainInterface = mainInterface0
+        val mainInterface = baseInterface
           .withArgs(maybeNoCache: _*)
           .withArgs(
             Arg.PrintStream(errorLogger),
@@ -455,26 +462,6 @@ object ScalafixPlugin extends AutoPlugin {
     }
     task.tag(Scalafix)
   }
-
-  private def scalafixHelp: Def.Initialize[Task[Unit]] =
-    Def.task {
-      val allResolvers =
-        ((ThisBuild / scalafixResolvers).value ++ (ThisBuild / scalafixSbtResolversAsCoursierRepositories).value).distinct
-      ScalafixInterface(
-        scalafixInterfaceCache.value,
-        scalafixScalaBinaryVersion.value,
-        toolClasspath = Arg.ToolClasspath(
-          Nil,
-          scalafixDependencies.value,
-          allResolvers
-        ),
-        logger = ScalafixInterface.defaultLogger,
-        callback = (ThisBuild / scalafixCallback).value
-      )
-        .withArgs(Arg.ParsedArgs(List("--help")))
-        .run()
-      ()
-    }
 
   private def scalafixSyntactic(
       mainInterface: ScalafixInterface,
