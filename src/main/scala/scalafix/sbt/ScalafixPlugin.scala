@@ -437,7 +437,7 @@ object ScalafixPlugin extends AutoPlugin {
       } else {
         val scalafixConf = (config / scalafixConfig).value.map(_.toPath)
         val resolvers =
-          ((ThisBuild / scalafixAdaptSbtResolvers).value ++ (ThisBuild / scalafixResolvers).value).distinct
+          ((ThisBuild / scalafixResolvers).value ++ (ThisBuild / scalafixAdaptSbtResolvers).value).distinct
         val (shell, mainInterface0) = scalafixArgsFromShell(
           shellArgs,
           () => scalafixInterfaceProvider.value(resolvers),
@@ -475,7 +475,7 @@ object ScalafixPlugin extends AutoPlugin {
   private def scalafixHelp: Def.Initialize[Task[Unit]] =
     Def.task {
       val resolvers =
-        ((ThisBuild / scalafixAdaptSbtResolvers).value ++ (ThisBuild / scalafixResolvers).value).distinct
+        ((ThisBuild / scalafixResolvers).value ++ (ThisBuild / scalafixAdaptSbtResolvers).value).distinct
       scalafixInterfaceProvider
         .value(resolvers)
         .withArgs(Arg.ParsedArgs(List("--help")))
