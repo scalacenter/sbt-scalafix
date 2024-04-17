@@ -265,13 +265,13 @@ object ScalafixPlugin extends AutoPlugin {
           }
           .toMap
 
-        resolvers.value.flatMap(resolver => {
+        resolvers.value.flatMap { resolver =>
           CoursierRepoResolvers.repository(
             resolver,
             logger,
             credentialsByHost
           )
-        })
+        }
       },
       scalafixScalaBinaryVersion := "2.12",
       scalafixJGitCompletion := new JGitCompletion(baseDirectory.value.toPath)
