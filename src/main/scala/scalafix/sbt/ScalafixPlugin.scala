@@ -5,7 +5,7 @@ import java.nio.file.{Path, Paths}
 import coursierapi.Repository
 import sbt.KeyRanks.Invisible
 import sbt.Keys.*
-import sbt.{Def, *}
+import sbt.*
 import sbt.internal.sbtscalafix.JLineAccess
 import sbt.plugins.JvmPlugin
 import scalafix.interfaces.{ScalafixError, ScalafixMainCallback}
