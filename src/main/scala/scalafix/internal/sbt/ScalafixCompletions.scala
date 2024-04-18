@@ -10,8 +10,6 @@ import sbt.complete.DefaultParsers._
 
 class ScalafixCompletions(
     workingDirectory: Path,
-    // Unfortunately, local rules will not show up as completions in the parser, as that parser can only
-    // depend on settings, while local rules classpath must be looked up via tasks
     loadedRules: () => Seq[ScalafixRule],
     terminalWidth: Option[Int],
     allowedTargetFilesPrefixes: Seq[Path], // Nil means all values are valid

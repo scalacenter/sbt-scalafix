@@ -28,19 +28,22 @@ class SbtCompletionsSuite extends AnyFunSuite {
     "ch.epfl.scala" %% "example-scalafix-rule" % "2.0.0-RC1"
   }
   val mainArgs =
-    ScalafixInterface
-      .fromToolClasspath(
-        "2.12",
+    ScalafixInterface(
+      new BlockingCache(),
+      "2.12",
+      Arg.ToolClasspath(
+        Nil,
         Seq(exampleDependency),
         Seq(
           Repository.central,
           MavenRepository.of(
             "https://oss.sonatype.org/content/repositories/snapshots"
           )
-        ),
-        ScalafixInterface.defaultLogger,
-        new ScalafixLogger(ScalafixInterface.defaultLogger)
-      )()
+        )
+      ),
+      ScalafixInterface.defaultLogger,
+      new ScalafixLogger(ScalafixInterface.defaultLogger)
+    )
   val loadedRules = mainArgs.availableRules.toList
 
   val defaultParser = new ScalafixCompletions(

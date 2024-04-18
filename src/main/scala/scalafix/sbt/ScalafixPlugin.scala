@@ -1,7 +1,7 @@
 package scalafix.sbt
 
 import java.io.PrintStream
-import java.nio.file.{Path, Paths}
+import java.nio.file.Path
 import coursierapi.Repository
 import sbt.KeyRanks.Invisible
 import sbt.Keys.*
@@ -10,7 +10,6 @@ import sbt.internal.sbtscalafix.JLineAccess
 import sbt.internal.util.complete.Parser
 import sbt.plugins.JvmPlugin
 import scalafix.interfaces.{ScalafixError, ScalafixMainCallback}
-import scalafix.internal.sbt.Arg.ToolClasspath
 import scalafix.internal.sbt.*
 
 import scala.collection.JavaConverters.collectionAsScalaIterableConverter
@@ -134,14 +133,6 @@ object ScalafixPlugin extends AutoPlugin {
       Invisible
     )
 
-  private val scalafixInterfaceProvider
-      : SettingKey[Seq[Repository] => ScalafixInterface] =
-    SettingKey(
-      "scalafixInterfaceProvider",
-      "Implementation detail - do not use",
-      Invisible
-    )
-
   private def scalafixParser: Def.Initialize[Parser[ShellArgs]] =
     Def.setting {
       val allowedTargetFilesPrefixes =
@@ -150,28 +141,38 @@ object ScalafixPlugin extends AutoPlugin {
           .map(_.toPath)
       new ScalafixCompletions(
         workingDirectory = (ThisBuild / baseDirectory).value.toPath,
-        loadedRules = () =>
+        loadedRules = { () =>
+          val scalafixInterface = ScalafixInterface(
+            scalafixInterfaceCache.value,
+            scalafixScalaBinaryVersion.value,
+            toolClasspath = Arg.ToolClasspath(
+              // Local rules classpath must be looked up via tasks so they can't appear in completions
+              Nil,
+              scalafixDependencies.value,
+              // scalafixSbtResolversAsCoursierRepositories can't be
+              // looked up here as it's a task
+              (ThisBuild / scalafixResolvers).value
+            ),
+            logger = ScalafixInterface.defaultLogger,
+            callback = (ThisBuild / scalafixCallback).value
+          )
           // `scalafixDependencies` might be resolvable only from one of the
           // `scalafixSbtResolversAsCoursierRepositories` that we can't look up
           // here, as it's a task and we are in a settings context. Therefore
           // we fallback to an empty list of rules in case of resolution error
           // to keep providing completions for the rest.
-          Try {
-            scalafixInterfaceProvider
-              .value((ThisBuild / scalafixResolvers).value)
-              .availableRules()
-          }.getOrElse(Seq.empty),
+          Try(scalafixInterface.availableRules()).getOrElse(Seq.empty)
+        },
         terminalWidth = Some(JLineAccess.terminalWidth),
         allowedTargetFilesPrefixes = allowedTargetFilesPrefixes,
         jgitCompletion = scalafixJGitCompletion.value
       )
     }(_.parser)
 
-  // Memoize ScalafixInterface instances initialized with a custom tool classpath across projects & configurations
-  // during task execution, to amortize the classloading cost when invoking scalafix concurrently on many targets
-  private val scalafixInterfaceCache
-      : TaskKey[BlockingCache[ToolClasspath, ScalafixInterface]] =
-    TaskKey(
+  // Memoize ScalafixInterface instances across projects, configurations & invocations
+  // to amortize the costs of artifact resolution & classloading.
+  private val scalafixInterfaceCache: SettingKey[ScalafixInterface.Cache] =
+    SettingKey(
       "scalafixInterfaceCache",
       "Implementation detail - do not use",
       Invisible
@@ -218,17 +219,6 @@ object ScalafixPlugin extends AutoPlugin {
         SettingKey[Boolean]("bspEnabled") := false
       )
     ),
-    scalafixInterfaceProvider := { (customResolvers: Seq[Repository]) =>
-      ScalafixInterface
-        .fromToolClasspath(
-          scalafixScalaBinaryVersion.value,
-          scalafixDependencies = scalafixDependencies.value,
-          scalafixCustomResolvers = customResolvers,
-          logger = ScalafixInterface.defaultLogger,
-          callback = (ThisBuild / scalafixCallback).value
-        )
-        .apply()
-    },
     update := {
       object SemanticdbScalac {
         def unapply(id: ModuleID): Option[String] =
@@ -272,10 +262,7 @@ object ScalafixPlugin extends AutoPlugin {
     scalafixResolvers := defaultScalafixResolvers,
     scalafixDependencies := Nil,
     commands += ScalafixEnable.command,
-    scalafixInterfaceCache := new BlockingCache[
-      ToolClasspath,
-      ScalafixInterface
-    ],
+    scalafixInterfaceCache := new BlockingCache,
     concurrentRestrictions += Tags.exclusiveGroup(Scalafix)
   )
 
@@ -310,12 +297,13 @@ object ScalafixPlugin extends AutoPlugin {
 
   private def scalafixArgsFromShell(
       shell: ShellArgs,
-      scalafixInterface: () => ScalafixInterface,
-      scalafixInterfaceCache: BlockingCache[ToolClasspath, ScalafixInterface],
       projectDepsExternal: Seq[ModuleID],
-      baseDepsExternal: Seq[ModuleID],
-      baseResolvers: Seq[Repository],
-      projectDepsInternal: Seq[File]
+      projectDepsInternal: Seq[File],
+      projectScalafixScalaBinaryVersion: String,
+      projectScalafixDependencies: Seq[ModuleID],
+      buildAllResolvers: Seq[Repository],
+      buildScalafixMainCallback: ScalafixMainCallback,
+      buildScalafixInterfaceCache: ScalafixInterface.Cache
   ): (ShellArgs, ScalafixInterface) = {
     val (dependencyRules, rules) =
       shell.rules.partition(_.startsWith("dependency:"))
@@ -332,31 +320,27 @@ object ScalafixPlugin extends AutoPlugin {
         )
         throw new ScalafixFailed(List(ScalafixError.CommandLineError))
     }
-    val rulesDepsExternal = parsed.map(_.dependency)
+    val invocationDepsExternal = parsed.map(_.dependency)
     val projectDepsInternal0 = projectDepsInternal.filter {
       case directory if directory.isDirectory =>
         directory.**(AllPassFilter).get.exists(_.isFile)
       case file if file.isFile => true
       case _ => false
     }
-    val customToolClasspath =
-      (projectDepsInternal0 ++ projectDepsExternal ++ rulesDepsExternal).nonEmpty
-    val interface =
-      if (customToolClasspath) {
-        val toolClasspath = ToolClasspath(
-          projectDepsInternal0.map(_.toURI),
-          baseDepsExternal ++ projectDepsExternal ++ rulesDepsExternal,
-          baseResolvers
-        )
-        scalafixInterfaceCache.getOrElseUpdate(
-          toolClasspath,
-          // costly: triggers artifact resolution & classloader creation
-          scalafixInterface().withArgs(toolClasspath)
-        )
-      } else
-        // if there is nothing specific to the project or the invocation, reuse the default
-        // interface which already has the baseDepsExternal loaded
-        scalafixInterface()
+
+    val toolClasspath = Arg.ToolClasspath(
+      projectDepsInternal0.map(_.toURI),
+      projectScalafixDependencies ++ projectDepsExternal ++ invocationDepsExternal,
+      buildAllResolvers
+    )
+
+    val interface = ScalafixInterface(
+      cache = buildScalafixInterfaceCache,
+      scalafixScalaBinaryVersion = projectScalafixScalaBinaryVersion,
+      toolClasspath = toolClasspath,
+      logger = ScalafixInterface.defaultLogger,
+      callback = buildScalafixMainCallback
+    )
 
     val newShell = shell.copy(rules = rules ++ parsed.map(_.ruleName))
     (newShell, interface)
@@ -432,24 +416,32 @@ object ScalafixPlugin extends AutoPlugin {
         (ScalafixConfig / externalDependencyClasspath).value
           .flatMap(_.get(moduleID.key))
 
-      if (shellArgs.rules.isEmpty && shellArgs.extra == List("--help")) {
-        scalafixHelp
+      val allResolvers =
+        ((ThisBuild / scalafixResolvers).value ++ (ThisBuild / scalafixSbtResolversAsCoursierRepositories).value).distinct
+      val (shell, baseInterface) = scalafixArgsFromShell(
+        shellArgs,
+        projectDepsExternal,
+        projectDepsInternal,
+        scalafixScalaBinaryVersion.value,
+        scalafixDependencies.value,
+        allResolvers,
+        (ThisBuild / scalafixCallback).value,
+        scalafixInterfaceCache.value
+      )
+
+      val informationalInvocation = shellArgs.extra
+        .intersect(List("--help", "-h", "--version", "-v"))
+        .nonEmpty
+
+      if (informationalInvocation) {
+        Def.task[Unit](
+          baseInterface.withArgs(Arg.ParsedArgs(shell.extra)).run()
+        )
       } else {
         val scalafixConf = (config / scalafixConfig).value.map(_.toPath)
-        val resolvers =
-          ((ThisBuild / scalafixResolvers).value ++ (ThisBuild / scalafixSbtResolversAsCoursierRepositories).value).distinct
-        val (shell, mainInterface0) = scalafixArgsFromShell(
-          shellArgs,
-          () => scalafixInterfaceProvider.value(resolvers),
-          scalafixInterfaceCache.value,
-          projectDepsExternal,
-          (ThisBuild / scalafixDependencies).value,
-          resolvers,
-          projectDepsInternal
-        )
         val maybeNoCache =
           if (shell.noCache || !scalafixCaching.value) Seq(Arg.NoCache) else Nil
-        val mainInterface = mainInterface0
+        val mainInterface = baseInterface
           .withArgs(maybeNoCache: _*)
           .withArgs(
             Arg.PrintStream(errorLogger),
@@ -471,17 +463,6 @@ object ScalafixPlugin extends AutoPlugin {
     }
     task.tag(Scalafix)
   }
-
-  private def scalafixHelp: Def.Initialize[Task[Unit]] =
-    Def.task {
-      val resolvers =
-        ((ThisBuild / scalafixResolvers).value ++ (ThisBuild / scalafixSbtResolversAsCoursierRepositories).value).distinct
-      scalafixInterfaceProvider
-        .value(resolvers)
-        .withArgs(Arg.ParsedArgs(List("--help")))
-        .run()
-      ()
-    }
 
   private def scalafixSyntactic(
       mainInterface: ScalafixInterface,
@@ -568,16 +549,8 @@ object ScalafixPlugin extends AutoPlugin {
         private def stamp[J](
             obj: Arg.CacheKey
         )(implicit builder: Builder[J]): Unit = obj match {
-          case Arg.ToolClasspath(customURIs, customDependencies, _) =>
-            val files = customURIs
-              .map(uri => Paths.get(uri).toFile)
-              .flatMap {
-                case classDirectory if classDirectory.isDirectory =>
-                  classDirectory.**(AllPassFilter).get
-                case jar =>
-                  Seq(jar)
-              }
-            write(files.map(stampFile).sorted)
+          case toolClasspath @ Arg.ToolClasspath(_, customDependencies, _) =>
+            write(toolClasspath.mutableFiles.map(stampFile).sorted)
             write(customDependencies.map(_.toString).sorted)
           case Arg.Rules(rules) =>
             rules.foreach {
