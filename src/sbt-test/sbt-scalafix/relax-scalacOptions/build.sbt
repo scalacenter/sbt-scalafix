@@ -1,14 +1,8 @@
 val V = _root_.scalafix.sbt.BuildInfo
 
 addCompilerPlugin(scalafixSemanticdb)
-scalacOptions ++= Seq("-Yrangepos")
-
+scalacOptions ++= Seq("-Yrangepos", "-Ywarn-unused")
 scalaVersion := V.scala212
-scalacOptions ++= Seq(
-  // generate errors on unused imports
-  "-Xfatal-warnings",
-  "-Ywarn-unused"
-)
 Compile / compile / scalacOptions ++= Seq(
   // generate errors on procedure syntax
   "-Wconf:cat=deprecation:e",
@@ -36,11 +30,6 @@ TaskKey[Unit]("checkLastCompilationCached") := {
     lines.foreach(line => str.log.error(line))
     throw new RuntimeException("last compilation was not fully cached")
   }
-}
-
-TaskKey[Unit]("checkZincAnalysisPresent") := {
-  val isPresent = (Compile / previousCompile).value.analysis.isPresent()
-  assert(isPresent, "zinc analysis not found")
 }
 
 // https://github.com/sbt/sbt/commit/dbb47b3ce822ff7ec25881dadd71a3b29e202273

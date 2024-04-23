@@ -56,7 +56,7 @@ scriptedSbt := {
   if (jdk >= 21)
     "1.9.0" // first release that supports JDK21
   else
-    (pluginCrossBuild / sbtVersion).value
+    "1.3.3" // get https://github.com/sbt/sbt/issues/1673 to avoid race conditions
 }
 
 libraryDependencies += compilerPlugin(scalafixSemanticdb)
