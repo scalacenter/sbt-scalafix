@@ -102,9 +102,20 @@ object ScalafixPlugin extends AutoPlugin {
             val oldCompile =
               compile.value // evaluated first, before the potential scalafix evaluation
             if (scalafixOnCompile.value)
-              scalafix
-                .toTask(" --triggered")
-                .map(_ => oldCompile)
+              Def.taskDyn {
+                // evaluate scalafixInvoked only when scalafixOnCompile is set
+                // to reduce risk of side effects on the build
+                if (scalafixInvoked.value)
+                  // don't trigger scalafix if it was explicitly invoked,
+                  // as it would be not only inefficient, but incorrect since
+                  // scalafix might run with different CLI args, potentially
+                  // rewriting files while `--check` was used
+                  Def.task(oldCompile)
+                else
+                  scalafix
+                    .toTask(" --triggered")
+                    .map(_ => oldCompile)
+              }
             else Def.task(oldCompile)
           }.value,
           // In some cases (I haven't been able to understand when/why, but this also happens for bgRunMain while
@@ -505,8 +516,13 @@ object ScalafixPlugin extends AutoPlugin {
             (config / scalafix / streams).value
           )
         }
-        // sub-task of compile after which bytecode should not be modified
-        task.dependsOn(config / manipulateBytecode)
+        // we should not and cannot (circular dependency) trigger compilation
+        // if this is an non-explicit invocation - we use the presence of a
+        // flag rather than checking !scalafixInvoked, in order to trigger
+        // compile in case scalafix is wrapped in another task that
+        // scalafixInvoked does not know about
+        if (shellArgs.extra.contains("--triggered")) task
+        else task.dependsOn(config / compile)
       } else {
         Def.task {
           if (errors.length == 1) {
@@ -583,7 +599,7 @@ object ScalafixPlugin extends AutoPlugin {
               case "--stdout" =>
                 // --stdout cannot be cached as we don't capture the output to replay it
                 throw StampingImpossible
-              case "--tool-classpath" =>
+              case tcp if tcp.startsWith("--tool-classpath") =>
                 // custom tool classpaths might contain directories for which we would need to stamp all files, so
                 // just disable caching for now to keep it simple and to be safe
                 throw StampingImpossible
@@ -743,16 +759,6 @@ object ScalafixPlugin extends AutoPlugin {
             options.ignoredScalacOptions() ++
               scalacOptionsToRelax.map(_.pattern())
           )
-      },
-      manipulateBytecode := {
-        val analysis = manipulateBytecode.value
-        if (!scalafixInvoked.value) analysis
-        else {
-          // prevent storage of the analysis with relaxed scalacOptions - despite not depending explicitly on compile,
-          // it is being triggered for parent configs/projects through evaluation of dependencyClasspath (TrackAlways)
-          // in the scope where scalafix is invoked
-          analysis.withHasModified(false)
-        }
       }
     )
 
