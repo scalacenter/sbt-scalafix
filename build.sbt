@@ -56,9 +56,7 @@ scriptedSbt := {
   if (jdk >= 21)
     "1.9.0" // first release that supports JDK21
   else
-    // https://github.com/sbt/sbt/commit/3b9b200
-    // 1.4.[0-2] force batch mode which is not compatible with custom build.properties
-    "1.4.3"
+    (pluginCrossBuild / sbtVersion).value
 }
 
 libraryDependencies += compilerPlugin(scalafixSemanticdb)
@@ -75,6 +73,8 @@ scalacOptions ++= List(
 enablePlugins(ScriptedPlugin)
 sbtPlugin := true
 scriptedBufferLog := false
+scriptedBatchExecution := true
+scriptedParallelInstances := 4
 scriptedLaunchOpts ++= Seq(
   "-Xmx2048M",
   s"-Dplugin.version=${version.value}",

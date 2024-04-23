@@ -1,6 +1,6 @@
 import _root_.scalafix.sbt.{BuildInfo => Versions}
 
-val scala3Version = "3.3.0"
+val scala3Version = "3.3.1"
 ThisBuild / semanticdbEnabled := true
 ThisBuild / semanticdbVersion := scalafixSemanticdb.revision
 
