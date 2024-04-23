@@ -48,7 +48,7 @@ libraryDependencies ++= List(
 scalaVersion := "2.12.20"
 
 // keep this as low as possible to avoid running into binary incompatibility such as https://github.com/sbt/sbt/issues/5049
-pluginCrossBuild / sbtVersion := "1.3.1"
+pluginCrossBuild / sbtVersion := "1.4.0"
 
 scriptedSbt := {
   val jdk = System.getProperty("java.specification.version").toDouble
@@ -56,7 +56,9 @@ scriptedSbt := {
   if (jdk >= 21)
     "1.9.0" // first release that supports JDK21
   else
-    "1.3.3" // get https://github.com/sbt/sbt/issues/1673 to avoid race conditions
+    // https://github.com/sbt/sbt/commit/3b9b200
+    // 1.4.[0-2] force batch mode which is not compatible with custom build.properties
+    "1.4.3"
 }
 
 libraryDependencies += compilerPlugin(scalafixSemanticdb)
