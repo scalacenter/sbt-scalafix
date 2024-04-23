@@ -172,13 +172,7 @@ object ScalafixEnable {
                     )
                 }
             }
-          } ++ Seq(
-          semanticdbEnabled := true,
-          // support sbt 1.3.[0-3] which does not contain
-          // https://github.com/sbt/sbt/pull/5202
-          (semanticdbCompilerPlugin := semanticdbCompilerPlugin.value
-            .withRevision((semanticdbVersion).value))
-        )
+          } :+ (semanticdbEnabled := true)
       settings <-
         inScope(ThisScope.copy(project = Select(project.ref)))(
           scalacOptionsSettings ++ enableSemanticdbPlugin
