@@ -655,11 +655,11 @@ object ScalafixPlugin extends AutoPlugin {
         ): Unit = implicitly[JsonWriter[A]].write(obj, builder)
       }
 
-      // we actually don't need to read anything back, see https://github.com/sbt/sbt/pull/5513
+      // implicit conversion of collection is only available on JsonFormat
       implicit val argFormat = liftFormat(argWriter)
 
       def diffWithPreviousRuns[T](f: (Boolean, Set[File]) => T): T = {
-        val tracker = Tracked.inputChanged(streams.cacheDirectory / "args") {
+        val tracker = Tracked.inputChangedW(streams.cacheDirectory / "args") {
           (argsChanged: Boolean, _: Seq[Arg.CacheKey]) =>
             val targets = paths.map(_.toFile).toSet
 
@@ -738,21 +738,14 @@ object ScalafixPlugin extends AutoPlugin {
       shellArgs: ShellArgs,
       config: ConfigKey
   ): Def.Initialize[Task[Seq[Path]]] =
-    Def.taskDyn {
-      // Dynamic task to avoid redundantly computing `unmanagedSources.value`
-      if (shellArgs.files.nonEmpty) {
-        Def.task {
-          shellArgs.files.map(file(_).toPath)
-        }
-      } else {
-        Def.task {
-          for {
-            source <- (config / scalafix / unmanagedSources).value
-            if source.exists()
-            if isScalaFile(source)
-          } yield source.toPath
-        }
-      }
+    Def.taskIf {
+      if (shellArgs.files.nonEmpty) shellArgs.files.map(file(_).toPath)
+      else
+        for {
+          source <- (config / scalafix / unmanagedSources).value
+          if source.exists()
+          if isScalaFile(source)
+        } yield source.toPath
     }
 
   private[sbt] val relaxScalacOptionsConfigSettings: Seq[Def.Setting[_]] =
