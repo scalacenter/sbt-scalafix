@@ -54,5 +54,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: olafurpg/setup-scala@v14
+      - uses: coursier/setup-action@v1
       - run: ./bin/scalafmt --test
