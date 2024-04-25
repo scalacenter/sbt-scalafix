@@ -162,6 +162,17 @@ $ copy-file files/Null.scala src/main/scala/InitiallyValid.scala
 -> scalafix --check
 $ delete src/main/scala
 
+# files should be re-checked if custom rule configuration is added or removed from the CLI (even if the rule is the same)
+> set scalafixConfig := Some(file("files/DisableSyntaxVar.scalafix.conf"))
+$ mkdir src/main/scala
+$ copy-file files/Null.scala src/main/scala/ValidWithoutCustomSettings.scala
+-> scalafix --check --settings.DisableSyntax.noNulls=true
+> scalafix --check
+-> scalafix --check --settings.DisableSyntax.noNulls=true
+$ exec chmod 000 src/main/scala/ValidWithoutCustomSettings.scala
+-> scalafix --check --settings.DisableSyntax.noNulls=true
+$ delete src/main/scala
+
 # files should be re-checked after updating the default configuration (even if the rule is the same)
 > set scalafixConfig := None
 $ mkdir src/main/scala
