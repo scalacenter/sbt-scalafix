@@ -10,6 +10,6 @@ lazy val scala212 = project
 
 lazy val scala213 = project
   .settings(
-    scalaVersion := "2.13.13",
+    scalaVersion := "2.13.14",
     scalacOptions += "-Wunused"
   )
