@@ -1,6 +1,5 @@
 ThisBuild / scalafixDependencies := Nil
 ThisBuild / scalafixResolvers := Nil
-ThisBuild / scalafixScalaBinaryVersion := "2.12"
 scalafixCaching := false
 scalafixConfig := None
 scalafixOnCompile := false

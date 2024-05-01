@@ -1,7 +1,0 @@
-import scala.Int
-import scala.collection.AbstractSeq
-import scala.collection.Seq
-
-object Main {
-  def foo(a: Int) = a + 2.0f
-}
