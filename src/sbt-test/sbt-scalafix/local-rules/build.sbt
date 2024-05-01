@@ -7,10 +7,7 @@ inThisBuild(
       "ch.epfl.scala" %% "example-scalafix-rule" % "1.4.0"
     ),
     resolvers += Resolver.sonatypeRepo("snapshots"),
-    scalaVersion := "2.13.11", // out of sync with scalafix.sbt.BuildInfo.scala213 on purpose
-    scalafixScalaBinaryVersion :=
-      // this should be the default in sbt-scalafix 1.0
-      CrossVersion.binaryScalaVersion(scalaVersion.value)
+    scalaVersion := "2.13.11" // out of sync with scalafix.sbt.BuildInfo.scala213 on purpose
   )
 )
 

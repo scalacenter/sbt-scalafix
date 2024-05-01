@@ -1,6 +1,6 @@
 import _root_.scalafix.sbt.{BuildInfo => Versions}
 
-val scala3Version = "3.3.0"
+val scala3Version = "3.4.1"
 ThisBuild / semanticdbEnabled := true
 ThisBuild / semanticdbVersion := scalafixSemanticdb.revision
 
@@ -13,12 +13,11 @@ lazy val root = project
       Versions.scala213,
       scala3Version
     ),
-    scalacOptions ++= (if (scalaVersion.value.startsWith("2"))
-                         Seq("-Ywarn-unused")
-                       else Seq()),
-    scalafixScalaBinaryVersion := {
-      if (scalaBinaryVersion.value == "3") scalafixScalaBinaryVersion.value
-      else scalaBinaryVersion.value
+    scalacOptions += {
+      if (scalaVersion.value.startsWith("2.12"))
+        "-Ywarn-unused-import"
+      else
+        "-Wunused:imports"
     },
     scalafixConfig := {
       if (scalaBinaryVersion.value == "3")

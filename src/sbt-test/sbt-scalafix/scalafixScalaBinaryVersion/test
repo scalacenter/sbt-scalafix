@@ -1,5 +1,0 @@
-# ExplicitResultTypes uses the presentation compiler so the rule must run with the same scala binary version as the target
--> scalafix --check ExplicitResultTypes
-> scalafix ExplicitResultTypes
-> scalafix --check ExplicitResultTypes
-
