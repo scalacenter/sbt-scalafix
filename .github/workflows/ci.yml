@@ -13,6 +13,7 @@ jobs:
       - uses: coursier/setup-action@v1
         with:
           jvm: temurin:8
+      - run: rm -rf src/sbt-test/skip-sbt1.4
       - run: sbt test scripted
   jdk11:
     name: JDK11 tests
@@ -22,6 +23,7 @@ jobs:
       - uses: coursier/setup-action@v1
         with:
           jvm: temurin:11
+      - run: rm -rf src/sbt-test/skip-sbt1.4
       - run: sbt test scripted
   jdk17:
     name: JDK17 tests
@@ -31,7 +33,10 @@ jobs:
       - uses: coursier/setup-action@v1
         with:
           jvm: temurin:17
-      - run: sbt "test; scripted sbt-*/* skip-windows/*"
+      - run: rm -rf src/sbt-test/skip-java17+
+      - run: rm -rf src/sbt-test/skip-sbt1.4
+      - run: sbt test scripted
+
   jdk21:
     name: JDK21 tests
     runs-on: ubuntu-latest
@@ -40,14 +45,17 @@ jobs:
       - uses: coursier/setup-action@v1
         with:
           jvm: temurin:21
-      - run: sbt "test; scripted sbt-scalafix/* skip-windows/*"
+      - run: rm -rf src/sbt-test/skip-java17+
+      - run: sbt test scripted
   windows:
     name: Windows tests
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: coursier/setup-action@v1
-      - run: sbt ci-windows
+      - run: rm -r -fo src\sbt-test\skip-sbt1.4
+      - run: rm -r -fo src\sbt-test\skip-windows
+      - run: sbt test-skip-windows scripted
         shell: bash
   checks:
     name: Scalafmt
