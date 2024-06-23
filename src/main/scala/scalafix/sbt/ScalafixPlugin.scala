@@ -293,15 +293,29 @@ object ScalafixPlugin extends AutoPlugin {
       scalafixSbtResolversAsCoursierRepositories := {
         val logger = streams.value.log
 
-        val credentialsByHost = Credentials
-          .allDirect(credentials.value)
-          .map { dc =>
+        // mimics https://github.com/sbt/librarymanagement/blob/v1.10.0/ivy/src/main/scala/sbt/librarymanagement/ivy/Credentials.scala#L23-L28
+        val asDirectCredentials = credentials.value.flatMap {
+          _ match {
+            case dc: DirectCredentials =>
+              Some(dc)
+            case fc: FileCredentials =>
+              Credentials.loadCredentials(fc.path) match {
+                case Left(err) =>
+                  logger.warn(err)
+                  None
+                case Right(dc) =>
+                  Some(dc)
+              }
+          }
+        }
+
+        val credentialsByHost =
+          asDirectCredentials.map { dc =>
             dc.host -> coursierapi.Credentials.of(
               dc.userName,
               dc.passwd
             )
-          }
-          .toMap
+          }.toMap
 
         resolvers.value.flatMap { resolver =>
           CoursierRepoResolvers.repository(
