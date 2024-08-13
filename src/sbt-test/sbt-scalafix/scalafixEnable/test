@@ -2,9 +2,9 @@
 > scalafixEnable
 > check
 
--> config/test:compile
-> config/scalafixAll RemoveUnused
-> config/test:compile
+-> config / Test / compile
+> config / scalafixAll RemoveUnused
+> config / Test / compile
 
 -> checkVersion
 > ++2.12.15 -v

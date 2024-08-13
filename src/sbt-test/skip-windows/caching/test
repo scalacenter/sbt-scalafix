@@ -41,10 +41,10 @@ $ copy-file files/ProcedureSyntax.scala src/test/scala/ToPatch.scala
 $ copy-file files/Valid.scala src/test/scala/Valid.scala
 # avoid rounding in mtime that could cause false negatives in `newer`
 $ sleep 1000
-> test:scalafix ProcedureSyntax DisableSyntax
+> Test / scalafix ProcedureSyntax DisableSyntax
 $ newer src/test/scala/ToPatch.scala src/test/scala/Valid.scala
 $ exec chmod 000 src/test/scala/ToPatch.scala
--> test:scalafix ProcedureSyntax DisableSyntax
+-> Test / scalafix ProcedureSyntax DisableSyntax
 $ delete src/test/scala
 
 # an added file after a successful run should be checked
@@ -90,8 +90,8 @@ $ delete src/main/scala
 > set scalafixConfig := None
 $ mkdir src/test/scala
 $ copy-file files/ProcedureSyntax.scala src/test/scala/InitiallyValid.scala
-> test:scalafix --check RemoveUnused
--> test:scalafix --check RemoveUnused ProcedureSyntax
+> Test / scalafix --check RemoveUnused
+-> Test / scalafix --check RemoveUnused ProcedureSyntax
 $ delete src/test/scala
 
 # updating the rule-related flags should not invalidate the cache as long as rules that will run do not change
@@ -144,13 +144,13 @@ $ delete src/main/scala
 > set scalafixConfig := Some(file("files/DisableSyntaxVar.scalafix.conf"))
 $ mkdir src/test/scala
 $ copy-file files/Valid.scala src/test/scala/Valid.scala
-> test:scalafix ProcedureSyntax
-> test:scalafix --check
+> Test / scalafix ProcedureSyntax
+> Test / scalafix --check
 $ exec chmod 000 src/test/scala/Valid.scala
-> test:scalafix --check ProcedureSyntax DisableSyntax
-> test:scalafix --syntactic ProcedureSyntax
-> test:scalafix DisableSyntax ProcedureSyntax
-> test:scalafix
+> Test / scalafix --check ProcedureSyntax DisableSyntax
+> Test / scalafix --syntactic ProcedureSyntax
+> Test / scalafix DisableSyntax ProcedureSyntax
+> Test / scalafix
 $ delete src/test/scala
 
 # files should be re-checked after updating the configuration (even if the rule is the same)
@@ -254,11 +254,11 @@ $ mkdir src/test/scala
 $ copy-file files/UnusedImports.scala src/main/scala/Valid.scala
 $ copy-file files/Null.scala src/test/scala/Valid.scala
 > scalafix --check ProcedureSyntax
-> test:scalafix --check ProcedureSyntax
+> Test / scalafix --check ProcedureSyntax
 $ exec chmod 000 src/main/scala/Valid.scala
 $ exec chmod 000 src/test/scala/Valid.scala
 > scalafix --check ProcedureSyntax
-> test:scalafix --check ProcedureSyntax
+> Test / scalafix --check ProcedureSyntax
 $ delete src/main/scala
 $ delete src/test/scala
 
@@ -271,12 +271,12 @@ $ copy-file files/ProcedureSyntax.scala src/test/scala/InitiallyInvalid.scala
 -> scalafixAll --check ProcedureSyntax
 $ exec chmod 000 src/main/scala/Valid.scala
 > scalafix --check ProcedureSyntax
--> test:scalafix --check ProcedureSyntax
-> test:scalafix ProcedureSyntax
-> test:scalafix ProcedureSyntax
+-> Test / scalafix --check ProcedureSyntax
+> Test / scalafix ProcedureSyntax
+> Test / scalafix ProcedureSyntax
 $ exec chmod 000 src/test/scala/InitiallyInvalid.scala
 > scalafix --check ProcedureSyntax
-> test:scalafix --check ProcedureSyntax
+> Test / scalafix --check ProcedureSyntax
 > scalafixAll --check ProcedureSyntax
 $ delete src/main/scala
 $ delete src/test/scala
@@ -334,7 +334,7 @@ $ delete src/main/scala
 $ mkdir src/main/scala
 $ copy-file files/Valid.scala src/main/scala/InitiallyValid.scala
 > scalafix LocalSyntacticRule
-> rules/test:compile
+> rules / Test / compile
 $ copy-file rules/src/test/scala/local/Boom.scala rules/src/main/scala/local/Boom.scala
 $ delete rules/src/main/scala/local/NoOp.scala
 -> scalafix LocalSyntacticRule

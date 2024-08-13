@@ -1,7 +1,7 @@
--> scala212/scalafix --check
-> scala212/scalafix
-> scala212/scalafix --check
+-> scala212 / scalafix --check
+> scala212 / scalafix
+> scala212 / scalafix --check
 
--> scala213/scalafix --check
-> scala213/scalafix
-> scala213/scalafix --check
+-> scala213 / scalafix --check
+> scala213 / scalafix
+> scala213 / scalafix --check

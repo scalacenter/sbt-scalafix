@@ -1,15 +1,15 @@
-> service/scalafix LocalSyntacticRule
+> service / scalafix LocalSyntacticRule
 
 # ensure updates to the rule definition (that we make sure compiles first) is reflected in the next run
-> rules/test:compile
+> rules / Test / compile
 $ copy-file rules/src/test/scala/local/Boom.scala rules/src/main/scala/local/Boom.scala
 $ delete rules/src/main/scala/local/NoOp.scala
--> service/scalafix LocalSyntacticRule
+-> service / scalafix LocalSyntacticRule
 
 # make sure scalafixDependencies is also honored by running a rule from a remote JAR
-> service/scalafix SyntacticRule
+> service / scalafix SyntacticRule
 
 # run a rule included from a remote JAR referenced via the Scalafix ivy config
-> service/scalafix SyntacticRule
+> service / scalafix SyntacticRule
 
-> sameproject/scalafix SameProjectSyntacticRule
+> sameproject / scalafix SameProjectSyntacticRule

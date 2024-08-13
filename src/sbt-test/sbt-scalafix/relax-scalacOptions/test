@@ -7,7 +7,7 @@
 
 # ... and indirect scalafix invocation
 > clean
-> test:scalafix --check RemoveUnused
+> Test / scalafix --check RemoveUnused
 -> checkLastCompilationCached
 > compile
 > checkLastCompilationCached

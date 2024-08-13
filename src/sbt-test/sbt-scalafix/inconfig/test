@@ -1,9 +1,9 @@
--> ; example/scalafix --test ; example/it:scalafix --test
--> example/scalafixAll --test
-> example/it:scalafix
-> example/it:scalafix --test
--> example/scalafix --test
-> tests/test
-> example/scalafixAll
-> example/scalafixAll --test
-> example/scalafix --test
+-> ; example / scalafix --test ; example / IntegrationTest / scalafix --test
+-> example / scalafixAll --test
+> example / IntegrationTest / scalafix
+> example / IntegrationTest / scalafix --test
+-> example / scalafix --test
+> tests / test
+> example / scalafixAll
+> example / scalafixAll --test
+> example / scalafix --test

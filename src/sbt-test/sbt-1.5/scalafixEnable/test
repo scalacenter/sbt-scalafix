@@ -2,15 +2,15 @@
 > scalafixEnable
 
 # check that projects not supported by sbt-scalafix can still compile
-> scala210/compile
-> scala211/compile
+> scala210 / compile
+> scala211 / compile
 
 # check that we can run a semantic rule against a Scala 2.12 dialect source file
--> scala212/scalafix --check SemanticRule
-> scala212/scalafix SemanticRule
-> scala212/scalafix --check SemanticRule
+-> scala212 / scalafix --check SemanticRule
+> scala212 / scalafix SemanticRule
+> scala212 / scalafix --check SemanticRule
 
 # check that we can run a semantic rule against a Scala 3 dialect source file
--> scala3/scalafix --check SemanticRule
-> scala3/scalafix SemanticRule
-> scala3/scalafix --check SemanticRule
+-> scala3 / scalafix --check SemanticRule
+> scala3 / scalafix SemanticRule
+> scala3 / scalafix --check SemanticRule

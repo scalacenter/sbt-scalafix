@@ -32,7 +32,7 @@ object ScalafixPlugin extends AutoPlugin {
       inputKey[Unit](
         "Run scalafix rule(s) in this project and configuration. " +
           "For example: scalafix RemoveUnused. " +
-          "To run on test sources use test:scalafix or scalafixAll. " +
+          "To run on test sources use `Test / scalafix` or scalafixAll. " +
           "When invoked, prior compilation with -Xfatal-warnings relaxed will be triggered for semantic rules."
       )
     val scalafixAll: InputKey[Unit] =
