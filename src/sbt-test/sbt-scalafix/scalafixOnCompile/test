@@ -7,27 +7,27 @@
 > scalafix --check
 
 # check explicit rewrite of rewrite/src/it/scala/UnusedImports.scala via `scalafix`
--> it:scalafix --check
-> it:scalafix
-> it:scalafix --check
+-> IntegrationTest / scalafix --check
+> IntegrationTest / scalafix
+> IntegrationTest / scalafix --check
 
 # check lint for lint/src/test/scala/Null.scala
--> lint/test:scalafix --check
--> lint/test:scalafix
--> lint/test:compile
+-> lint / Test / scalafix --check
+-> lint / Test / scalafix
+-> lint / Test / compile
 
 # check that default rules are ignored when rules are passed explicitly
--> lint/test:scalafix --check
-> lint/test:scalafix --check RemoveUnused
-> lint/test:scalafix RemoveUnused
+-> lint / Test / scalafix --check
+> lint / Test / scalafix --check RemoveUnused
+> lint / Test / scalafix RemoveUnused
 
 # check configuration granularity for scalafixOnCompile
 > set lint / Test / scalafixOnCompile := false
-> lint/test:compile
+> lint / Test / compile
 
 # check that triggered rules are respected on compilation, and ignored on explicit invocation.
 #   `private var` is detected by `DisableSyntax.noVars = true` on explicit invocation,
 #   and removed by `triggered.RemoveUnused.privates = true` on compilation.
--> triggered/test:scalafix
-> triggered/test:compile
-> triggered/test:scalafix
+-> triggered / Test / scalafix
+> triggered / Test / compile
+> triggered / Test / scalafix

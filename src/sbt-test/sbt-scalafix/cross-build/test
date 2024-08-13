@@ -3,32 +3,32 @@
 
 -> scalafixAll --test ProcedureSyntax
 -> scalafix --test ProcedureSyntax
--> compile:scalafix --test ProcedureSyntax
--> test:scalafix --test ProcedureSyntax
--> it:scalafix --test ProcedureSyntax
+-> Compile / scalafix --test ProcedureSyntax
+-> Test / scalafix --test ProcedureSyntax
+-> IntegrationTest / scalafix --test ProcedureSyntax
 
 > scalafix ProcedureSyntax
 > scalafix --test ProcedureSyntax
-> compile:scalafix ProcedureSyntax
-> compile:scalafix --test ProcedureSyntax
--> test:scalafix --test ProcedureSyntax
--> it:scalafix --test ProcedureSyntax
+> Compile / scalafix ProcedureSyntax
+> Compile / scalafix --test ProcedureSyntax
+-> Test / scalafix --test ProcedureSyntax
+-> IntegrationTest / scalafix --test ProcedureSyntax
 
-> test:scalafix ProcedureSyntax
-> test:scalafix --test ProcedureSyntax
--> it:scalafix --test ProcedureSyntax
+> Test / scalafix ProcedureSyntax
+> Test / scalafix --test ProcedureSyntax
+-> IntegrationTest / scalafix --test ProcedureSyntax
 
 > scalafixAll ProcedureSyntax
-> it:scalafix --test ProcedureSyntax
+> IntegrationTest / scalafix --test ProcedureSyntax
 
-> javaProject/compile:scalafix ProcedureSyntax
+> javaProject / Compile /scalafix ProcedureSyntax
 
-# it config exists only for 2.12
-> it:scalafix
+# IntegrationTest exists only for scala212
+> IntegrationTest / scalafix
 
-> scala212/compile:scalafix
-> scala212/test:scalafix
-> scala212/it:scalafix
-> scala212/compile:scalafix --test
-> scala212/test:scalafix --test
-> scala212/it:scalafix --test
+> scala212 / Compile / scalafix
+> scala212 / Test / scalafix
+> scala212 / IntegrationTest / scalafix
+> scala212 / Compile / scalafix --test
+> scala212 / Test / scalafix --test
+> scala212 / IntegrationTest / scalafix --test

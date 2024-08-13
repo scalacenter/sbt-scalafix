@@ -1,6 +1,6 @@
 > scalafixEnable
--> compile:scalafix --test
-> compile:scalafix --auto-suppress-linter-errors
-> compile:scalafix --test
+-> Compile / scalafix --test
+> Compile / scalafix --auto-suppress-linter-errors
+> Compile / scalafix --test
 
 > check
