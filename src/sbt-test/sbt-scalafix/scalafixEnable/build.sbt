@@ -1,28 +1,35 @@
 val V = _root_.scalafix.sbt.BuildInfo
 
-lazy val config = project
+lazy val config = project.settings(
+  scalafixScalaBinaryVersion := scalaBinaryVersion.value // to support old scalafix-interface
+)
 
 lazy val unsupported = project.settings(
+  scalafixScalaBinaryVersion := scalaBinaryVersion.value, // to support old scalafix-interface
   // 2.11.x is not supported
   scalaVersion := "2.11.12"
 )
 
 lazy val bumpScala = project.settings(
+  scalafixScalaBinaryVersion := scalaBinaryVersion.value, // to support old scalafix-interface
   // semanticdb-scalac_2.12.0 was never available
   scalaVersion := "2.12.0"
 )
 
 lazy val downgradeScalameta = project.settings(
+  scalafixScalaBinaryVersion := scalaBinaryVersion.value, // to support old scalafix-interface
   // semanticdb-scalac_2.12.4 no longer available after 4.1.9
   scalaVersion := "2.12.4"
 )
 
 lazy val upgradeScalameta = project.settings(
+  scalafixScalaBinaryVersion := scalaBinaryVersion.value, // to support old scalafix-interface
   // semanticdb-scalac_2.12.15 not yet available in 4.4.10, became available as of 4.4.28
   scalaVersion := "2.12.15"
 )
 
 lazy val available = project.settings(
+  scalafixScalaBinaryVersion := scalaBinaryVersion.value, // to support old scalafix-interface
   // semanticdb-scalac_2.13.4 available in 4.4.10
   scalaVersion := "2.13.4",
   crossScalaVersions := Seq("2.12.15")

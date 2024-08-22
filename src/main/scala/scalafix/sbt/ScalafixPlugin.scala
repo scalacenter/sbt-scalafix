@@ -65,14 +65,13 @@ object ScalafixPlugin extends AutoPlugin {
           "Can be set in ThisBuild or at project-level."
       )
     @deprecated(
-      "scalafixScalaBinaryVersion now follows scalaBinaryVersion by default",
+      "scalafixScalaBinaryVersion now follows scalaVersion by default",
       "0.12.1"
     )
     val scalafixScalaBinaryVersion: SettingKey[String] =
       settingKey[String](
-        "The Scala binary version used for scalafix execution. Must be set at project-level. " +
-          "Custom rules must be compiled against that binary version. Defaults to 2.12 for 2.12 projects, " +
-          "2.13 otherwise."
+        "The Scala version used for scalafix execution. Must be set at project-level. " +
+          "Custom rules must be compiled against that binary version. Defaults to the project's scalaVersion."
       )
     val scalafixConfig: SettingKey[Option[File]] =
       settingKey[Option[File]](
@@ -268,12 +267,7 @@ object ScalafixPlugin extends AutoPlugin {
     },
     ivyConfigurations += ScalafixConfig,
     scalafixAll := scalafixAllInputTask.evaluated,
-    (scalafixScalaBinaryVersion: @nowarn) := {
-      scalaBinaryVersion.value match {
-        case "2.12" => "2.12"
-        case _ => "2.13"
-      }
-    }
+    (scalafixScalaBinaryVersion: @nowarn) := scalaVersion.value
   )
 
   override lazy val globalSettings: Seq[Def.Setting[_]] = Seq(
