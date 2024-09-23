@@ -31,9 +31,8 @@ developers := List(
   )
 )
 
-commands += Command.command("ci-windows") { s =>
+commands += Command.command("test-skip-windows") { s =>
   "testOnly -- -l SkipWindows" ::
-    "scripted sbt-*/*" ::
     s
 }
 
@@ -48,7 +47,7 @@ libraryDependencies ++= List(
 scalaVersion := "2.12.20"
 
 // keep this as low as possible to avoid running into binary incompatibility such as https://github.com/sbt/sbt/issues/5049
-pluginCrossBuild / sbtVersion := "1.3.1"
+pluginCrossBuild / sbtVersion := "1.4.0"
 
 scriptedSbt := {
   val jdk = System.getProperty("java.specification.version").toDouble
@@ -56,7 +55,7 @@ scriptedSbt := {
   if (jdk >= 21)
     "1.9.0" // first release that supports JDK21
   else
-    "1.3.3" // get https://github.com/sbt/sbt/issues/1673 to avoid race conditions
+    (pluginCrossBuild / sbtVersion).value
 }
 
 libraryDependencies += compilerPlugin(scalafixSemanticdb)
@@ -73,6 +72,8 @@ scalacOptions ++= List(
 enablePlugins(ScriptedPlugin)
 sbtPlugin := true
 scriptedBufferLog := false
+scriptedBatchExecution := true
+scriptedParallelInstances := 2
 scriptedLaunchOpts ++= Seq(
   "-Xmx2048M",
   s"-Dplugin.version=${version.value}",
