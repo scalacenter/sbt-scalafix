@@ -115,7 +115,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
         |DisableSyntax
         |  Reports an error for disabled features such as var or XML literals.
         |ExplicitResultTypes
-        |  Inserts type annotations for inferred public members. Only compatible with Scala 2.x.
+        |  Inserts type annotations for inferred public members.
         |LeakingImplicitClassVal
         |  Adds 'private' to val parameters of implicit value classes
         |NoAutoTupling
@@ -125,7 +125,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
         |OrganizeImports
         |  Organize import statements
         |ProcedureSyntax
-        |  Replaces deprecated procedure syntax with explicit ': Unit ='
+        |  Replaces deprecated Scala 2.x procedure syntax with explicit ': Unit ='
         |RedundantSyntax
         |  Removes redundant syntax such as `final` modifiers on an object
         |RemoveUnused
