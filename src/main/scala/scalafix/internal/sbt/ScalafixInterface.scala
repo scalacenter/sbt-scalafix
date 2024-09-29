@@ -126,7 +126,7 @@ object ScalafixInterface {
 
   type Cache = BlockingCache[
     (
-        String, // scalafixScalaBinaryVersion
+        String, // scalafixScalaMajorMinorVersion
         Option[Arg.ToolClasspath]
     ),
     (
@@ -139,7 +139,7 @@ object ScalafixInterface {
 
   def apply(
       cache: Cache,
-      scalafixScalaBinaryVersion: String,
+      scalafixScalaMajorMinorVersion: String,
       toolClasspath: Arg.ToolClasspath,
       logger: Logger,
       callback: ScalafixMainCallback
@@ -150,7 +150,7 @@ object ScalafixInterface {
     // shared as much as possible.
     val (buildinRulesInterface, _) = cache.compute(
       (
-        scalafixScalaBinaryVersion,
+        scalafixScalaMajorMinorVersion,
         None
       ),
       {
@@ -159,14 +159,14 @@ object ScalafixInterface {
           None
         case None =>
           // cache miss, resolve scalafix artifacts and classload them
-          if (scalafixScalaBinaryVersion == "2.11")
+          if (scalafixScalaMajorMinorVersion == "2.11")
             logger.error(
               "Scala 2.11 is no longer supported. Please downgrade to the final version supporting " +
                 "it: sbt-scalafix 0.10.4."
             )
           val scalafixArguments = ScalafixAPI
             .fetchAndClassloadInstance(
-              scalafixScalaBinaryVersion,
+              scalafixScalaMajorMinorVersion,
               toolClasspath.repositories.asJava
             )
             .newArguments()
@@ -197,7 +197,7 @@ object ScalafixInterface {
 
     val (toolClasspathInterface, _) = cache.compute(
       (
-        scalafixScalaBinaryVersion,
+        scalafixScalaMajorMinorVersion,
         Some(toolClasspath)
       ),
       {
