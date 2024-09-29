@@ -265,7 +265,8 @@ object ScalafixPlugin extends AutoPlugin {
     },
     ivyConfigurations += ScalafixConfig,
     scalafixAll := scalafixAllInputTask.evaluated,
-    (scalafixScalaBinaryVersion: @nowarn) := scalaVersion.value
+    (scalafixScalaBinaryVersion: @nowarn) :=
+      scalaVersion.value.split('.').take(2).mkString(".")
   )
 
   override lazy val globalSettings: Seq[Def.Setting[_]] = Seq(
@@ -363,7 +364,7 @@ object ScalafixPlugin extends AutoPlugin {
 
     val interface = ScalafixInterface(
       cache = buildScalafixInterfaceCache,
-      scalafixScalaBinaryVersion = projectScalafixScalaBinaryVersion,
+      scalafixScalaMajorMinorVersion = projectScalafixScalaBinaryVersion,
       toolClasspath = toolClasspath,
       logger = ScalafixInterface.defaultLogger,
       callback = buildScalafixMainCallback
