@@ -327,7 +327,7 @@ object ScalafixPlugin extends AutoPlugin {
       shell: ShellArgs,
       projectDepsExternal: Seq[ModuleID],
       projectDepsInternal: Seq[File],
-      projectScalafixScalaBinaryVersion: String,
+      projectScalaMajorMinorVersion: String,
       projectScalafixDependencies: Seq[ModuleID],
       buildAllResolvers: Seq[Repository],
       buildScalafixMainCallback: ScalafixMainCallback,
@@ -364,7 +364,7 @@ object ScalafixPlugin extends AutoPlugin {
 
     val interface = ScalafixInterface(
       cache = buildScalafixInterfaceCache,
-      scalafixScalaMajorMinorVersion = projectScalafixScalaBinaryVersion,
+      scalafixScalaMajorMinorVersion = projectScalaMajorMinorVersion,
       toolClasspath = toolClasspath,
       logger = ScalafixInterface.defaultLogger,
       callback = buildScalafixMainCallback
