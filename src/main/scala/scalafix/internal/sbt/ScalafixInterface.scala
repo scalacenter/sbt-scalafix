@@ -154,9 +154,9 @@ object ScalafixInterface {
         None
       ),
       {
-        case Some(_) =>
+        case Some(v) =>
           // cache hit, don't update
-          None
+          v
         case None =>
           // cache miss, resolve scalafix artifacts and classload them
           if (scalafixScalaMajorMinorVersion == "2.11")
@@ -181,11 +181,9 @@ object ScalafixInterface {
             )
           )
 
-          Some(
-            (
-              new ScalafixInterface(scalafixArguments).withArgs(printStream),
-              Nil
-            )
+          (
+            new ScalafixInterface(scalafixArguments).withArgs(printStream),
+            Nil
           )
       }
     )
@@ -201,16 +199,14 @@ object ScalafixInterface {
         Some(toolClasspath)
       ),
       {
-        case Some((_, oldStamps)) if (currentStamps == oldStamps) =>
+        case Some(v @ (_, oldStamps)) if (currentStamps == oldStamps) =>
           // cache hit, don't update
-          None
+          v
         case _ =>
           // cache miss or stale stamps, resolve custom rules artifacts and classload them
-          Some(
-            (
-              buildinRulesInterface.withArgs(toolClasspath),
-              currentStamps
-            )
+          (
+            buildinRulesInterface.withArgs(toolClasspath),
+            currentStamps
           )
       }
     )
