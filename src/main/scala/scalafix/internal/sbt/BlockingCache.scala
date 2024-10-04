@@ -2,32 +2,26 @@ package scalafix.internal.sbt
 
 import java.{util => ju}
 
-import scala.util.Try
+import java.lang.ref.SoftReference
 
-/** A basic thread-safe cache without any eviction. */
+/** A basic thread-safe cache with arbitrary eviction on GC pressure. */
 class BlockingCache[K, V] {
 
-  private val underlying = new ju.concurrent.ConcurrentHashMap[K, V]
-
-  private case class SkipUpdate(prev: V) extends Exception
+  private val underlying =
+    new ju.concurrent.ConcurrentHashMap[K, SoftReference[V]]
 
   // Evaluations of `transform` are guaranteed to be sequential for the same key
-  def compute(key: K, transform: Option[V] => Option[V]): V = {
-    Try(
-      underlying.compute(
-        key,
-        new ju.function.BiFunction[K, V, V] {
-          override def apply(key: K, prev: V): V = {
-            transform(Option(prev)).getOrElse(throw SkipUpdate(prev))
-          }
-        }
-      )
-    ).fold(
-      {
-        case SkipUpdate(prev) => prev
-        case ex => throw ex
-      },
-      identity
+  def compute(key: K, transform: Option[V] => V): V = {
+    // keep the result in a strong reference to avoid eviction
+    // just after executing wrapped compute()
+    var result: V = null.asInstanceOf[V]
+    underlying.compute(
+      key,
+      (_, prev: SoftReference[V]) => {
+        result = transform(Option(prev).flatMap(ref => Option(ref.get)))
+        new SoftReference(result)
+      }
     )
+    result
   }
 }
