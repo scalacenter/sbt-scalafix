@@ -38,7 +38,7 @@ object Arg {
         .map(uri => java.nio.file.Paths.get(uri).toFile)
         .flatMap {
           case classDirectory if classDirectory.isDirectory =>
-            classDirectory.**(RegularFileFilter).get
+            classDirectory.**(RegularFileFilter).get()
           case jar =>
             Seq(jar)
         }
@@ -109,10 +109,10 @@ class ScalafixInterface private (
     scalafixArguments.run().toSeq
 
   def availableRules(): Seq[ScalafixRule] =
-    scalafixArguments.availableRules().asScala
+    scalafixArguments.availableRules().asScala.toSeq
 
   def rulesThatWillRun(): Seq[ScalafixRule] =
-    try scalafixArguments.rulesThatWillRun().asScala
+    try scalafixArguments.rulesThatWillRun().asScala.toSeq
     catch {
       case e: ScalafixException => throw new InvalidArgument(e.getMessage)
     }
