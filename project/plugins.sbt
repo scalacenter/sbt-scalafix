@@ -1,5 +1,5 @@
 resolvers ++= Resolver.sonatypeOssRepos("public")
-addSbtPlugin("com.github.sbt" % "sbt-ci-release" % "1.8.0")
+addSbtPlugin("com.github.sbt" % "sbt-ci-release" % "1.9.0")
 
 libraryDependencies += "org.scala-sbt" %% "scripted-plugin" % sbtVersion.value
 Compile / unmanagedSourceDirectories ++= {
