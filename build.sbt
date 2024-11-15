@@ -47,7 +47,7 @@ libraryDependencies ++= List(
 scalaVersion := "2.12.20"
 
 // keep this as low as possible to avoid running into binary incompatibility such as https://github.com/sbt/sbt/issues/5049
-pluginCrossBuild / sbtVersion := "1.4.0"
+pluginCrossBuild / sbtVersion := "1.4.9"
 
 scriptedSbt := {
   val jdk = System.getProperty("java.specification.version").toDouble
