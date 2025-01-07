@@ -155,21 +155,21 @@ object ScalafixEnable {
                 } else {
                   val latestAvailable =
                     tail.lastOption.getOrElse(earliestAvailable)
-                    Seq(
-                      semanticdbVersion := {
-                        val v = latestAvailable.toString
-                        sLog.value.info(
-                          s"Setting semanticdbVersion to $v in project " +
-                            s"${project.ref.project} since the version " +
-                            s"${recommendedSemanticdbV} tracked by scalafix " +
-                            s"${BuildInfo.scalafixVersion} is no longer " +
-                            s"published for scala " +
-                            s"${project.scalaVersion0.toString} - " +
-                            s"consider bumping scala"
-                        )
-                        v
-                      }
-                    )
+                  Seq(
+                    semanticdbVersion := {
+                      val v = latestAvailable.toString
+                      sLog.value.info(
+                        s"Setting semanticdbVersion to $v in project " +
+                          s"${project.ref.project} since the version " +
+                          s"${recommendedSemanticdbV} tracked by scalafix " +
+                          s"${BuildInfo.scalafixVersion} is no longer " +
+                          s"published for scala " +
+                          s"${project.scalaVersion0.toString} - " +
+                          s"consider bumping scala"
+                      )
+                      v
+                    }
+                  )
                 }
             }
           } :+ (semanticdbEnabled := true)

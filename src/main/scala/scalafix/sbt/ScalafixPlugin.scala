@@ -243,7 +243,7 @@ object ScalafixPlugin extends AutoPlugin {
       }
 
       update.result.value match {
-        case Value(v) => v
+        case Value(v: UpdateReport) => v
         case Inc(inc: Incomplete) =>
           Incomplete.allExceptions(inc).toList match {
             case (resolveException: ResolveException) :: Nil =>
@@ -264,7 +264,7 @@ object ScalafixPlugin extends AutoPlugin {
       }
     },
     ivyConfigurations += ScalafixConfig,
-    scalafixAll := scalafixAllInputTask.evaluated,
+    scalafixAll := scalafixAllInputTask().evaluated,
     (scalafixScalaBinaryVersion: @nowarn) :=
       scalaVersion.value.split('.').take(2).mkString(".")
   )
@@ -351,7 +351,7 @@ object ScalafixPlugin extends AutoPlugin {
     val invocationDepsExternal = parsed.map(_.dependency)
     val projectDepsInternal0 = projectDepsInternal.filter {
       case directory if directory.isDirectory =>
-        directory.**(AllPassFilter).get.exists(_.isFile)
+        directory.**(AllPassFilter).get().exists(_.isFile)
       case file if file.isFile => true
       case _ => false
     }
@@ -632,7 +632,7 @@ object ScalafixPlugin extends AutoPlugin {
         }
 
         private lazy val checkIfTriggeredSectionExists: Boolean = {
-          val confInArgs = interface.args
+          val confInArgs: Option[Path] = interface.args
             .collect { case Arg.Config(conf) => conf }
             .flatten
             .lastOption
@@ -672,7 +672,7 @@ object ScalafixPlugin extends AutoPlugin {
               Tracked.diffInputs(
                 streams.cacheDirectory / "targets-by-rule" / rule,
                 cachingStyle
-              )(targets) { changeReport: ChangeReport[File] =>
+              )(targets) { (changeReport: ChangeReport[File]) =>
                 doForStaleTargets(changeReport.modified -- changeReport.removed)
               }
 
@@ -696,7 +696,8 @@ object ScalafixPlugin extends AutoPlugin {
                   }
               }
 
-            val ruleTargetDiffs = interface.rulesThatWillRun
+            val ruleTargetDiffs = interface
+              .rulesThatWillRun()
               .map(rule => diffTargets(rule.name) _)
               .toList
             accumulateAndRunForStaleTargets(ruleTargetDiffs)
