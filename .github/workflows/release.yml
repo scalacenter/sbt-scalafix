@@ -9,6 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: coursier/setup-action@v1
+      - uses: sbt/setup-sbt@v1
       - uses: olafurpg/setup-gpg@v3
       - run: git fetch --unshallow
       - name: Publish ${{ github.ref }}

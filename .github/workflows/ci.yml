@@ -13,6 +13,7 @@ jobs:
       - uses: coursier/setup-action@v1
         with:
           jvm: temurin:8
+      - uses: sbt/setup-sbt@v1
       - run: rm -rf src/sbt-test/skip-sbt1.4
       - run: sbt test scripted
   jdk11:
@@ -23,6 +24,7 @@ jobs:
       - uses: coursier/setup-action@v1
         with:
           jvm: temurin:11
+      - uses: sbt/setup-sbt@v1
       - run: rm -rf src/sbt-test/skip-sbt1.4
       - run: sbt test scripted
   jdk17:
@@ -33,6 +35,7 @@ jobs:
       - uses: coursier/setup-action@v1
         with:
           jvm: temurin:17
+      - uses: sbt/setup-sbt@v1
       - run: rm -rf src/sbt-test/skip-java17+
       - run: rm -rf src/sbt-test/skip-sbt1.4
       - run: sbt test scripted
@@ -45,6 +48,7 @@ jobs:
       - uses: coursier/setup-action@v1
         with:
           jvm: temurin:21
+      - uses: sbt/setup-sbt@v1
       - run: rm -rf src/sbt-test/skip-java17+
       - run: sbt test scripted
   windows:
