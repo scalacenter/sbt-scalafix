@@ -1,7 +1,6 @@
 import _root_.scalafix.sbt.{BuildInfo => Versions}
 
-// support sbt 1.3.x, see https://github.com/sbt/sbt/issues/5110
-Global / semanticdbVersion := scalafixSemanticdb.revision
+ThisBuild / semanticdbVersion := scalafixSemanticdb.revision
 
 inThisBuild(
   List(

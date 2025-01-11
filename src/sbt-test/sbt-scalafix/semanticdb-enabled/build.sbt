@@ -1,5 +1,4 @@
-// support sbt 1.3.x, see https://github.com/sbt/sbt/issues/5110
-Global / semanticdbVersion := scalafixSemanticdb.revision
+ThisBuild / semanticdbVersion := scalafixSemanticdb.revision
 ThisBuild / semanticdbEnabled := true
 
 lazy val scala212 = project
@@ -10,6 +9,6 @@ lazy val scala212 = project
 
 lazy val scala213 = project
   .settings(
-    scalaVersion := "2.13.15",
+    scalaVersion := "2.13.16",
     scalacOptions += "-Wunused"
   )
