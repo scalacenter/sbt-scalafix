@@ -11,6 +11,7 @@ jobs:
       - uses: coursier/setup-action@v1
         with:
           apps: sbt
+          jvm: temurin:8
       - uses: olafurpg/setup-gpg@v3
       - run: git fetch --unshallow
       - name: Publish ${{ github.ref }}
