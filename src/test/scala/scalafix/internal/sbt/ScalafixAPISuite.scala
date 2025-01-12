@@ -36,7 +36,7 @@ class ScalafixAPISuite extends AnyFunSuite {
       "2.12",
       Arg.ToolClasspath(
         Nil,
-        List("ch.epfl.scala" %% "example-scalafix-rule" % "5.0.0"),
+        List("ch.epfl.scala" %% "example-scalafix-rule" % "6.0.0"),
         Seq(
           Repository.central,
           MavenRepository.of(
