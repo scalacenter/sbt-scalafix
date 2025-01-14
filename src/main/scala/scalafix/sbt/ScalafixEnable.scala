@@ -133,8 +133,13 @@ object ScalafixEnable {
                   semanticdbVersion := recommendedSemanticdbV.toString
                 )
               case Success(earliestAvailable :: tail) =>
+                val safeRecommendedSemanticdbV =
+                  if (recommendedSemanticdbV.toString == "4.12.4.1")
+                    VersionNumber("4.12.4")
+                  else recommendedSemanticdbV
+
                 val futureVersion =
-                  SemanticSelector.apply(s">${recommendedSemanticdbV}")
+                  SemanticSelector.apply(s">${safeRecommendedSemanticdbV}")
 
                 if (earliestAvailable.matchesSemVer(futureVersion)) {
                   Seq(
