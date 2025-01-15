@@ -134,7 +134,7 @@ object ScalafixEnable {
                 )
               case Success(earliestAvailable :: tail) =>
                 val safeRecommendedSemanticdbV =
-                  if (recommendedSemanticdbV.toString == "4.12.4.1")
+                  if (recommendedSemanticdbV.toString == "4.12.5")
                     VersionNumber("4.12.4")
                   else recommendedSemanticdbV
 
