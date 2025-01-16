@@ -49,7 +49,8 @@ object Arg {
       sa.withRules(rules.asJava)
   }
 
-  case class Paths(paths: Seq[Path]) extends Arg { // this one is extracted/stamped directly
+  case class Paths(paths: Seq[Path])
+      extends Arg { // this one is extracted/stamped directly
     override def apply(sa: ScalafixArguments): ScalafixArguments =
       sa.withPaths(paths.asJava)
   }
@@ -64,17 +65,20 @@ object Arg {
       sa.withParsedArguments(args.asJava)
   }
 
-  case class ScalaVersion(version: String) extends Arg { // FIXME: with CacheKey {
+  case class ScalaVersion(version: String)
+      extends Arg { // FIXME: with CacheKey {
     override def apply(sa: ScalafixArguments): ScalafixArguments =
       sa.withScalaVersion(version)
   }
 
-  case class ScalacOptions(options: Seq[String]) extends Arg { // FIXME: with CacheKey {
+  case class ScalacOptions(options: Seq[String])
+      extends Arg { // FIXME: with CacheKey {
     override def apply(sa: ScalafixArguments): ScalafixArguments =
       sa.withScalacOptions(options.asJava)
   }
 
-  case class Classpath(classpath: Seq[Path]) extends Arg { // FIXME: with CacheKey {
+  case class Classpath(classpath: Seq[Path])
+      extends Arg { // FIXME: with CacheKey {
     override def apply(sa: ScalafixArguments): ScalafixArguments =
       sa.withClasspath(classpath.asJava)
   }
