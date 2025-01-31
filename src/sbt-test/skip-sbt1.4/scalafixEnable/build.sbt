@@ -21,5 +21,5 @@ lazy val scala212 = project
 lazy val scala3 = project
   .in(file("scala3"))
   .settings(
-    scalaVersion := "3.3.1" // built-in support for semanticdb
+    scalaVersion := "3.6.3" // built-in support for semanticdb
   )
