@@ -18,11 +18,5 @@ lazy val root = project
         "-Ywarn-unused-import"
       else
         "-Wunused:imports"
-    },
-    scalafixConfig := {
-      if (scalaBinaryVersion.value == "3")
-        Some(file(".scalafix-3.conf"))
-      else
-        Some(file(".scalafix-2.conf"))
     }
   )
