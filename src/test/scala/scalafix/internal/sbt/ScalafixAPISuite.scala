@@ -78,7 +78,7 @@ class ScalafixAPISuite extends AnyFunSuite {
       )
     )
     val obtainedError = mainInterface.run().toList
-    val out = fansi.Str(baos.toString()).plainText
+    val out = fansi.Str(baos.toString(), fansi.ErrorMode.Strip).plainText
     assert(obtainedError == List(ScalafixError.LinterError), out)
     val obtained = new String(Files.readAllBytes(tmp))
     assert(obtained.contains(": Unit = {"), out)

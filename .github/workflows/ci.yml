@@ -51,6 +51,17 @@ jobs:
           jvm: temurin:21
       - run: rm -rf src/sbt-test/skip-java17+
       - run: sbt test scripted
+  jdk23:
+    name: JDK23 tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: coursier/setup-action@v1
+        with:
+          apps: sbt
+          jvm: temurin:23
+      - run: rm -rf src/sbt-test/skip-java17+
+      - run: sbt test scripted
   windows:
     name: Windows tests
     runs-on: windows-latest
