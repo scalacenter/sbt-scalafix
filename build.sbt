@@ -44,7 +44,7 @@ libraryDependencies ++= List(
   "org.scalatest" %% "scalatest" % "3.2.19" % Test
 )
 
-scalaVersion := "2.12.20"
+scalaVersion := "2.13.16"
 
 // keep this as low as possible to avoid running into binary incompatibility such as https://github.com/sbt/sbt/issues/5049
 pluginCrossBuild / sbtVersion := "1.4.0"
