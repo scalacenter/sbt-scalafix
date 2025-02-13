@@ -250,11 +250,12 @@ object ScalafixPlugin extends AutoPlugin {
               resolveException.failed.headOption match {
                 case Some(SemanticdbScalac(rev)) =>
                   val scalaV = scalaVersion.value
-                  val msg = s"The SemanticDB scalac plugin version ${rev} set up " +
-                    "via `semanticdbVersion` does follow the version recommended " +
-                    "for Scalafix, but is not supported for the outdated Scala " +
-                    s"version ${scalaV}. Please upgrade to a more recent Scala " +
-                    "patch version or uninstall sbt-scalafix."
+                  val msg =
+                    s"The SemanticDB scalac plugin version ${rev} set up " +
+                      "via `semanticdbVersion` does follow the version recommended " +
+                      "for Scalafix, but is not supported for the given Scala " +
+                      s"version ${scalaV}. Please consider upgrading to a more recent version " +
+                      "of sbt-scalafix and/or Scala, or uninstalling sbt-scalafix plugin."
                   throw inc.copy(message = Some(msg))
                 case _ =>
               }
