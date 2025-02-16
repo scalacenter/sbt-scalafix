@@ -6,6 +6,7 @@ import coursierapi.Repository
 import sbt.KeyRanks.Invisible
 import sbt.Keys.*
 import sbt.*
+import sbt.Result.*
 import sbt.internal.sbtscalafix.JLineAccess
 import sbt.internal.util.complete.Parser
 import sbt.plugins.JvmPlugin
@@ -243,7 +244,7 @@ object ScalafixPlugin extends AutoPlugin {
       }
 
       update.result.value match {
-        case Value(v) => v
+        case Value(v: UpdateReport) => v
         case Inc(inc: Incomplete) =>
           Incomplete.allExceptions(inc).toList match {
             case (resolveException: ResolveException) :: Nil =>
@@ -265,7 +266,7 @@ object ScalafixPlugin extends AutoPlugin {
       }
     },
     ivyConfigurations += ScalafixConfig,
-    scalafixAll := scalafixAllInputTask.evaluated,
+    scalafixAll := scalafixAllInputTask().evaluated,
     (scalafixScalaBinaryVersion: @nowarn) :=
       scalaVersion.value.split('.').take(2).mkString(".")
   )
@@ -352,7 +353,7 @@ object ScalafixPlugin extends AutoPlugin {
     val invocationDepsExternal = parsed.map(_.dependency)
     val projectDepsInternal0 = projectDepsInternal.filter {
       case directory if directory.isDirectory =>
-        directory.**(AllPassFilter).get.exists(_.isFile)
+        directory.**(AllPassFilter).get().exists(_.isFile)
       case file if file.isFile => true
       case _ => false
     }
@@ -376,13 +377,8 @@ object ScalafixPlugin extends AutoPlugin {
 
   }
 
-  private def scalafixAllInputTask(): Def.Initialize[InputTask[Unit]] = {
-    // workaround https://github.com/sbt/sbt/issues/3572 by invoking directly what Def.inputTaskDyn would via macro
-    InputTask.createDyn(InputTask.initParserAsInput(scalafixParser))(
-      Def.task(shellArgs =>
-        scalafixAllTask(shellArgs, thisProject.value, resolvedScoped.value)
-      )
-    )
+  private def scalafixAllInputTask(): Def.Initialize[InputTask[Unit]] = Def.inputTaskDyn { // needs a compat for sbt 1.x
+    scalafixAllTask(scalafixParser.parsed, thisProject.value, resolvedScoped.value)
   }
 
   private def scalafixAllTask(
@@ -420,11 +416,8 @@ object ScalafixPlugin extends AutoPlugin {
 
   private def scalafixInputTask(
       config: Configuration
-  ): Def.Initialize[InputTask[Unit]] = {
-    // workaround https://github.com/sbt/sbt/issues/3572 by invoking directly what Def.inputTaskDyn would via macro
-    InputTask.createDyn(InputTask.initParserAsInput(scalafixParser))(
-      Def.task(shellArgs => scalafixTask(shellArgs, config))
-    )
+  ): Def.Initialize[InputTask[Unit]] = Def.inputTaskDyn { // needs a compat for sbt 1.x
+    scalafixTask(scalafixParser.parsed, config)
   }
 
   private def scalafixTask(
@@ -633,7 +626,7 @@ object ScalafixPlugin extends AutoPlugin {
         }
 
         private lazy val checkIfTriggeredSectionExists: Boolean = {
-          val confInArgs = interface.args
+          val confInArgs: Option[Path] = interface.args
             .collect { case Arg.Config(conf) => conf }
             .flatten
             .lastOption
@@ -673,7 +666,7 @@ object ScalafixPlugin extends AutoPlugin {
               Tracked.diffInputs(
                 streams.cacheDirectory / "targets-by-rule" / rule,
                 cachingStyle
-              )(targets) { changeReport: ChangeReport[File] =>
+              )(targets) { (changeReport: ChangeReport[File]) =>
                 doForStaleTargets(changeReport.modified -- changeReport.removed)
               }
 
@@ -697,7 +690,8 @@ object ScalafixPlugin extends AutoPlugin {
                   }
               }
 
-            val ruleTargetDiffs = interface.rulesThatWillRun
+            val ruleTargetDiffs = interface
+              .rulesThatWillRun()
               .map(rule => diffTargets(rule.name) _)
               .toList
             accumulateAndRunForStaleTargets(ruleTargetDiffs)
