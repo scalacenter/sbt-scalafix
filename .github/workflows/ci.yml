@@ -15,7 +15,7 @@ jobs:
           apps: sbt
           jvm: temurin:8
       - run: rm -rf src/sbt-test/skip-sbt1.4
-      - run: sbt test scripted
+      - run: sbt +test +scripted
   jdk11:
     name: JDK11 tests
     runs-on: ubuntu-latest
@@ -26,7 +26,7 @@ jobs:
           apps: sbt
           jvm: temurin:11
       - run: rm -rf src/sbt-test/skip-sbt1.4
-      - run: sbt test scripted
+      - run: sbt +test +scripted
   jdk17:
     name: JDK17 tests
     runs-on: ubuntu-latest
@@ -38,7 +38,7 @@ jobs:
           jvm: temurin:17
       - run: rm -rf src/sbt-test/skip-java17+
       - run: rm -rf src/sbt-test/skip-sbt1.4
-      - run: sbt test scripted
+      - run: sbt +test +scripted
 
   jdk21:
     name: JDK21 tests
@@ -50,7 +50,7 @@ jobs:
           apps: sbt
           jvm: temurin:21
       - run: rm -rf src/sbt-test/skip-java17+
-      - run: sbt test scripted
+      - run: sbt +test +scripted
   jdk23:
     name: JDK23 tests
     runs-on: ubuntu-latest
@@ -61,7 +61,7 @@ jobs:
           apps: sbt
           jvm: temurin:23
       - run: rm -rf src/sbt-test/skip-java17+
-      - run: sbt test scripted
+      - run: sbt +test +scripted
   windows:
     name: Windows tests
     runs-on: windows-latest
@@ -72,7 +72,7 @@ jobs:
           apps: sbt
       - run: rm -r -fo src\sbt-test\skip-sbt1.4
       - run: rm -r -fo src\sbt-test\skip-windows
-      - run: sbt test-skip-windows scripted
+      - run: sbt +"testOnly -- -l SkipWindows" +scripted
         shell: bash
   checks:
     name: Scalafmt
