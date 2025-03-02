@@ -31,11 +31,6 @@ developers := List(
   )
 )
 
-commands += Command.command("test-skip-windows") { s =>
-  "testOnly -- -l SkipWindows" ::
-    s
-}
-
 // Dependencies
 resolvers ++= Resolver.sonatypeOssRepos("public")
 libraryDependencies ++= Dependencies.all
@@ -44,29 +39,58 @@ libraryDependencies ++= List(
   "org.scalatest" %% "scalatest" % "3.2.19" % Test
 )
 
-scalaVersion := "2.12.20"
+lazy val scala212 = "2.12.20"
+lazy val scala3 = "3.6.3"
+
+scalaVersion := scala212
+crossScalaVersions := Seq(scala212, scala3)
 
 // keep this as low as possible to avoid running into binary incompatibility such as https://github.com/sbt/sbt/issues/5049
-pluginCrossBuild / sbtVersion := "1.4.0"
+pluginCrossBuild / sbtVersion := {
+  scalaBinaryVersion.value match {
+    case "2.12" =>
+      "1.4.0"
+    case _ =>
+      "2.0.0-SNAPSHOT"
+  }
+}
 
 scriptedSbt := {
   val jdk = System.getProperty("java.specification.version").toDouble
 
   if (jdk >= 21)
-    "1.9.0" // first release that supports JDK21
+    Ordering[String].max(
+      (pluginCrossBuild / sbtVersion).value,
+      "1.9.0" // first release that supports JDK21
+    )
   else
     (pluginCrossBuild / sbtVersion).value
 }
 
-libraryDependencies += compilerPlugin(scalafixSemanticdb)
+libraryDependencies ++= {
+  scalaBinaryVersion.value match {
+    case "2.12" =>
+      List(compilerPlugin(scalafixSemanticdb))
+    case _ =>
+      Nil
+  }
+}
 
-scalacOptions ++= List("-Ywarn-unused", "-Yrangepos")
-
-scalacOptions ++= List(
-  "-target:jvm-1.8",
-  "-Xfatal-warnings",
-  "-Xlint"
-)
+scalacOptions ++= {
+  scalaBinaryVersion.value match {
+    case "2.12" =>
+      List(
+        "-Ywarn-unused",
+        "-Yrangepos",
+        "-Xlint"
+      )
+    case _ =>
+      List(
+        "-Wunused:all",
+        "-Werror"
+      )
+  }
+}
 
 // Scripted
 enablePlugins(ScriptedPlugin)

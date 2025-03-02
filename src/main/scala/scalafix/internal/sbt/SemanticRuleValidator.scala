@@ -25,7 +25,7 @@ class SemanticRuleValidator(ifNotFound: SemanticdbNotFound) {
       invalidArguments.foreach { invalidArgument =>
         errors += invalidArgument.getMessage
       }
-      errors
+      errors.toSeq
     }
   }
 }
