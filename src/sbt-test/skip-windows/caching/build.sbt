@@ -3,8 +3,8 @@ import _root_.scalafix.sbt.{BuildInfo => Versions}
 inThisBuild(
   List(
     scalaVersion := Versions.scala212,
-    addCompilerPlugin(scalafixSemanticdb),
-    scalacOptions += "-Yrangepos",
+    semanticdbEnabled := true,
+    semanticdbVersion := scalafixSemanticdb.revision,
     scalacOptions += "-Ywarn-unused", // for RemoveUnused
     scalafixDependencies += "com.geirsson" %% "example-scalafix-rule" % "1.2.0",
     resolvers +=

@@ -3,26 +3,19 @@ import _root_.scalafix.sbt.{BuildInfo => Versions}
 inThisBuild(
   Seq(
     scalaVersion := Versions.scala212,
-    scalacOptions ++= List(
-      "-Yrangepos",
-      "-Ywarn-unused"
-    )
+    semanticdbEnabled := true,
+    semanticdbVersion := scalafixSemanticdb.revision,
+    scalacOptions += "-Ywarn-unused"
   )
 )
+
 lazy val lint = project
-  .settings(
-    addCompilerPlugin(scalafixSemanticdb)
-  )
 
 lazy val rewrite = project
   .configs(IntegrationTest)
   .settings(
-    Defaults.itSettings,
-    addCompilerPlugin(scalafixSemanticdb)
+    Defaults.itSettings
   )
   .settings(scalafixConfigSettings(IntegrationTest): _*)
 
 lazy val triggered = project
-  .settings(
-    addCompilerPlugin(scalafixSemanticdb)
-  )

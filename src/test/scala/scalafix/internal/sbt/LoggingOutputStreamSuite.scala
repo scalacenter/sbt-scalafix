@@ -2,11 +2,13 @@ package scalafix.internal.sbt
 
 import java.io.PrintStream
 
+import scala.collection.mutable
+
+import sbt.Level
+import sbt.Logger
+
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.must.Matchers
-import sbt.{Level, Logger}
-
-import scala.collection.mutable
 
 class LoggingOutputStreamSuite extends AnyFunSuite with Matchers {
 

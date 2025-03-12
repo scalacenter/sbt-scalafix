@@ -2,9 +2,9 @@ package scalafix.internal.sbt
 
 import java.nio.file.Path
 
-import sbt.ModuleID
-
 import scala.collection.mutable.ListBuffer
+
+import sbt.ModuleID
 
 class SemanticRuleValidator(ifNotFound: SemanticdbNotFound) {
   def findErrors(
@@ -25,7 +25,7 @@ class SemanticRuleValidator(ifNotFound: SemanticdbNotFound) {
       invalidArguments.foreach { invalidArgument =>
         errors += invalidArgument.getMessage
       }
-      errors
+      errors.toSeq
     }
   }
 }
