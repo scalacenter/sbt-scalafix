@@ -39,7 +39,6 @@ jobs:
       - run: rm -r -fo src\sbt-test\skip-sbt1.4
       - run: rm -r -fo src\sbt-test\skip-windows
       - run: sbt ++${{ matrix.scala }} test-skip-windows scripted
-        shell: bash
   formatting:
     name: Scalafmt and Scalafix
     runs-on: ubuntu-latest
