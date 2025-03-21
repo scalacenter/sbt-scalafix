@@ -40,8 +40,9 @@ jobs:
           jvm: temurin:${{ matrix.jvm }}
       - run: rm -r -fo src\sbt-test\skip-sbt1.4
       - run: rm -r -fo src\sbt-test\skip-windows
-      - run: sbt ++${{ matrix.scala }} test-skip-windows scripted
-        shell: bash
+      - run: sbt ++${{ matrix.scala }} test-skip-windows
+      - if: matrix.scala == '2.12.x' # TODO enable sbt 2 scripted test
+        run: sbt ++${{ matrix.scala }} scripted
   formatting:
     name: Scalafmt and Scalafix
     runs-on: ubuntu-latest

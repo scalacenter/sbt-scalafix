@@ -60,7 +60,10 @@ lazy val latestScalafixInterfacesSnapshotVersion = {
     .last
 }
 
-scalaVersion := scala212
+// Work around https://github.com/sbt/sbt/issues/8740
+Compile / doc / scalacOptions ~= { _.filterNot(_.startsWith("-P:")) }
+
+scalaVersion := scala3
 crossScalaVersions := Seq(scala212, scala3)
 
 // keep this as low as possible to avoid running into binary incompatibility such as https://github.com/sbt/sbt/issues/5049
@@ -89,6 +92,7 @@ scalacOptions ++= {
   scalaBinaryVersion.value match {
     case "2.12" =>
       List(
+        "-Xsource:3",
         "-Ywarn-unused",
         "-Xlint",
         "-Xfatal-warnings"

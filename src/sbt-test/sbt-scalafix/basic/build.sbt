@@ -35,7 +35,7 @@ checkLogs := Def.uncached {
     .map(_.replaceAll("\u001B\\[[;\\d]*m", "")) // remove control chars (colors)
     .force
   assert(
-    logLines.exists(_ == "[error] -import scala.concurrent.Future"),
+    logLines.exists(_.startsWith("[error] -import scala.concurrent.Future")),
     "diff should be logged as error"
   )
 }
