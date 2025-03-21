@@ -1,5 +1,13 @@
 scalaVersion := "2.12.21"
 
+commands += Command.command("setCoursierRepositories") { state =>
+  System.setProperty(
+    "coursier.repositories",
+    "ivy2Local|central|ivy:https://a.b.com/artifactory/snapshots/[organisation]/[module]/(scala_[scalaVersion]/)(sbt_[sbtVersion]/)[revision]/[type]s/[artifact](-[classifier]).[ext]"
+  )
+  state
+}
+
 import _root_.scalafix.internal.sbt.Compat._
 TaskKey[Unit]("check") := Def.uncached {
   val expectedRepositories: Seq[String] = Seq(

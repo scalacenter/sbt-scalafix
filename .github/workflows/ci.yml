@@ -13,15 +13,6 @@ jobs:
         jvm: ["17", "21", "25", "26"]
         scala: ["2.12.x", "3.x"]
         include:
-          - os: ubuntu
-            jvm: 8
-            scala: 2.12.x
-          - os: ubuntu
-            jvm: 11
-            scala: 2.12.x
-          - os: windows
-            jvm: 8
-            scala: 2.12.x
           - os: windows
             jvm: 17
             scala: 3.x
@@ -33,10 +24,8 @@ jobs:
         with:
           apps: sbt
           jvm: temurin:${{ matrix.jvm }}
-      - if: matrix.jvm == '8' || matrix.jvm == '11' || matrix.jvm == '17'
+      - if: matrix.jvm == '17'
         run: rm -r src/sbt-test/skip-sbt1.4
-      - if: matrix.jvm == '17' || matrix.jvm == '21' || matrix.jvm == '25' || matrix.jvm == '26'
-        run: rm -r src/sbt-test/skip-java17+
       - if: matrix.os == 'windows'
         run: rm -r src/sbt-test/skip-windows
       - run: sbt ++${{ matrix.scala }} test scripted

@@ -1,3 +1,0 @@
-# reload to ensure env variable COURSIER_REPOSITORIES is picked up by scalafixResolvers
-> reload
-> check

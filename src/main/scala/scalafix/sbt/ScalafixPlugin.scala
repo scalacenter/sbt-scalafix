@@ -219,7 +219,7 @@ object ScalafixPlugin extends AutoPlugin {
     else FileInfo.hash
   }
 
-  private lazy val defaultScalafixResolvers =
+  private def defaultScalafixResolvers =
     // Repository.defaults() defaults to Repository.ivy2Local() and Repository.central(). These can be overridden per
     // env variable, e.g., export COURSIER_REPOSITORIES="ivy2Local|central|sonatype:releases|jitpack|https://corporate.com/repo".
     // See https://github.com/coursier/coursier/blob/master/modules/coursier/jvm/src/main/scala/coursier/PlatformResolve.scala#L19-L68

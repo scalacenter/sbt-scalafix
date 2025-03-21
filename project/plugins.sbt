@@ -6,7 +6,7 @@ Compile / unmanagedSourceDirectories ++= {
   val root = (ThisBuild / baseDirectory).value.getParentFile / "src" / "main"
   List(
     root / "scala",
-    root / "scala-2.12"
+    root / "scala-3"
   )
 }
 libraryDependencies ++= Dependencies.all
