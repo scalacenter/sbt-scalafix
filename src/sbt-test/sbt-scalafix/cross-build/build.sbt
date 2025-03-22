@@ -8,8 +8,8 @@ inThisBuild(
 )
 
 lazy val scalafixSettings = List(
-  addCompilerPlugin(scalafixSemanticdb),
-  scalacOptions += "-Yrangepos"
+  semanticdbEnabled := true,
+  semanticdbVersion := scalafixSemanticdb.revision
 )
 
 lazy val root = project

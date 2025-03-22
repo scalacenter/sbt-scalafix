@@ -1,34 +1,37 @@
 package scalafix.sbt
 
-import sbt.Keys._
-import sbt._
+import java.io.File.pathSeparator
+
+import sbt.*
+import sbt.Keys.*
 import sbt.plugins.JvmPlugin
 
-import java.io.File.pathSeparator
+import scalafix.internal.sbt.Compat
+import xsbti.FileConverter
 
 object ScalafixTestkitPlugin extends AutoPlugin {
   override def trigger: PluginTrigger = noTrigger
   override def requires: Plugins = JvmPlugin
 
   object autoImport {
-    val scalafixTestkitInputClasspath =
+    val scalafixTestkitInputClasspath: TaskKey[Classpath] =
       taskKey[Classpath]("Classpath of input project")
-    val scalafixTestkitInputScalacOptions =
+    val scalafixTestkitInputScalacOptions: TaskKey[Seq[String]] =
       taskKey[Seq[String]](
         "Scalac compiler flags that were used to compile the input project"
       )
-    val scalafixTestkitInputScalaVersion =
+    val scalafixTestkitInputScalaVersion: SettingKey[String] =
       settingKey[String](
         "Scala compiler version that was used to compile the input project"
       )
-    val scalafixTestkitInputSourceDirectories =
+    val scalafixTestkitInputSourceDirectories: TaskKey[Seq[File]] =
       taskKey[Seq[File]]("Source directories of input project")
-    val scalafixTestkitOutputSourceDirectories =
+    val scalafixTestkitOutputSourceDirectories: TaskKey[Seq[File]] =
       taskKey[Seq[File]]("Source directories of output project")
   }
   import autoImport._
 
-  override def buildSettings: Seq[Def.Setting[_]] =
+  override def buildSettings: Seq[Def.Setting[?]] =
     List(
       // This makes it simpler to use sbt-scalafix SNAPSHOTS: such snapshots may bring scalafix-* SNAPSHOTS which is fine in the
       // meta build as the same resolver (declared in project/plugins.sbt) is used. However, since testkit-enabled projects are
@@ -37,18 +40,22 @@ object ScalafixTestkitPlugin extends AutoPlugin {
       includePluginResolvers := true
     )
 
-  override def projectSettings: Seq[Def.Setting[_]] =
+  override def projectSettings: Seq[Def.Setting[?]] =
     List(
-      libraryDependencies += "ch.epfl.scala" % "scalafix-testkit" % BuildInfo.scalafixVersion % Test cross CrossVersion.full,
+      libraryDependencies +=
+        ("ch.epfl.scala" % "scalafix-testkit" % BuildInfo.scalafixVersion % Test)
+          .cross(CrossVersion.full),
       scalafixTestkitInputScalacOptions := scalacOptions.value,
       scalafixTestkitInputScalaVersion := scalaVersion.value,
       Test / resourceGenerators += Def.task {
+        implicit val conv: FileConverter = fileConverter.value
+
         val props = new java.util.Properties()
         val values = Map[String, Seq[File]](
           "sourceroot" ->
             List((ThisBuild / baseDirectory).value),
           "inputClasspath" ->
-            scalafixTestkitInputClasspath.value.map(_.data),
+            scalafixTestkitInputClasspath.value.map(Compat.toFile),
           "inputSourceDirectories" ->
             scalafixTestkitInputSourceDirectories.value.distinct, // https://github.com/sbt/sbt/pull/6511
           "outputSourceDirectories" ->
@@ -69,7 +76,7 @@ object ScalafixTestkitPlugin extends AutoPlugin {
           (Test / managedResourceDirectories).value.head /
             "scalafix-testkit.properties"
         IO.write(props, "Input data for scalafix testkit", out)
-        List(out)
+        Seq(out)
       }
     )
 }

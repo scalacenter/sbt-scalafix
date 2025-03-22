@@ -1,13 +1,18 @@
 package scalafix.internal.sbt
 
-import coursierapi.{Credentials, IvyRepository, MavenRepository, Repository}
-import org.apache.ivy.plugins.resolver.IBiblioResolver
+import java.net.MalformedURLException
+import java.nio.file.Paths
+
+import scala.jdk.CollectionConverters.*
+
 import sbt.librarymanagement.{Configuration as _, MavenRepository as _, *}
 import sbt.util.Logger
 
-import java.net.MalformedURLException
-import java.nio.file.Paths
-import scala.collection.JavaConverters.*
+import coursierapi.Credentials
+import coursierapi.IvyRepository
+import coursierapi.MavenRepository
+import coursierapi.Repository
+import org.apache.ivy.plugins.resolver.IBiblioResolver
 
 // vendor from sbt-coursier/lmcoursier.internal.Resolvers
 object CoursierRepoResolvers {
@@ -122,7 +127,7 @@ object CoursierRepoResolvers {
 
   private object IBiblioRepository {
 
-    private def stringVector(v: java.util.List[_]): Vector[String] =
+    private def stringVector(v: java.util.List[?]): Vector[String] =
       Option(v).map(_.asScala.toVector).getOrElse(Vector.empty).collect {
         case s: String => s
       }

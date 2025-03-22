@@ -1,10 +1,14 @@
 package scalafix.internal.sbt
 
-import coursierapi.{MavenRepository, Repository}
+import sbt.complete.Parser
+import sbt.librarymanagement.ModuleID
+
+import coursierapi.MavenRepository
+import coursierapi.Repository
 import org.eclipse.jgit.lib.AbbreviatedObjectId
 import org.scalatest.Tag
-import sbt.complete.Parser
 import org.scalatest.funsuite.AnyFunSuite
+import scalafix.interfaces.ScalafixRule
 
 class SbtCompletionsSuite extends AnyFunSuite {
   val fs = new Fs()
@@ -23,11 +27,11 @@ class SbtCompletionsSuite extends AnyFunSuite {
   }
   git.tag("v0.1.0")
 
-  val exampleDependency = {
+  val exampleDependency: ModuleID = {
     import sbt._
     "ch.epfl.scala" %% "example-scalafix-rule" % "2.0.0-RC1"
   }
-  val mainArgs =
+  val mainArgs: ScalafixInterface =
     ScalafixInterface(
       new BlockingCache(),
       "2.12",
@@ -44,9 +48,9 @@ class SbtCompletionsSuite extends AnyFunSuite {
       ScalafixInterface.defaultLogger,
       new ScalafixLogger(ScalafixInterface.defaultLogger)
     )
-  val loadedRules = mainArgs.availableRules.toList
+  val loadedRules: List[ScalafixRule] = mainArgs.availableRules().toList
 
-  val defaultParser = new ScalafixCompletions(
+  val defaultParser: Parser[ShellArgs] = new ScalafixCompletions(
     workingDirectory = fs.workingDirectory.toAbsolutePath,
     loadedRules = () => loadedRules,
     terminalWidth = None,
@@ -61,7 +65,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
       if (name == "all") ""
       else name
 
-    test(name, testTags: _*) {
+    test(name, testTags*) {
       val input = " " + option
 
       val completions =
@@ -86,7 +90,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
       name: String,
       testTags: Tag*
   )(assertArgs: Either[String, ShellArgs] => Unit): Unit = {
-    test(name, testTags: _*) {
+    test(name, testTags*) {
       val input = name
       val args = Parser.parse(" " + input, parser)
       assertArgs(args)
@@ -220,10 +224,18 @@ class SbtCompletionsSuite extends AnyFunSuite {
   }
 
   checkArgs("--test  -f= --rules=Foo", SkipWindows) { args =>
-    assert(args == Left("""Expected non-whitespace character
-      |--files value(s) must reference existing files or directories in unmanagedSourceDirectories; are you running scalafix on the right project / Configuration?
-      | --test  -f= --rules=Foo
-      |            ^""".stripMargin))
+    val sbt1 =
+      """Expected non-whitespace character
+        |""".stripMargin
+    val sbt2 =
+      """Expected non-whitespace character
+        |Expected '"'
+        |""".stripMargin
+    val tail =
+      """--files value(s) must reference existing files or directories in unmanagedSourceDirectories; are you running scalafix on the right project / Configuration?
+        | --test  -f= --rules=Foo
+        |            ^""".stripMargin
+    assert(args == Left(sbt1 + tail) || args == Left(sbt2 + tail))
   }
 
   checkArgs("--test  -f --rules=Foo", SkipWindows) { args =>

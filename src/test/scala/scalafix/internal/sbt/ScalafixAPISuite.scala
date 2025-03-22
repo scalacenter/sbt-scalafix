@@ -1,15 +1,18 @@
 package scalafix.internal.sbt
 
-import java.io.{ByteArrayOutputStream, PrintStream}
+import java.io.ByteArrayOutputStream
+import java.io.PrintStream
 import java.nio.file.Files
 
-import coursierapi.{MavenRepository, Repository}
-import org.scalactic.source.Position
-import sbt._
-import scalafix.interfaces.ScalafixError
-import org.scalatest.funsuite.AnyFunSuite
-
 import scala.util.Properties
+
+import sbt.*
+
+import coursierapi.MavenRepository
+import coursierapi.Repository
+import org.scalactic.source.Position
+import org.scalatest.funsuite.AnyFunSuite
+import scalafix.interfaces.ScalafixError
 
 class ScalafixAPISuite extends AnyFunSuite {
 
@@ -17,7 +20,7 @@ class ScalafixAPISuite extends AnyFunSuite {
       pos: Position
   ): Unit = {
     def removeSnapshotInfo(s: String) =
-      s.replaceAllLiterally(
+      s.replace(
         "[info] Using SNAPSHOT artifacts for Scalafix and/or external rules, binary compatibility checks disabled",
         ""
       )

@@ -11,9 +11,7 @@ lazy val root = project
 lazy val lib = project
   .in(file("lib"))
   .settings(
-    addCompilerPlugin(scalafixSemanticdb),
-    scalacOptions ++= List(
-      "-Ywarn-unused",
-      "-Yrangepos"
-    )
+    semanticdbEnabled := true,
+    semanticdbVersion := scalafixSemanticdb.revision,
+    scalacOptions += "-Ywarn-unused"
   )

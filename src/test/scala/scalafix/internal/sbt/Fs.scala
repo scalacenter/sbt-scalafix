@@ -1,7 +1,10 @@
 package scalafix.internal.sbt
 
-import java.nio.file.{Files, Path, StandardOpenOption}
-import scala.collection.JavaConverters._
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.StandardOpenOption
+
+import scala.jdk.CollectionConverters.*
 
 class Fs() {
   val workingDirectory: Path =

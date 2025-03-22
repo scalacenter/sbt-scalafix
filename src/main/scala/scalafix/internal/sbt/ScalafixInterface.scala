@@ -1,15 +1,17 @@
 package scalafix.internal.sbt
 
-import java.nio.file.Path
-import java.{util => jutil}
-import coursierapi.Repository
-import sbt._
-import sbt.io.RegularFileFilter
-import scalafix.interfaces.{Scalafix => ScalafixAPI, _}
-import scalafix.sbt.InvalidArgument
-
-import scala.collection.JavaConverters._
 import java.io.PrintStream
+import java.nio.file.Path
+import java.util as jutil
+
+import scala.jdk.CollectionConverters.*
+
+import sbt.*
+import sbt.io.RegularFileFilter
+
+import coursierapi.Repository
+import scalafix.interfaces.{Scalafix as ScalafixAPI, *}
+import scalafix.sbt.InvalidArgument
 
 sealed trait Arg extends (ScalafixArguments => ScalafixArguments)
 
@@ -38,7 +40,7 @@ object Arg {
         .map(uri => java.nio.file.Paths.get(uri).toFile)
         .flatMap {
           case classDirectory if classDirectory.isDirectory =>
-            classDirectory.**(RegularFileFilter).get
+            classDirectory.**(RegularFileFilter).get()
           case jar =>
             Seq(jar)
         }
@@ -113,10 +115,10 @@ class ScalafixInterface private (
     scalafixArguments.run().toSeq
 
   def availableRules(): Seq[ScalafixRule] =
-    scalafixArguments.availableRules().asScala
+    scalafixArguments.availableRules().asScala.toSeq
 
   def rulesThatWillRun(): Seq[ScalafixRule] =
-    try scalafixArguments.rulesThatWillRun().asScala
+    try scalafixArguments.rulesThatWillRun().asScala.toSeq
     catch {
       case e: ScalafixException => throw new InvalidArgument(e.getMessage)
     }

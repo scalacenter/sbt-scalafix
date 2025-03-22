@@ -1,8 +1,10 @@
 package scalafix.internal.sbt
 
-import java.io.{ByteArrayOutputStream, OutputStream}
+import java.io.ByteArrayOutputStream
+import java.io.OutputStream
 
-import sbt.{Level, Logger}
+import sbt.Level
+import sbt.Logger
 
 /** Split an OutputStream into messages and feed them to a given logger at a
   * specified level. Not thread-safe.

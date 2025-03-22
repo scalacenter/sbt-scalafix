@@ -1,6 +1,6 @@
 package scalafix.internal.sbt
 
-import org.eclipse.jgit.api.{Git => JGit}
+import org.eclipse.jgit.api.Git as JGit
 import org.scalatest.funsuite.AnyFunSuite
 
 class JGitCompletionsSuite extends AnyFunSuite {

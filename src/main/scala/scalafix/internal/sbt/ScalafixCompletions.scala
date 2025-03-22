@@ -1,12 +1,12 @@
 package scalafix.internal.sbt
 
-import scalafix.interfaces.ScalafixRule
-
 import java.io.File
-import java.nio.file._
+import java.nio.file.*
 
-import sbt.complete._
-import sbt.complete.DefaultParsers._
+import sbt.complete.*
+import sbt.complete.DefaultParsers.*
+
+import scalafix.interfaces.ScalafixRule
 
 class ScalafixCompletions(
     workingDirectory: Path,
