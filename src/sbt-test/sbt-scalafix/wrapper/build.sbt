@@ -1,5 +1,6 @@
 val V = _root_.scalafix.sbt.BuildInfo
 
 scalaVersion := V.scala212
-addCompilerPlugin(scalafixSemanticdb)
-scalacOptions ++= Seq("-Yrangepos", "-Ywarn-unused")
+semanticdbEnabled := true
+semanticdbVersion := scalafixSemanticdb.revision
+scalacOptions += "-Ywarn-unused"

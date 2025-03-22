@@ -1,13 +1,11 @@
-inThisBuild(
-  List(
-    Test / parallelExecution := false,
-    scalafixDependencies := List(
-      // Custom rule published to Maven Central https://github.com/scalacenter/example-scalafix-rule
-      "ch.epfl.scala" %% "example-scalafix-rule" % "1.4.0"
-    )
-  )
+// dogfooding
+semanticdbEnabled := true
+scalafixDependencies := List(
+  // Custom rule published to Maven Central https://github.com/scalacenter/example-scalafix-rule
+  "ch.epfl.scala" %% "example-scalafix-rule" % "1.4.0"
 )
-onLoadMessage := s"Welcome to sbt-scalafix ${version.value}"
+
+onLoadMessage := s"Welcome to sbt-scalafix ${version.value} built with Scala ${scalaVersion.value}"
 moduleName := "sbt-scalafix"
 
 // Publish settings
@@ -44,35 +42,60 @@ libraryDependencies ++= List(
   "org.scalatest" %% "scalatest" % "3.2.19" % Test
 )
 
-scalaVersion := "2.12.20"
+lazy val scala212 = "2.12.20" // bin/test-release.sh
+lazy val scala3 = "3.6.4" // bin/test-release.sh
+
+scalaVersion := scala212
+crossScalaVersions := Seq(scala212, scala3)
 
 // keep this as low as possible to avoid running into binary incompatibility such as https://github.com/sbt/sbt/issues/5049
-pluginCrossBuild / sbtVersion := "1.4.0"
+pluginCrossBuild / sbtVersion := {
+  scalaBinaryVersion.value match {
+    case "2.12" =>
+      "1.4.0"
+    case _ =>
+      "2.0.0-M4" // bin/test-release.sh
+  }
+}
 
 scriptedSbt := {
   val jdk = System.getProperty("java.specification.version").toDouble
 
   if (jdk >= 21)
-    "1.9.0" // first release that supports JDK21
+    Ordering[String].max(
+      (pluginCrossBuild / sbtVersion).value,
+      "1.9.0" // first release that supports JDK21
+    )
   else
     (pluginCrossBuild / sbtVersion).value
 }
 
-libraryDependencies += compilerPlugin(scalafixSemanticdb)
-
-scalacOptions ++= List("-Ywarn-unused", "-Yrangepos")
-
-scalacOptions ++= List(
-  "-target:jvm-1.8",
-  "-Xfatal-warnings",
-  "-Xlint"
-)
+scalacOptions ++= {
+  scalaBinaryVersion.value match {
+    case "2.12" =>
+      List(
+        "-Ywarn-unused",
+        "-Xlint",
+        "-Xfatal-warnings"
+      )
+    case _ =>
+      List(
+        "-Wunused:all",
+        "-Werror"
+      )
+  }
+}
 
 // Scripted
 enablePlugins(ScriptedPlugin)
 sbtPlugin := true
 scriptedBufferLog := false
-scriptedBatchExecution := true
+scriptedBatchExecution := {
+  scalaBinaryVersion.value match {
+    case "2.12" => true
+    case _ => false
+  }
+}
 scriptedParallelInstances := 2
 scriptedLaunchOpts ++= Seq(
   "-Xmx2048M",

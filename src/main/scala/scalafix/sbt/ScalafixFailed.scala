@@ -1,6 +1,7 @@
 package scalafix.sbt
 
 import sbt.FeedbackProvidedException
+
 import scalafix.interfaces.ScalafixError
 
 final class InvalidArgument(msg: String)

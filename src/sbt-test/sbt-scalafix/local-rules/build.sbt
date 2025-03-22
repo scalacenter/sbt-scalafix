@@ -7,7 +7,9 @@ inThisBuild(
       "ch.epfl.scala" %% "example-scalafix-rule" % "1.4.0"
     ),
     resolvers += Resolver.sonatypeRepo("snapshots"),
-    scalaVersion := "2.13.11" // out of sync with scalafix.sbt.BuildInfo.scala213 on purpose
+    // out of sync with scalafix.sbt.BuildInfo.scala213 on purpose
+    scalaVersion := "2.13.11",
+    Compat.allowUnsafeScalaLibUpgrade := true
   )
 )
 

@@ -17,8 +17,8 @@ inThisBuild(
 lazy val example = project
   .settings(
     Defaults.itSettings,
-    addCompilerPlugin(scalafixSemanticdb),
-    scalacOptions += "-Yrangepos"
+    semanticdbEnabled := true,
+    semanticdbVersion := scalafixSemanticdb.revision
   )
   .settings(scalafixConfigSettings(IntegrationTest): _*)
 

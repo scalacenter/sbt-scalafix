@@ -1,12 +1,12 @@
 resolvers ++= Resolver.sonatypeOssRepos("public")
 addSbtPlugin("com.github.sbt" % "sbt-ci-release" % "1.9.3")
 
-libraryDependencies += "org.scala-sbt" %% "scripted-plugin" % sbtVersion.value
+// dogfooding
 Compile / unmanagedSourceDirectories ++= {
   val root = (ThisBuild / baseDirectory).value.getParentFile / "src" / "main"
   List(
     root / "scala",
-    root / "scala-sbt-1.0"
+    root / "scala-2.12"
   )
 }
 libraryDependencies ++= Dependencies.all

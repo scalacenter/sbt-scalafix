@@ -1,14 +1,15 @@
 package scalafix.sbt
 
-import sbt._
-import sbt.Keys._
+import scala.jdk.CollectionConverters.*
+import scala.util.*
+
+import sbt.*
+import sbt.Keys.*
 import sbt.VersionNumber.SemVer
 
-import ScalafixPlugin.autoImport.scalafixResolvers
-
-import collection.JavaConverters._
-import scala.util._
 import coursierapi.Repository
+
+import ScalafixPlugin.autoImport.scalafixResolvers
 
 /** Command to automatically enable semanticdb compiler output for shell session
   */
@@ -64,7 +65,7 @@ object ScalafixEnable {
       maybeRecommendedSemanticdbScalacScalaV: Option[VersionNumber]
   )
 
-  lazy val command = Command.command(
+  lazy val command: Command = Command.command(
     "scalafixEnable",
     briefHelp =
       "Configure SemanticdbPlugin for scalafix on supported projects.",
@@ -96,7 +97,7 @@ object ScalafixEnable {
               VersionNumber(BuildInfo.scalametaVersion)
             val compatibleSemanticdbVs = Try(
               coursierapi.Versions.create
-                .withRepositories(project.scalafixResolvers0: _*)
+                .withRepositories(project.scalafixResolvers0*)
                 .withModule(semanticdbScalacModule)
                 .versions()
                 .getMergedListings
@@ -160,21 +161,21 @@ object ScalafixEnable {
                 } else {
                   val latestAvailable =
                     tail.lastOption.getOrElse(earliestAvailable)
-                    Seq(
-                      semanticdbVersion := {
-                        val v = latestAvailable.toString
-                        sLog.value.info(
-                          s"Setting semanticdbVersion to $v in project " +
-                            s"${project.ref.project} since the version " +
-                            s"${recommendedSemanticdbV} tracked by scalafix " +
-                            s"${BuildInfo.scalafixVersion} is no longer " +
-                            s"published for scala " +
-                            s"${project.scalaVersion0.toString} - " +
-                            s"consider bumping scala"
-                        )
-                        v
-                      }
-                    )
+                  Seq(
+                    semanticdbVersion := {
+                      val v = latestAvailable.toString
+                      sLog.value.info(
+                        s"Setting semanticdbVersion to $v in project " +
+                          s"${project.ref.project} since the version " +
+                          s"${recommendedSemanticdbV} tracked by scalafix " +
+                          s"${BuildInfo.scalafixVersion} is no longer " +
+                          s"published for scala " +
+                          s"${project.scalaVersion0.toString} - " +
+                          s"consider bumping scala"
+                      )
+                      v
+                    }
+                  )
                 }
             }
           } :+ (semanticdbEnabled := true)

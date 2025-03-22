@@ -1,5 +1,10 @@
 package scalafix.internal.sbt
 
+import java.nio.file.Path
+
+import scala.jdk.CollectionConverters.*
+import scala.util.Try
+
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.lib.Constants.DOT_GIT
 import org.eclipse.jgit.lib.RefDatabase
@@ -8,10 +13,6 @@ import org.eclipse.jgit.lib.RepositoryCache
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.eclipse.jgit.util.FS
 import org.eclipse.jgit.util.GitDateFormatter
-
-import java.nio.file.Path
-import scala.collection.JavaConverters._
-import scala.util.Try
 
 class JGitCompletion(cwd: Path) {
   private val isGitRepository =

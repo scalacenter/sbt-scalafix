@@ -1,8 +1,7 @@
 package scalafix.internal.sbt
 
-import java.{util => ju}
-
 import java.lang.ref.SoftReference
+import java.util as ju
 
 /** A basic thread-safe cache with arbitrary eviction on GC pressure. */
 class BlockingCache[K, V] {

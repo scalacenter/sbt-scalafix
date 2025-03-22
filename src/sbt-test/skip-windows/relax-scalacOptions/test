@@ -6,7 +6,7 @@
 > checkLastCompilationCached
 
 # ... and indirect scalafix invocation
-> clean
+> set scalacOptions ++= Seq("just_to_invalidate_any_cache") 
 > Test / scalafix --check RemoveUnused
 -> checkLastCompilationCached
 > compile
@@ -31,6 +31,7 @@
 # confirm that regular compilation succeeds after fixing the last warning
 > scalafix ProcedureSyntax
 > compile
+-> checkLastCompilationCached
 
 # check that regular compilation is cached as usual
 > compile

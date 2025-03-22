@@ -1,6 +1,7 @@
 package scalafix.internal.sbt
 
-import sbt.librarymanagement._
+import sbt.librarymanagement.*
+
 import scalafix.sbt.InvalidArgument
 
 trait Implicits {

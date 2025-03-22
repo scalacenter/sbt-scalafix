@@ -1,7 +1,8 @@
 package scalafix.internal.sbt
 
-import sbt.ModuleID
 import scala.util.matching.Regex
+
+import sbt.ModuleID
 
 case class DependencyRule(
     ruleName: String,
