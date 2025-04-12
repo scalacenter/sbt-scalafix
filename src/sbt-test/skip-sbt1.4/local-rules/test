@@ -1,0 +1,27 @@
+# try to run a failing local rule without prior explicit rule compilation
+-> service / scalafix LocalSyntacticRule
+
+# ensure updates to the rule definition is reflected in the next run
+$ copy-file rules/src/test/scala/local/NoOp.scala rules/src/main/scala/local/Syntactic.scala
+> service / scalafix LocalSyntacticRule
+
+# run a rule defined in ScalafixConfig
+> sameproject / scalafix SameProjectSyntacticRule
+
+# make sure scalafixDependencies is also honored by running a rule from a remote JAR
+> service / scalafix CollectHead
+
+# run a rule included from a remote JAR referenced via the Scalafix ivy config
+> service / scalafix SyntacticRule
+
+
+# switch all projects to Scala 3 to ...
+> set ThisBuild / scalaVersion := "3.6.4"
+
+# ... test that local rules can be written in Scala 3 ...
+> service / scalafix LocalSyntacticRule
+> sameproject / scalafix SameProjectSyntacticRule
+
+# ... while still supporting community rules written against Scala 2.13 (until https://github.com/scalacenter/scalafix/issues/2041)
+> service / scalafix CollectHead
+> service / scalafix SyntacticRule
