@@ -7,7 +7,7 @@ $ delete rules/src/main/scala/local/NoOp.scala
 -> service / scalafix LocalSyntacticRule
 
 # make sure scalafixDependencies is also honored by running a rule from a remote JAR
-> service / scalafix SyntacticRule
+> service / scalafix CollectHead
 
 # run a rule included from a remote JAR referenced via the Scalafix ivy config
 > service / scalafix SyntacticRule

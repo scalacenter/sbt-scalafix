@@ -3,8 +3,8 @@ import _root_.scalafix.sbt.{BuildInfo => Versions}
 inThisBuild(
   List(
     scalafixDependencies := List(
-      // Custom rule cross-published to Maven Central https://github.com/scalacenter/example-scalafix-rule
-      "ch.epfl.scala" %% "example-scalafix-rule" % "1.4.0"
+      // CollectHead
+      "com.github.xuwei-k" %% "scalafix-rules" % "0.6.5"
     ),
     resolvers += Resolver.sonatypeRepo("snapshots"),
     // out of sync with scalafix.sbt.BuildInfo.scala213 on purpose
@@ -13,6 +13,7 @@ inThisBuild(
   )
 )
 
+// LocalSyntacticRule
 val rules = project
   .disablePlugins(ScalafixPlugin)
   .settings(
@@ -23,9 +24,11 @@ val rules = project
 val service = project
   .dependsOn(rules % ScalafixConfig)
   .settings(
+    // SyntacticRule
     libraryDependencies += "ch.epfl.scala" %% "example-scalafix-rule" % "3.0.0" % ScalafixConfig
   )
 
+// SameProjectSyntacticRule
 val sameproject = project
   .settings(
     libraryDependencies += "ch.epfl.scala" %% "scalafix-core" % Versions.scalafixVersion % ScalafixConfig
