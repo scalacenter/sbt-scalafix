@@ -1,2 +1,8 @@
+# Check if we have an actionable failure
 -> scalafix
 > checkLogs
+
+# Check that we don't output the message if the semanticdbVersion does not come from scalafix
+> set ThisBuild / semanticdbVersion := "4.8.5"
+-> scalafix
+-> checkLogs
