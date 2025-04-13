@@ -242,7 +242,8 @@ object ScalafixPlugin extends AutoPlugin {
         def unapply(id: ModuleID): Option[String] =
           if (
             id.organization == scalafixSemanticdb.organization &&
-            id.name.startsWith(scalafixSemanticdb.name)
+            id.name.startsWith(scalafixSemanticdb.name) &&
+            id.revision == BuildInfo.scalametaVersion
           ) Some(id.revision)
           else None
       }
