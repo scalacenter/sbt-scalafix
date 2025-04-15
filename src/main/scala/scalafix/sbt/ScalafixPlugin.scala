@@ -98,6 +98,8 @@ object ScalafixPlugin extends AutoPlugin {
     def scalafixConfigSettings(config: Configuration): Seq[Def.Setting[?]] =
       inConfig(config)(
         relaxScalacOptionsConfigSettings ++ Seq(
+          config / scalafix / skip := (config / scalafix / skip).value ||
+            Seq("2.10", "2.11").contains(scalaBinaryVersion.value),
           scalafix := {
             // force evaluation of keys looked up in the same scope (config) within
             // dynamic tasks to workaround https://github.com/sbt/sbt/issues/5647
@@ -502,7 +504,14 @@ object ScalafixPlugin extends AutoPlugin {
         }
       }
     }
-    task.tag(Scalafix)
+    Def.taskDyn {
+      if (!(config / scalafix / skip).value)
+        task.tag(Scalafix)
+      else
+        Def.task {
+          (config / scalafix / streams).value.log.info("Skipping scalafix")
+        }
+    }
   }
 
   private def scalafixSyntactic(

@@ -1,0 +1,41 @@
+-> scalafix
+-> Test / scalafix
+-> scalafixAll
+
+##############################
+# Project level
+##############################
+> set skip := true
+
+> scalafix
+> Test / scalafix
+> scalafixAll
+
+> set skip := false
+
+##############################
+# Task level
+##############################
+> set scalafix / skip := true
+
+> scalafix
+> Test / scalafix
+> scalafixAll
+
+> set scalafix / skip := false
+
+##############################
+# Config / Task level
+##############################
+> set Test / scalafix / skip := true
+
+-> scalafix
+> Test / scalafix
+-> scalafixAll
+
+> set Compile / skip := true
+
+> scalafix
+> Test / scalafix
+> scalafixAll
+
