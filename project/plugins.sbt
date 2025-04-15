@@ -3,7 +3,8 @@ resolvers ++= Resolver.sonatypeOssRepos("public")
 
 // dogfooding
 Compile / unmanagedSourceDirectories ++= {
-  val root = (ThisBuild / baseDirectory).value.getParentFile / "src" / "main"
+  val root =
+    (ThisBuild / baseDirectory).value.getParentFile / "plugin" / "src" / "main"
   List(
     root / "scala",
     root / "scala-3"
