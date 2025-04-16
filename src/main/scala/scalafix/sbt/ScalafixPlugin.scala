@@ -98,7 +98,7 @@ object ScalafixPlugin extends AutoPlugin {
     def scalafixConfigSettings(config: Configuration): Seq[Def.Setting[?]] =
       inConfig(config)(
         relaxScalacOptionsConfigSettings ++ Seq(
-          config / scalafix / skip := (config / scalafix / skip).value ||
+          scalafix / skip := (scalafix / skip).value ||
             Seq("2.10", "2.11").contains(scalaBinaryVersion.value),
           scalafix := {
             // force evaluation of keys looked up in the same scope (config) within
