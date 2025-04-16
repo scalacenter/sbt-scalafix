@@ -98,7 +98,7 @@ object ScalafixPlugin extends AutoPlugin {
     def scalafixConfigSettings(config: Configuration): Seq[Def.Setting[?]] =
       inConfig(config)(
         relaxScalacOptionsConfigSettings ++ Seq(
-          config / scalafix / skip := (config / scalafix / skip).value ||
+          scalafix / skip := (scalafix / skip).value ||
             Seq("2.10", "2.11").contains(scalaBinaryVersion.value),
           scalafix := {
             // force evaluation of keys looked up in the same scope (config) within
@@ -733,15 +733,17 @@ object ScalafixPlugin extends AutoPlugin {
       diffWithPreviousRuns { (cacheKeyArgsChanged, staleTargets) =>
         val errors = if (cacheKeyArgsChanged) {
           streams.log.info(s"Running scalafix on ${paths.size} Scala sources")
+          streams.log.debug(s"running ${interface.args}")
           interface.run()
         } else {
           if (staleTargets.nonEmpty) {
             streams.log.info(
               s"Running scalafix on ${staleTargets.size} Scala sources (incremental)"
             )
-            interface
+            val interfaceIncremental = interface
               .withArgs(Arg.Paths(staleTargets.map(_.toPath).toSeq))
-              .run()
+            streams.log.debug(s"running ${interfaceIncremental.args}")
+            interfaceIncremental.run()
           } else {
             streams.log.debug(s"already ran on ${paths.length} files")
             Nil

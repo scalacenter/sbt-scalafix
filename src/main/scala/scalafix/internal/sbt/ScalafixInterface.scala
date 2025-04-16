@@ -13,7 +13,15 @@ import coursierapi.Repository
 import scalafix.interfaces.{Scalafix as ScalafixAPI, *}
 import scalafix.sbt.InvalidArgument
 
-sealed trait Arg extends (ScalafixArguments => ScalafixArguments)
+sealed trait Arg extends (ScalafixArguments => ScalafixArguments) {
+  override def toString: String =
+    this.getClass.getSimpleName + "(...)"
+}
+
+trait Printable extends Product {
+  override def toString: String =
+    this.getClass.getSimpleName + productIterator.mkString("(", ", ", ")")
+}
 
 object Arg {
 
@@ -74,7 +82,8 @@ object Arg {
   }
 
   case class ScalacOptions(options: Seq[String])
-      extends Arg { // FIXME: with CacheKey {
+      extends Arg
+      with Printable { // FIXME: with CacheKey {
     override def apply(sa: ScalafixArguments): ScalafixArguments =
       sa.withScalacOptions(options.asJava)
   }
