@@ -1,0 +1,6 @@
+# the project loads, but scalafix fails
+-> scalafix DisableSyntax
+> checkLogs
+
+# a build reference to the member relying on scalafix properties prevents loading the project
+-> set ThisBuild / semanticdbVersion := scalafixSemanticdb.revision

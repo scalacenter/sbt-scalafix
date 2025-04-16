@@ -29,7 +29,9 @@ object BuildInfo {
         props.load(stream)
       case None =>
         sys.error(
-          s"failed to load the resource file '$propertiesPath'. To fix this problem, make sure to enable the sbt-scalafix in 'project/plugins.sbt' and validate that the scalafix-interfaces jar is available on the classpath of the sbt build."
+          s"failed to load the resource file '$propertiesPath'; " +
+            "to fix this problem, add \"ch.epfl.scala\" % \"scalafix-interfaces\" " +
+            "to libraryDependencies in 'project/plugins.sbt'"
         )
     }
     props
@@ -39,7 +41,8 @@ object BuildInfo {
     Option(props.getProperty(key)).getOrElse {
       sys.error(
         s"sbt-scalafix property '$key' missing in $propertiesPath; " +
-          "to fix this problem, upgrade to the latest version of Scalafix."
+          "to fix this problem, upgrade to a more recent version of " +
+          "\"ch.epfl.scala\" % \"scalafix-interfaces\""
       )
     }
 }

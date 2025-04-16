@@ -101,5 +101,6 @@ scriptedParallelInstances := 2
 scriptedLaunchOpts ++= Seq(
   "-Xmx2048M",
   s"-Dplugin.version=${version.value}",
+  s"-Dscalafix-interfaces.version=${Dependencies.scalafixInterfacesVersion}",
   "-Dsbt-scalafix.uselastmodified=true" // the caching scripted relies on sbt-scalafix only checking file attributes, not content
 )

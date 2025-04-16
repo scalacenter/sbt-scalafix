@@ -19,7 +19,7 @@ checkLogs := {
   assert(
     logLines.exists(
       _.contains(
-        "Please consider upgrading to a more recent version of sbt-scalafix and/or Scala, or uninstalling sbt-scalafix plugin"
+        "Please consider upgrading to a more recent version of \"ch.epfl.scala\" % \"scalafix-interfaces\" and/or Scala, or uninstalling sbt-scalafix"
       )
     )
   )
