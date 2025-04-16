@@ -10,3 +10,6 @@ Compile / unmanagedSourceDirectories ++= {
   )
 }
 libraryDependencies ++= Dependencies.all
+
+// latest version of interfaces to test compatibility & get most recent behavior for scalafix invocations
+libraryDependencies += "ch.epfl.scala" % "scalafix-interfaces" % "0.14.2"

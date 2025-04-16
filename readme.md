@@ -12,14 +12,18 @@ https://github.com/scalacenter/scalafix/issues
 
 ## Nightlies
 
-Our CI publishes a [snapshot release to Sonatype](https://oss.sonatype.org/content/repositories/snapshots/ch/epfl/scala/sbt-scalafix_2.12_1.0/)
-on every merge into main. The latest snapshot at the time of the writing can be used via:
+Our CI publishes a snapshot release to Sonatype on every merge into main. The latest snapshot(s) of
+[the plugin](https://oss.sonatype.org/content/repositories/snapshots/ch/epfl/scala/sbt-scalafix_2.12_1.0/)
+and/or [scalafix-interfaces](https://oss.sonatype.org/content/repositories/snapshots/ch/epfl/scala/scalafix-interfaces/)
+can be used via:
 
 ```diff
   // project/plugins.sbt
--addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.9.34")
-+addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.9.34+5-5dfe5fb6-SNAPSHOT")
-+resolvers += Resolver.sonatypeRepo("snapshots")
++resolvers ++= Resolver.sonatypeOssRepos("snapshots")
+-addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.14.2")
++addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.14.2+17-4ba873d2-SNAPSHOT")
+-libraryDependencies += "ch.epfl.scala" % "scalafix-interfaces" % "0.14.2"
++libraryDependencies += "ch.epfl.scala" % "scalafix-interfaces" % "0.14.2+48-9b6e03ac-SNAPSHOT"
  ```
 
 ## Team

@@ -89,7 +89,13 @@ object ScalafixPlugin extends AutoPlugin {
           "Defaults to a wrapper around `sbt.Logger`."
       )
 
-    val scalafixSemanticdb: ModuleID =
+    val scalafixAllowDynamicFallback: SettingKey[Boolean] =
+      settingKey[Boolean](
+        "Control whether the latest version of scalafix may be downloaded instead of failing when " +
+          "scalafix-interfaces is not explicitly provided. Off by default because non-deterministic."
+      )
+
+    lazy val scalafixSemanticdb: ModuleID =
       scalafixSemanticdb(BuildInfo.scalametaVersion)
     def scalafixSemanticdb(scalametaVersion: String): ModuleID =
       ("org.scalameta" % "semanticdb-scalac" % scalametaVersion)
@@ -263,7 +269,8 @@ object ScalafixPlugin extends AutoPlugin {
                       "via `semanticdbVersion` does follow the version recommended " +
                       "for Scalafix, but is not supported for the given Scala " +
                       s"version ${scalaV}. Please consider upgrading to a more recent version " +
-                      "of sbt-scalafix and/or Scala, or uninstalling sbt-scalafix plugin."
+                      "of \"ch.epfl.scala\" % \"scalafix-interfaces\" and/or Scala, or " +
+                      "uninstalling sbt-scalafix."
                   throw inc.copy(message = Some(msg))
                 case _ =>
               }
@@ -287,6 +294,7 @@ object ScalafixPlugin extends AutoPlugin {
     scalafixCaching := true,
     scalafixResolvers := defaultScalafixResolvers,
     scalafixDependencies := Nil,
+    scalafixAllowDynamicFallback := false,
     commands += ScalafixEnable.command,
     scalafixInterfaceCache := new BlockingCache,
     concurrentRestrictions += Tags.exclusiveGroup(Scalafix),
@@ -443,6 +451,12 @@ object ScalafixPlugin extends AutoPlugin {
       config: ConfigKey
   ): Def.Initialize[Task[Unit]] = {
     val task = Def.taskDyn {
+      if (!scalafixAllowDynamicFallback.value) {
+        // force scalafix properties to be loaded, to trigger an actionnable error instead
+        // of letting the built-in scalafix-interfaces fallback to the latest scalafix version
+        BuildInfo.scalafixVersion
+      }
+
       implicit val conv: FileConverter = fileConverter.value
 
       val errorLogger =
