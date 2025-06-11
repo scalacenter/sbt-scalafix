@@ -495,10 +495,10 @@ object ScalafixPlugin extends AutoPlugin {
             Arg.ParsedArgs(shell.extra)
           )
         val rulesThatWillRun = mainInterface.rulesThatWillRun()
-        val isSemantic = rulesThatWillRun.exists(_.kind().isSemantic)
-        if (isSemantic) {
-          val names = rulesThatWillRun.map(_.name())
-          scalafixSemantic(names, mainInterface, shell, config)
+        val semanticRules = rulesThatWillRun.filter(_.kind().isSemantic)
+        if (semanticRules.nonEmpty) {
+          val semanticRuleNames = semanticRules.map(_.name())
+          scalafixSemantic(semanticRuleNames, mainInterface, shell, config)
         } else {
           scalafixSyntactic(mainInterface, shell, config)
         }
@@ -528,7 +528,7 @@ object ScalafixPlugin extends AutoPlugin {
     }
 
   private def scalafixSemantic(
-      ruleNames: Seq[String],
+      semanticRuleNames: Seq[String],
       mainArgs: ScalafixInterface,
       shellArgs: ShellArgs,
       config: ConfigKey
@@ -540,7 +540,7 @@ object ScalafixPlugin extends AutoPlugin {
       val files = filesToFix(shellArgs, config).value
       val scalacOpts = (config / compile / scalacOptions).value
       val errors = new SemanticRuleValidator(
-        new SemanticdbNotFound(ruleNames, scalaVersion.value)
+        new SemanticdbNotFound(semanticRuleNames, scalaVersion.value)
       ).findErrors(files, dependencies, scalacOpts, mainArgs)
       if (errors.isEmpty) {
         val task = Def.task {

@@ -31,11 +31,11 @@ class SemanticRuleValidator(ifNotFound: SemanticdbNotFound) {
 }
 
 class SemanticdbNotFound(
-    ruleNames: Seq[String],
+    semanticRuleNames: Seq[String],
     scalaVersion: String
 ) {
   def message: String = {
-    val names = ruleNames.mkString(", ")
+    val names = semanticRuleNames.mkString(", ")
 
     s"""|The scalac compiler should produce semanticdb files to run semantic rules like $names.
       |To fix this problem for this sbt shell session, run `scalafixEnable` and try again.
