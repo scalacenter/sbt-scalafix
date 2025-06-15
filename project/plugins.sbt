@@ -1,5 +1,5 @@
 resolvers ++= Resolver.sonatypeOssRepos("public")
-addSbtPlugin("com.github.sbt" % "sbt-ci-release" % "1.9.3")
+addSbtPlugin("com.github.sbt" % "sbt-ci-release" % "1.11.1")
 
 // dogfooding
 Compile / unmanagedSourceDirectories ++= {
