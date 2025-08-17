@@ -43,7 +43,7 @@ libraryDependencies ++= List(
 )
 
 lazy val scala212 = "2.12.20" // bin/test-release.sh
-lazy val scala3 = "3.6.4" // bin/test-release.sh
+lazy val scala3 = "3.7.2" // bin/test-release.sh
 
 scalaVersion := scala212
 crossScalaVersions := Seq(scala212, scala3)
@@ -55,7 +55,7 @@ pluginCrossBuild / sbtVersion := {
       "1.4.0"
     case _ =>
       // remove SemanticdbCachingWorkaroundPlugin when bumping
-      "2.0.0-M4" // bin/test-release.sh
+      "2.0.0-RC3" // bin/test-release.sh
   }
 }
 

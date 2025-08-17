@@ -20,6 +20,7 @@ import coursierapi.Repository
 import scalafix.interfaces.ScalafixError
 import scalafix.interfaces.ScalafixMainCallback
 import scalafix.internal.sbt.*
+import scalafix.internal.sbt.Compat.*
 import xsbti.FileConverter
 
 object ScalafixPlugin extends AutoPlugin {
@@ -109,7 +110,7 @@ object ScalafixPlugin extends AutoPlugin {
             )
             scalafixInputTask(config).evaluated
           },
-          compile := Def.taskDyn {
+          compile := Def.uncached(Def.taskDyn {
             val oldCompile =
               compile.value // evaluated first, before the potential scalafix evaluation
             if (scalafixOnCompile.value)
@@ -128,7 +129,7 @@ object ScalafixPlugin extends AutoPlugin {
                     .map(_ => oldCompile)
               }
             else Def.task(oldCompile)
-          }.value,
+          }.value),
           // In some cases (I haven't been able to understand when/why, but this also happens for bgRunMain while
           // fgRunMain is fine), there is no specific streams attached to InputTasks, so  we they end up sharing the
           // global streams, causing issues for cache storage. This does not happen for Tasks, so we define a dummy one
@@ -239,7 +240,7 @@ object ScalafixPlugin extends AutoPlugin {
         bspEnabled := false
       )
     ),
-    update := {
+    update := Def.uncached {
       object SemanticdbScalac {
         def unapply(id: ModuleID): Option[String] =
           if (
@@ -297,7 +298,7 @@ object ScalafixPlugin extends AutoPlugin {
 
   override def buildSettings: Seq[Def.Setting[?]] =
     Seq(
-      scalafixSbtResolversAsCoursierRepositories := {
+      scalafixSbtResolversAsCoursierRepositories := Def.uncached {
         val logger = streams.value.log
 
         // mimics https://github.com/sbt/librarymanagement/blob/v1.10.0/ivy/src/main/scala/sbt/librarymanagement/ivy/Credentials.scala#L23-L28
@@ -306,7 +307,8 @@ object ScalafixPlugin extends AutoPlugin {
             case dc: DirectCredentials =>
               Some(dc)
             case fc: FileCredentials =>
-              Credentials.loadCredentials(fc.path) match {
+              Compat.Credentials
+                .loadCredentials(fc.path) match {
                 case Left(err) =>
                   logger.warn(err)
                   None
@@ -600,7 +602,7 @@ object ScalafixPlugin extends AutoPlugin {
         override final def write[J](
             obj: Arg.CacheKey,
             builder: sjsonnew.Builder[J]
-        ): Unit = stamp(obj)(builder)
+        ): Unit = stamp(obj)(using builder)
 
         private def stamp[J](
             obj: Arg.CacheKey
@@ -787,7 +789,7 @@ object ScalafixPlugin extends AutoPlugin {
             scalacOptionsToRelax.exists(_.matcher(option).matches)
           }
       },
-      incOptions := {
+      incOptions := Def.uncached {
         val options = incOptions.value
         if (!scalafixInvoked.value) options
         else

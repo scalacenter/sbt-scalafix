@@ -29,4 +29,8 @@ object Compat {
     attributed
       .get(Keys.moduleIDStr)
       .map(Classpaths.moduleIdJsonKeyFormat.read)
+
+  type DirectCredentials = sbt.librarymanagement.Credentials.DirectCredentials
+  type FileCredentials = sbt.librarymanagement.Credentials.FileCredentials
+  val Credentials = sbt.internal.librarymanagement.ivy.IvyCredentials
 }
