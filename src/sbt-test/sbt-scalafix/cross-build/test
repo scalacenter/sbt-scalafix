@@ -5,30 +5,30 @@
 -> scalafix --test ProcedureSyntax
 -> Compile / scalafix --test ProcedureSyntax
 -> Test / scalafix --test ProcedureSyntax
--> IntegrationTest / scalafix --test ProcedureSyntax
+-> Custom / scalafix --test ProcedureSyntax
 
 > scalafix ProcedureSyntax
 > scalafix --test ProcedureSyntax
 > Compile / scalafix ProcedureSyntax
 > Compile / scalafix --test ProcedureSyntax
 -> Test / scalafix --test ProcedureSyntax
--> IntegrationTest / scalafix --test ProcedureSyntax
+-> Custom / scalafix --test ProcedureSyntax
 
 > Test / scalafix ProcedureSyntax
 > Test / scalafix --test ProcedureSyntax
--> IntegrationTest / scalafix --test ProcedureSyntax
+-> Custom / scalafix --test ProcedureSyntax
 
 > scalafixAll ProcedureSyntax
-> IntegrationTest / scalafix --test ProcedureSyntax
+> Custom / scalafix --test ProcedureSyntax
 
 > javaProject / Compile /scalafix ProcedureSyntax
 
-# IntegrationTest exists only for scala212
-> IntegrationTest / scalafix
+# Custom exists only for scala212
+> Custom / scalafix
 
 > scala212 / Compile / scalafix
 > scala212 / Test / scalafix
-> scala212 / IntegrationTest / scalafix
+> scala212 / Custom / scalafix
 > scala212 / Compile / scalafix --test
 > scala212 / Test / scalafix --test
-> scala212 / IntegrationTest / scalafix --test
+> scala212 / Custom / scalafix --test

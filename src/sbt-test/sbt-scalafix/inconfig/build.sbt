@@ -14,12 +14,14 @@ inThisBuild(
   )
 )
 
+lazy val Custom = config("custom").extend(Runtime)
 lazy val example = project
+  .configs(Custom)
   .settings(
-    Defaults.itSettings,
+    inConfig(Custom)(Defaults.configSettings),
     semanticdbEnabled := true,
     semanticdbVersion := scalafixSemanticdb.revision
   )
-  .settings(scalafixConfigSettings(IntegrationTest): _*)
+  .settings(scalafixConfigSettings(Custom): _*)
 
 lazy val tests = project

@@ -11,11 +11,12 @@ inThisBuild(
 
 lazy val lint = project
 
+lazy val Custom = config("custom").extend(Runtime)
 lazy val rewrite = project
-  .configs(IntegrationTest)
+  .configs(Custom)
   .settings(
-    Defaults.itSettings
+    inConfig(Custom)(Defaults.configSettings)
   )
-  .settings(scalafixConfigSettings(IntegrationTest): _*)
+  .settings(scalafixConfigSettings(Custom): _*)
 
 lazy val triggered = project
