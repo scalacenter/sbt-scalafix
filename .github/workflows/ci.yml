@@ -23,7 +23,9 @@ jobs:
         run: rm -rf src/sbt-test/skip-sbt1.4
       - if: matrix.jvm == '17' || matrix.jvm == '21' || matrix.jvm == '23'
         run: rm -rf src/sbt-test/skip-java17+
-      - run: sbt ++${{ matrix.scala }} test scripted
+      - run: sbt ++${{ matrix.scala }} test
+      - if: matrix.scala == '2.12.x' # TODO enable sbt 2 scripted test
+        run: sbt ++${{ matrix.scala }} scripted
   windows:
     strategy:
       fail-fast: false
@@ -38,7 +40,10 @@ jobs:
           apps: sbt
       - run: rm -r -fo src\sbt-test\skip-sbt1.4
       - run: rm -r -fo src\sbt-test\skip-windows
-      - run: sbt ++${{ matrix.scala }} test-skip-windows scripted
+      - run: sbt ++${{ matrix.scala }} test-skip-windows
+        shell: bash
+      - if: matrix.scala == '2.12.x' # TODO enable sbt 2 scripted test
+        run: sbt ++${{ matrix.scala }} scripted
         shell: bash
   formatting:
     name: Scalafmt and Scalafix

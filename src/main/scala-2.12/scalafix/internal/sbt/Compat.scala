@@ -27,4 +27,12 @@ object Compat {
       attributed: Attributed[File]
   ): Option[ModuleID] =
     attributed.get(Keys.moduleID.key)
+
+  type DirectCredentials = sbt.DirectCredentials
+  type FileCredentials = sbt.FileCredentials
+  val Credentials = sbt.Credentials
+
+  implicit class DefOps(private val self: sbt.Def.type) extends AnyVal {
+    def uncached[A](a: A): A = a
+  }
 }
