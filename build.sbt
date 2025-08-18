@@ -26,7 +26,7 @@ lazy val plugin = (projectMatrix in file("plugin"))
   .settings(
     name := "sbt-scalafix",
     // Dependencies
-    resolvers ++= Resolver.sonatypeOssRepos("public"),
+    resolvers += Resolver.sonatypeCentralSnapshots,
     libraryDependencies ++= Dependencies.all,
     libraryDependencies ++= List(
       "com.lihaoyi" %% "fansi" % "0.5.0" % Test,
