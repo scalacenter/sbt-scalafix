@@ -15,10 +15,11 @@ val addHeader = taskKey[Unit]("")
 
 val check = taskKey[Unit]("")
 
+import _root_.scalafix.internal.sbt.Compat._
 inConfig(Compile)(
   Seq(
     scalafixAddFooter := scalafix.toTask(" --rules=class:fix.AddFooter").value,
-    addHeader := {
+    addHeader := Def.uncached {
       unmanagedSources.value.foreach { file =>
         val content = IO.read(file)
         // artificial delay between read/parsing and write/patching to exercise concurrency
@@ -26,7 +27,7 @@ inConfig(Compile)(
         IO.write(file, s"// HEADER\n$content")
       }
     },
-    check := {
+    check := Def.uncached {
       unmanagedSources.value.foreach { file =>
         val content = IO.read(file)
         assert(content.contains("FOOTER"), s"missing footer in\n<<<$content>>>")

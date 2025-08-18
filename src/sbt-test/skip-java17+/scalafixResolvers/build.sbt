@@ -1,6 +1,7 @@
 scalaVersion := "2.12.20"
 
-TaskKey[Unit]("check") := {
+import _root_.scalafix.internal.sbt.Compat._
+TaskKey[Unit]("check") := Def.uncached {
   val expectedRepositories: Seq[String] = Seq(
     // Repository.central()
     "https://repo1.maven.org/maven2",

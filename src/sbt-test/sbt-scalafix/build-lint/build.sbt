@@ -4,8 +4,9 @@ scalafixCaching := false
 scalafixConfig := None
 scalafixOnCompile := false
 
+import _root_.scalafix.internal.sbt.Compat._
 lazy val checkLintWarns = taskKey[Unit]("")
-checkLintWarns := {
+checkLintWarns := Def.uncached {
   // https://github.com/sbt/sbt/blob/v1.4.9/sbt/src/sbt-test/project/lint/build.sbt
   val state = Keys.state.value
   val includeKeys =
