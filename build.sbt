@@ -54,8 +54,7 @@ pluginCrossBuild / sbtVersion := {
     case "2.12" =>
       "1.4.0"
     case _ =>
-      // remove SemanticdbCachingWorkaroundPlugin when bumping
-      "2.0.0-RC3" // bin/test-release.sh
+      "2.0.0-RC3"
   }
 }
 
