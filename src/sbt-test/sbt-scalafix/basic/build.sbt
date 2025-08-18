@@ -16,12 +16,10 @@ inThisBuild(
 
 lazy val example = project
   .settings(
-    Defaults.itSettings,
     semanticdbEnabled := true,
     semanticdbVersion := scalafixSemanticdb.revision,
     scalacOptions += "-Ywarn-unused-import"
   )
-  .settings(scalafixConfigSettings(IntegrationTest): _*)
 
 lazy val tests = project
 
