@@ -25,7 +25,8 @@ lazy val tests = project
 
 lazy val checkLogs = taskKey[Unit]("Check that diffs are logged as errors")
 
-checkLogs := {
+import _root_.scalafix.internal.sbt.Compat._
+checkLogs := Def.uncached {
   val taskStreams = (example / Compile / scalafix / streams).value
   val reader = taskStreams.readText(taskStreams.key)
   val logLines = Stream

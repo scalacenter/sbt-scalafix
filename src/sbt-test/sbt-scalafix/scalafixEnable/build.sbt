@@ -36,7 +36,8 @@ lazy val available = project.settings(
   crossScalaVersions := Seq("2.12.15")
 )
 
-TaskKey[Unit]("check") := {
+import _root_.scalafix.internal.sbt.Compat._
+TaskKey[Unit]("check") := Def.uncached {
   assert((unsupported / semanticdbEnabled).value == false)
   assert((unsupported / scalaVersion).value == "2.11.12")
   assert((unsupported / Compile / compile / scalacOptions).value.isEmpty)
@@ -80,6 +81,6 @@ TaskKey[Unit]("check") := {
   )
 }
 
-TaskKey[Unit]("checkVersion") := {
+TaskKey[Unit]("checkVersion") := Def.uncached {
   assert((available / scalaVersion).value == "2.12.15")
 }

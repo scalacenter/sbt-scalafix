@@ -9,7 +9,8 @@ inThisBuild(
 lazy val checkLogs =
   taskKey[Unit]("Check presence of call to action in update logs")
 
-checkLogs := {
+import _root_.scalafix.internal.sbt.Compat._
+checkLogs := Def.uncached {
   val taskStreams = (update / streams).value
   val reader = taskStreams.readText(taskStreams.key)
   val logLines = Stream
