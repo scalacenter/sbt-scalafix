@@ -11,7 +11,7 @@ class CheckSuite extends AnyFunSuite {
     val obtained = StringFS.asString(root)
     val expected =
       """
-        |/custom/scala/example/ExampleIT.scala
+        |/custom/scala/example/ExampleCustom.scala
         |package example
         |
         |object ExampleCustom {
