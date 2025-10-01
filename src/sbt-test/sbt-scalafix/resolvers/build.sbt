@@ -1,5 +1,5 @@
 ThisBuild / scalafixDependencies := List(
-  "ch.epfl.scala" %% "example-scalafix-rule" % "4.0.0+3-e9850db5-SNAPSHOT"
+  "ch.epfl.scala" %% "example-scalafix-rule" % "6.0.0+19-2945f6b4-SNAPSHOT"
 )
 
 import scala.collection.JavaConverters.collectionAsScalaIterableConverter
