@@ -43,7 +43,7 @@ libraryDependencies ++= List(
 )
 
 lazy val scala212 = "2.12.20" // bin/test-release.sh
-lazy val scala3 = "3.7.2" // bin/test-release.sh
+lazy val scala3 = "3.7.3" // bin/test-release.sh
 
 scalaVersion := scala212
 crossScalaVersions := Seq(scala212, scala3)
