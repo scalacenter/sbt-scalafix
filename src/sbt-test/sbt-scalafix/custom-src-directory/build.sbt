@@ -1,4 +1,4 @@
-scalaVersion := "2.13.16"
+scalaVersion := "2.13.17"
 
 val app = project.settings(
   Compile / scalaSource := baseDirectory.value
