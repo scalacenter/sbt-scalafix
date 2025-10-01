@@ -65,7 +65,7 @@ scriptedSbt := {
   if (isWin)
     Ordering[String].max(
       (pluginCrossBuild / sbtVersion).value,
-      "1.9.5" // first release that doesn't fail when trying to resolve against RIP OSSRH https://github.com/sbt/sbt/pull/7087
+      "1.11.6" // first release that doesn't fail when trying to resolve against RIP OSSRH
     )
   else if (jdk >= 21)
     Ordering[String].max(
