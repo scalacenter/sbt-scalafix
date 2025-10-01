@@ -12,7 +12,9 @@ Compile / compile / scalacOptions ++= Seq(
   "-Xfuture",
   "-deprecation"
 )
-TaskKey[Unit]("checkLastCompilationCached") := {
+
+import _root_.scalafix.internal.sbt.Compat._
+TaskKey[Unit]("checkLastCompilationCached") := Def.uncached {
   val str = streams.value
   val thisProject = thisProjectRef.value
 

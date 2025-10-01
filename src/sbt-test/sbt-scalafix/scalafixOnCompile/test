@@ -6,10 +6,10 @@
 > compile
 > scalafix --check
 
-# check explicit rewrite of rewrite/src/it/scala/UnusedImports.scala via `scalafix`
--> IntegrationTest / scalafix --check
-> IntegrationTest / scalafix
-> IntegrationTest / scalafix --check
+# check explicit rewrite of rewrite/src/custom/scala/UnusedImports.scala via `scalafix`
+-> Custom / scalafix --check
+> Custom / scalafix
+> Custom / scalafix --check
 
 # check lint for lint/src/test/scala/Null.scala
 -> lint / Test / scalafix --check
