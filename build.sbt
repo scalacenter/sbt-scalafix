@@ -59,9 +59,15 @@ pluginCrossBuild / sbtVersion := {
 }
 
 scriptedSbt := {
+  val isWin = System.getProperty("os.name").toLowerCase.contains("win")
   val jdk = System.getProperty("java.specification.version").toDouble
 
-  if (jdk >= 21)
+  if (isWin)
+    Ordering[String].max(
+      (pluginCrossBuild / sbtVersion).value,
+      "1.9.5" // first release that doesn't fail when trying to resolve against RIP OSSRH https://github.com/sbt/sbt/pull/7087
+    )
+  else if (jdk >= 21)
     Ordering[String].max(
       (pluginCrossBuild / sbtVersion).value,
       "1.9.0" // first release that supports JDK21
