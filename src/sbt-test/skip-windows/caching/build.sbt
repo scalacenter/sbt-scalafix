@@ -9,7 +9,10 @@ inThisBuild(
     scalafixDependencies += "com.geirsson" %% "example-scalafix-rule" % "1.2.0",
     resolvers +=
       // for retrieving SNAPSHOTS of `scalafix-interfaces`
-      Resolver.sonatypeRepo("snapshots"),
+      MavenRepository(
+        "sonatype-central-maven-snapshots",
+        "https://central.sonatype.com/repository/maven-snapshots/"
+      ),
     // On recent sbt versions, make sure unmanagedSources do not silently
     // exclude 000-chmoded files (because input files are stamped with
     // Hash by default), as it causes false positives in the test suite
