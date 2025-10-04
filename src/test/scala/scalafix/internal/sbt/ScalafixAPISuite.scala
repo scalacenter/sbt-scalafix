@@ -43,7 +43,7 @@ class ScalafixAPISuite extends AnyFunSuite {
         Seq(
           Repository.central,
           MavenRepository.of(
-            "https://oss.sonatype.org/content/repositories/snapshots"
+            "https://central.sonatype.com/repository/maven-snapshots/"
           )
         )
       ),

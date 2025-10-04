@@ -3,7 +3,10 @@ inThisBuild(
   List(
     updateOptions := updateOptions.value.withLatestSnapshots(false),
     scalacOptions += "-Ywarn-adapted-args", // For NoAutoTupling
-    resolvers += Resolver.sonatypeRepo("public")
+    resolvers += MavenRepository(
+      "sonatype-central-maven-snapshots",
+      "https://central.sonatype.com/repository/maven-snapshots/"
+    )
   )
 )
 
