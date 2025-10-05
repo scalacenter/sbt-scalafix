@@ -38,7 +38,7 @@ commands += Command.command("test-skip-windows") { s =>
 resolvers += Resolver.sonatypeCentralSnapshots
 libraryDependencies ++= Dependencies.all
 libraryDependencies ++= List(
-  "com.lihaoyi" %% "fansi" % "0.5.0" % Test,
+  "com.lihaoyi" %% "fansi" % "0.5.1" % Test,
   "org.scalatest" %% "scalatest" % "3.2.19" % Test
 )
 
