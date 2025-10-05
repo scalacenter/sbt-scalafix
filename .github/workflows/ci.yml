@@ -30,14 +30,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        jvm: ["8"]
         scala: ["2.12.x", "3.x"]
-    name: Windows / Scala ${{ matrix.scala }}
+    name: Windows / JDK${{ matrix.jvm }} / Scala ${{ matrix.scala }}
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
       - uses: coursier/setup-action@v1
         with:
           apps: sbt
+          jvm: temurin:${{ matrix.jvm }}
       - run: rm -r -fo src\sbt-test\skip-sbt1.4
       - run: rm -r -fo src\sbt-test\skip-windows
       - run: sbt ++${{ matrix.scala }} test-skip-windows
