@@ -362,7 +362,8 @@ $ copy-file files/Valid.scala src/main/scala/Valid.scala
 > set ThisBuild / scalafixDependencies := Nil
 > scalafix --check ProcedureSyntax
 > reload plugins
-> 'set dependencyOverrides += "ch.epfl.scala" % "scalafix-interfaces" % "0.11.0+134-f4dcc6fa-SNAPSHOT"' // different than above, requires bumping when using new APIs
+# this will most likely start failing in early 2026 because of the 90 days retention... https://central.sonatype.org/publish/publish-portal-snapshots/
+> 'set dependencyOverrides += "ch.epfl.scala" % "scalafix-interfaces" % "0.14.3+90-f9af4958-SNAPSHOT"' // different than above, requires bumping when using new APIs
 > session save
 > reload return
 > set ThisBuild / scalafixDependencies := Nil

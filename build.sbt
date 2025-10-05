@@ -35,7 +35,7 @@ commands += Command.command("test-skip-windows") { s =>
 }
 
 // Dependencies
-resolvers ++= Resolver.sonatypeOssRepos("public")
+resolvers += Resolver.sonatypeCentralSnapshots
 libraryDependencies ++= Dependencies.all
 libraryDependencies ++= List(
   "com.lihaoyi" %% "fansi" % "0.5.0" % Test,

@@ -6,7 +6,10 @@ inThisBuild(
       // CollectHead
       "com.github.xuwei-k" %% "scalafix-rules" % "0.6.5"
     ),
-    resolvers += Resolver.sonatypeRepo("snapshots"),
+    resolvers += MavenRepository(
+      "sonatype-central-maven-snapshots",
+      "https://central.sonatype.com/repository/maven-snapshots/"
+    ),
     // out of sync with scalafix.sbt.BuildInfo.scala213 on purpose
     scalaVersion := "2.13.11",
     Compat.allowUnsafeScalaLibUpgrade := true
