@@ -6,7 +6,7 @@ TaskKey[Unit]("check") := {
     "https://repo1.maven.org/maven2",
     // Repository.ivy2Local()
     ".ivy2/local/",
-    "https://oss.sonatype.org/content/repositories/public",
+    "https://central.sonatype.com/repository/maven-snapshots/",
     // custom repository
     "https://a.b.com/artifactory/snapshots"
   )

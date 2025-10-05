@@ -224,7 +224,7 @@ object ScalafixPlugin extends AutoPlugin {
     Repository.defaults().asScala.toSeq ++
       Seq(
         coursierapi.MavenRepository.of(
-          "https://oss.sonatype.org/content/repositories/public"
+          "https://central.sonatype.com/repository/maven-snapshots/"
         )
       )
 
