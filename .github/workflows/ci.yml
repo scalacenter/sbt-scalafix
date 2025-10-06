@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        jvm: ["8", "11", "17", "21", "23"]
+        jvm: ["8", "11", "17", "21", "25"]
         scala: ["2.12.x", "3.x"]
     name: Ubuntu / JDK${{ matrix.jvm }} / Scala ${{ matrix.scala }}
     runs-on: ubuntu-latest
@@ -21,7 +21,7 @@ jobs:
           jvm: temurin:${{ matrix.jvm }}
       - if: matrix.jvm == '8' || matrix.jvm == '11' || matrix.jvm == '17'
         run: rm -rf src/sbt-test/skip-sbt1.4
-      - if: matrix.jvm == '17' || matrix.jvm == '21' || matrix.jvm == '23'
+      - if: matrix.jvm == '17' || matrix.jvm == '21' || matrix.jvm == '25'
         run: rm -rf src/sbt-test/skip-java17+
       - run: sbt ++${{ matrix.scala }} test
       - if: matrix.scala == '2.12.x' # TODO enable sbt 2 scripted test
