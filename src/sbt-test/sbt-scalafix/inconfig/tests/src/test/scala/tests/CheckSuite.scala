@@ -11,10 +11,10 @@ class CheckSuite extends AnyFunSuite {
     val obtained = StringFS.asString(root)
     val expected =
       """
-        |/it/scala/example/ExampleIT.scala
+        |/custom/scala/example/ExampleCustom.scala
         |package example
         |
-        |object ExampleIT {
+        |object ExampleCustom {
         |  implicit val str: java.util.Map.Entry[Int,String] = null.asInstanceOf[java.util.Map.Entry[Int, String]]
         |}
         |// Hello world!

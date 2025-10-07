@@ -23,17 +23,18 @@ lazy val root = project
     scala213
   )
 
+lazy val Custom = config("custom").extend(Runtime)
 lazy val scala212 = project
-  .configs(IntegrationTest)
+  .configs(Custom)
   .settings(
-    Defaults.itSettings,
+    inConfig(Custom)(Defaults.configSettings),
     Compile / scalafix / unmanagedSources :=
       (Compile / unmanagedSources).value
         .filterNot(_.getAbsolutePath.contains("IgnoreMe")),
     scalaVersion := Versions.scala212,
     scalafixSettings
   )
-  .settings(scalafixConfigSettings(IntegrationTest): _*)
+  .settings(scalafixConfigSettings(Custom): _*)
 
 lazy val scala213 = project.settings(
   scalaVersion := Versions.scala213,
