@@ -1,4 +1,4 @@
-scalaVersion := "2.12.20"
+scalaVersion := "2.13.17"
 
 import _root_.scalafix.internal.sbt.Compat._
 TaskKey[Unit]("check") := Def.uncached {
