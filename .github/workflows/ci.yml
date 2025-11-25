@@ -14,7 +14,7 @@ jobs:
     name: Ubuntu / JDK${{ matrix.jvm }} / Scala ${{ matrix.scala }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: coursier/setup-action@v1
         with:
           apps: sbt
@@ -33,7 +33,7 @@ jobs:
     name: Windows / JDK${{ matrix.jvm }} / Scala ${{ matrix.scala }}
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: coursier/setup-action@v1
         with:
           apps: sbt
@@ -46,7 +46,7 @@ jobs:
     name: Scalafmt and Scalafix
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: coursier/setup-action@v1
         with:
           apps: sbt
