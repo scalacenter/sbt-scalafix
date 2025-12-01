@@ -42,7 +42,7 @@ libraryDependencies ++= List(
   "org.scalatest" %% "scalatest" % "3.2.19" % Test
 )
 
-lazy val scala212 = "2.12.20"
+lazy val scala212 = "2.13.18"
 lazy val scala3 = "3.7.4"
 
 scalaVersion := scala212
