@@ -1,5 +1,6 @@
 // dogfooding
 semanticdbEnabled := true
+semanticdbVersion := scalafixSemanticdb.revision
 scalafixDependencies := List(
   // Custom rule published to Maven Central https://github.com/scalacenter/example-scalafix-rule
   "ch.epfl.scala" %% "example-scalafix-rule" % "1.4.0"
@@ -42,7 +43,7 @@ libraryDependencies ++= List(
   "org.scalatest" %% "scalatest" % "3.2.19" % Test
 )
 
-lazy val scala212 = "2.12.20"
+lazy val scala212 = "2.12.21"
 lazy val scala3 = "3.7.4"
 
 scalaVersion := scala212
