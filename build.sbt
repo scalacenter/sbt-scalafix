@@ -46,6 +46,20 @@ libraryDependencies ++= List(
 lazy val scala212 = "2.12.21"
 lazy val scala3 = "3.7.4"
 
+lazy val latestScalafixInterfacesSnapshotVersion = {
+  val metadataUrl =
+    "https://central.sonatype.com/repository/maven-snapshots/ch/epfl/scala/scalafix-interfaces/maven-metadata.xml"
+
+  val snapshotVersionPattern = "<version>([^<]+)</version>".r
+  val metadata = scala.io.Source.fromURL(metadataUrl, "UTF-8").mkString
+  snapshotVersionPattern
+    .findAllMatchIn(metadata)
+    .map(_.group(1))
+    .filter(_.endsWith("-SNAPSHOT"))
+    .toList
+    .last
+}
+
 scalaVersion := scala212
 crossScalaVersions := Seq(scala212, scala3)
 
@@ -102,5 +116,6 @@ scriptedLaunchOpts ++= Seq(
   "-Xmx2048M",
   s"-Dplugin.version=${version.value}",
   s"-Dsbt.version=${scriptedSbt.value}",
+  s"-Dscalafix.interfaces.snapshot.version=$latestScalafixInterfacesSnapshotVersion",
   "-Dsbt-scalafix.uselastmodified=true" // the caching scripted relies on sbt-scalafix only checking file attributes, not content
 )
