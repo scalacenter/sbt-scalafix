@@ -84,7 +84,6 @@ object ScalafixEnable {
       enableSemanticdbPlugin <-
         project.maybeRecommendedSemanticdbScalacScalaV.toList
           .flatMap { recommendedSemanticdbScalacScalaV =>
-
             import scalafix.internal.sbt.Implicits._
             val semanticdbScalacModule =
               coursierapi.Dependency
