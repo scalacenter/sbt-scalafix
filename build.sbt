@@ -69,7 +69,7 @@ pluginCrossBuild / sbtVersion := {
     case "2.12" =>
       "1.4.0"
     case _ =>
-      "2.0.0-RC6"
+      "2.0.0-RC8"
   }
 }
 
