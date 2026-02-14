@@ -1,3 +1,0 @@
-object Null {
-  println(null)
-}
