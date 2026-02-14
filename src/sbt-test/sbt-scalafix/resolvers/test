@@ -1,9 +1,11 @@
-# without the proper resolver/repository, invocation of the community rule fails
--> scalafix SyntacticRule
+# publish the test rule to local repository
+> rules / publish
+
+# without the proper resolver/repository, invocation of the rule fails
+-> example / scalafix RenameToFoo
 
 # once the proper resolver is setup via sbt, dependency fetching works fine and scalafix can be used normally
-# sonatypeCentralSnapshots introduced in https://github.com/sbt/sbt/issues/8153 is not available on old sbt versions
-> set ThisBuild / resolvers += MavenRepository("sonatype-central-maven-snapshots", "https://central.sonatype.com/repository/maven-snapshots/")
--> scalafix --check SyntacticRule
-> scalafix SyntacticRule
-> scalafix --check SyntacticRule
+> set ThisBuild / resolvers += Resolver.file("custom-ivy", (rules / target).value / "custom-ivy")(Resolver.ivyStylePatterns)
+-> example / scalafix --check RenameToFoo
+> example / scalafix RenameToFoo
+> example / scalafix --check RenameToFoo
