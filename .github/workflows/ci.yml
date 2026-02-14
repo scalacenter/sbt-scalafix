@@ -11,12 +11,12 @@ jobs:
       matrix:
         os: ["ubuntu"]
         jvm: ["17", "21", "25", "26"]
-        scala: ["2.12.x", "3.x"]
+        scala: ["2.12", "3"]
         include:
           - os: windows
             jvm: 17
-            scala: 3.x
-    name: ${{ matrix.os }} / JDK ${{ matrix.jvm }} / Scala ${{ matrix.scala }}
+            scala: "3"
+    name: ${{ matrix.os }} / JDK ${{ matrix.jvm }} / ${{ matrix.scala == '2.12' && 'sbt 1.x' || 'sbt 2.x' }}
     runs-on: ${{ matrix.os }}-latest
     steps:
       - uses: actions/checkout@v7
@@ -25,10 +25,11 @@ jobs:
           apps: sbt
           jvm: temurin:${{ matrix.jvm }}
       - if: matrix.jvm == '17'
-        run: rm -r src/sbt-test/skip-sbt1.4
+        run: rm -r plugin/src/sbt-test/skip-sbt1.4
       - if: matrix.os == 'windows'
-        run: rm -r src/sbt-test/skip-windows
-      - run: sbt ++${{ matrix.scala }} test scripted
+        run: rm -r plugin/src/sbt-test/skip-windows
+      - run: sbt "...@scalaBinaryVersion=${{ matrix.scala }}/test"
+      - run: sbt "...@scalaBinaryVersion=${{ matrix.scala }}/scripted"
   formatting:
     name: Scalafmt and Scalafix
     runs-on: ubuntu-latest

@@ -1,15 +1,15 @@
 # check implicit rewrite of rewrite/src/main/scala/UnusedImports.scala via `compile`
-> compile
--> scalafix --check
+> rewrite / Compile / compile
+-> rewrite / Compile / scalafix --check
 > set ThisBuild / scalafixOnCompile := true
--> scalafix --check
-> compile
-> scalafix --check
+-> rewrite / Compile / scalafix --check
+> rewrite / Compile / compile
+> rewrite / Compile / scalafix --check
 
 # check explicit rewrite of rewrite/src/custom/scala/UnusedImports.scala via `scalafix`
--> Custom / scalafix --check
-> Custom / scalafix
-> Custom / scalafix --check
+-> rewrite / Custom / scalafix --check
+> rewrite / Custom / scalafix
+> rewrite / Custom / scalafix --check
 
 # check lint for lint/src/test/scala/Null.scala
 -> lint / Test / scalafix --check
