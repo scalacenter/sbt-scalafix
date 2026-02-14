@@ -10,7 +10,7 @@ jobs:
       fail-fast: false
       matrix:
         jvm: ["8", "11", "17", "21", "25"]
-        scala: ["2.12.x", "3.x"]
+        scala: ["2.12", "3"]
     name: Ubuntu / JDK${{ matrix.jvm }} / Scala ${{ matrix.scala }}
     runs-on: ubuntu-latest
     steps:
@@ -20,16 +20,18 @@ jobs:
           apps: sbt
           jvm: temurin:${{ matrix.jvm }}
       - if: matrix.jvm == '8' || matrix.jvm == '11' || matrix.jvm == '17'
-        run: rm -rf src/sbt-test/skip-sbt1.4
+        run: rm -rf plugin/src/sbt-test/skip-sbt1.4
       - if: matrix.jvm == '17' || matrix.jvm == '21' || matrix.jvm == '25'
-        run: rm -rf src/sbt-test/skip-java17+
-      - run: sbt ++${{ matrix.scala }} test scripted
+        run: rm -rf plugin/src/sbt-test/skip-java17+
+      - run: sbt "...@scalaBinaryVersion=${{ matrix.scala }}/test"
+      - if: matrix.scala == '2.12' # TODO enable sbt 2 scripted test
+        run: sbt "...@scalaBinaryVersion=${{ matrix.scala }}/scripted"
   windows:
     strategy:
       fail-fast: false
       matrix:
         jvm: ["8"]
-        scala: ["2.12.x", "3.x"]
+        scala: ["2.12", "3"]
     name: Windows / JDK${{ matrix.jvm }} / Scala ${{ matrix.scala }}
     runs-on: windows-latest
     steps:
@@ -38,11 +40,11 @@ jobs:
         with:
           apps: sbt
           jvm: temurin:${{ matrix.jvm }}
-      - run: rm -r -fo src\sbt-test\skip-sbt1.4
-      - run: rm -r -fo src\sbt-test\skip-windows
-      - run: sbt ++${{ matrix.scala }} test-skip-windows
-      - if: matrix.scala == '2.12.x' # TODO enable sbt 2 scripted test
-        run: sbt ++${{ matrix.scala }} scripted
+      - run: rm -r -fo plugin\src\sbt-test\skip-sbt1.4
+      - run: rm -r -fo plugin\src\sbt-test\skip-windows
+      - run: sbt "...@scalaBinaryVersion=${{ matrix.scala }}/testOnly -- -l SkipWindows"
+      - if: matrix.scala == '2.12' # TODO enable sbt 2 scripted test
+        run: sbt "...@scalaBinaryVersion=${{ matrix.scala }}/scripted"
   formatting:
     name: Scalafmt and Scalafix
     runs-on: ubuntu-latest

@@ -33,9 +33,35 @@ lazy val latestScalafixInterfacesSnapshotVersion = {
     .last
 }
 
-// Work around https://github.com/sbt/sbt/issues/8740
-Compile / doc / scalacOptions ~= { _.filterNot(_.startsWith("-P:")) }
+// For some reason, sbt 2.x sends an unresolved -Xplugin:${CSR_CACHE}/ to
+// Scaladoc, which reject associated options. As a workaround, we just strip
+// them since we don't need them for doc generation anyway.
+Compile / doc / scalacOptions ~= {
+  _.filterNot(o => o.startsWith("-P:"))
+}
 
+<<<<<<< HEAD
+scalaVersion := scala3
+crossScalaVersions := Seq(scala212, scala3)
+
+// keep this as low as possible to avoid running into binary incompatibility such as https://github.com/sbt/sbt/issues/5049
+pluginCrossBuild / sbtVersion := {
+  scalaBinaryVersion.value match {
+    case "2.12" =>
+      "1.4.0"
+    case _ =>
+      "2.0.0-RC8"
+  }
+}
+
+scriptedSbt := {
+  val jdk = System.getProperty("java.specification.version").toDouble
+
+  if (jdk >= 21)
+    Ordering[String].max(
+      (pluginCrossBuild / sbtVersion).value,
+      "1.9.0" // first release that supports JDK21
+=======
 lazy val scala212 = "2.12.21"
 lazy val scala3 = "3.7.4"
 lazy val plugin = (projectMatrix in file("plugin"))
@@ -59,6 +85,7 @@ lazy val plugin = (projectMatrix in file("plugin"))
       s"-Dsbt.version=${scriptedSbt.value}",
       s"-Dscalafix.interfaces.snapshot.version=$latestScalafixInterfacesSnapshotVersion",
       "-Dsbt-scalafix.uselastmodified=true" // the caching scripted relies on sbt-scalafix only checking file attributes, not content
+>>>>>>> e9f1f78 (use projectMatrix)
     )
   ) 
   .defaultAxes(VirtualAxis.jvm)
