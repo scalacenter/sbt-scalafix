@@ -294,7 +294,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
       |                   ^""".stripMargin))
   }
 
-  checkCompletion("--files=coreShared") { (appends, displays) =>
+  checkCompletion("--files=coreShared ") { (appends, displays) =>
     // just verify we can get completions without crashing
     assert(appends != null)
     assert(displays != null)
