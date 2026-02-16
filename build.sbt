@@ -105,12 +105,7 @@ scalacOptions ++= {
 enablePlugins(ScriptedPlugin)
 sbtPlugin := true
 scriptedBufferLog := false
-scriptedBatchExecution := {
-  scalaBinaryVersion.value match {
-    case "2.12" => true
-    case _ => false
-  }
-}
+scriptedBatchExecution := true
 scriptedParallelInstances := 2
 scriptedLaunchOpts ++= Seq(
   "-Xmx2048M",
