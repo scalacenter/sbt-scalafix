@@ -5,7 +5,7 @@ import java.nio.file.Paths
 
 import scala.jdk.CollectionConverters.*
 
-import sbt.librarymanagement.{Configuration as _, MavenRepository as _, *}
+import sbt.librarymanagement.{MavenRepository as _, *}
 import sbt.util.Logger
 
 import coursierapi.Credentials
