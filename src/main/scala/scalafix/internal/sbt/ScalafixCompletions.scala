@@ -61,7 +61,7 @@ class ScalafixCompletions(
     }
     object AbsolutePathCompleter {
       def mkBase(prefix: String, fallback: Path): (Path, String) = {
-        val path = toAbsolutePath(Paths.get(prefix), fallback)
+        val path = toAbsolutePath(Paths.get(prefix.trim()), fallback)
         if (prefix.endsWith(File.separator)) path -> ""
         else {
           if (path.getFileName != null)
