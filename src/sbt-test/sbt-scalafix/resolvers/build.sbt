@@ -5,7 +5,14 @@ val ruleVersion = "0.0.1-SNAPSHOT"
 inThisBuild(
   List(
     scalaVersion := Versions.scala213,
-    scalafixDependencies += "test.scalafix" %% "test-rule" % ruleVersion
+    scalafixDependencies += "test.scalafix" %% "test-rule" % ruleVersion,
+    // Exercise pathToUriString with a URL-based Ivy resolver, which would
+    // fail on Windows without the fix for
+    // https://github.com/scalacenter/scalafix/issues/2363
+    resolvers += Resolver.url(
+      "ivy-https",
+      new java.net.URL("https://example.com/repo/")
+    )(Resolver.ivyStylePatterns)
   )
 )
 
