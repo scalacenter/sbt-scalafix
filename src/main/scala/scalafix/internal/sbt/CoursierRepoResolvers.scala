@@ -63,10 +63,19 @@ object CoursierRepoResolvers {
         None
     }
 
-  // this handles whitespace in path
-  private def pathToUriString(path: String): String = {
+  // Convert a local path (potentially with Ivy pattern placeholders) to a
+  // file URI string, encoding characters like whitespace along the way via
+  // Paths.get(...).toUri. Remote URIs (containing "://") are returned as-is.
+  private[sbt] def pathToUriString(path: String): String = {
     val stopAtIdx = path.indexWhere(c => c == '[' || c == '$' || c == '(')
-    if (stopAtIdx > 0) {
+    if (path.contains("://")) {
+      // Already a URI, return as-is. On Windows, Paths.get() would throw
+      // InvalidPathException for such strings, see
+      // https://github.com/scalacenter/scalafix/issues/2363
+      path
+    } else if (stopAtIdx > 0) {
+      // Encode only the path prefix (before placeholders) as a file URI,
+      // then re-append the placeholder suffix as-is
       val (pathPart, patternPart) = path.splitAt(stopAtIdx)
       Paths.get(pathPart).toUri.toASCIIString + patternPart
     } else if (stopAtIdx == 0)
