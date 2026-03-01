@@ -44,7 +44,7 @@ libraryDependencies ++= List(
 )
 
 lazy val scala212 = "2.12.21"
-lazy val scala3 = "3.7.4"
+lazy val scala3 = "3.8.2"
 
 lazy val latestScalafixInterfacesSnapshotVersion = {
   val metadataUrl =
