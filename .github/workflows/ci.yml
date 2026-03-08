@@ -5,14 +5,22 @@ on:
       - main
   pull_request:
 jobs:
-  ubuntu:
+  tests:
     strategy:
       fail-fast: false
       matrix:
+        os: ["ubuntu"]
         jvm: ["8", "11", "17", "21", "25"]
         scala: ["2.12.x", "3.x"]
-    name: Ubuntu / JDK${{ matrix.jvm }} / Scala ${{ matrix.scala }}
-    runs-on: ubuntu-latest
+        include:
+          - os: windows
+            jvm: 8
+            scala: 2.12.x
+          - os: windows
+            jvm: 8
+            scala: 3.x
+    name: ${{ matrix.os }} / JDK ${{ matrix.jvm }} / Scala ${{ matrix.scala }}
+    runs-on: ${{ matrix.os }}-latest
     steps:
       - uses: actions/checkout@v6
       - uses: coursier/setup-action@v2
@@ -20,28 +28,12 @@ jobs:
           apps: sbt
           jvm: temurin:${{ matrix.jvm }}
       - if: matrix.jvm == '8' || matrix.jvm == '11' || matrix.jvm == '17'
-        run: rm -rf src/sbt-test/skip-sbt1.4
+        run: rm -r src/sbt-test/skip-sbt1.4
       - if: matrix.jvm == '17' || matrix.jvm == '21' || matrix.jvm == '25'
-        run: rm -rf src/sbt-test/skip-java17+
+        run: rm -r src/sbt-test/skip-java17+
+      - if: matrix.os == 'windows'
+        run: rm -r src/sbt-test/skip-windows
       - run: sbt ++${{ matrix.scala }} test scripted
-  windows:
-    strategy:
-      fail-fast: false
-      matrix:
-        jvm: ["8"]
-        scala: ["2.12.x", "3.x"]
-    name: Windows / JDK${{ matrix.jvm }} / Scala ${{ matrix.scala }}
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: coursier/setup-action@v2
-        with:
-          apps: sbt
-          jvm: temurin:${{ matrix.jvm }}
-      - run: rm -r -fo src\sbt-test\skip-sbt1.4
-      - run: rm -r -fo src\sbt-test\skip-windows
-      - run: sbt ++${{ matrix.scala }} test-skip-windows scripted
-        shell: bash
   formatting:
     name: Scalafmt and Scalafix
     runs-on: ubuntu-latest

@@ -30,11 +30,6 @@ developers := List(
   )
 )
 
-commands += Command.command("test-skip-windows") { s =>
-  "testOnly -- -l SkipWindows" ::
-    s
-}
-
 // Dependencies
 resolvers += Resolver.sonatypeCentralSnapshots
 libraryDependencies ++= Dependencies.all
