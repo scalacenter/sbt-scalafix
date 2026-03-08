@@ -9,8 +9,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        jvm: ["8", "11", "17", "21", "25"]
+        jvm: ["17", "21", "25"]
         scala: ["2.12.x", "3.x"]
+        include:
+          - jvm: "8"
+            scala: "2.12.x"
+          - jvm: "11"
+            scala: "2.12.x"
     name: Ubuntu / JDK${{ matrix.jvm }} / Scala ${{ matrix.scala }}
     runs-on: ubuntu-latest
     steps:
@@ -28,7 +33,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        jvm: ["8"]
+        jvm: ["17"]
         scala: ["2.12.x", "3.x"]
     name: Windows / JDK${{ matrix.jvm }} / Scala ${{ matrix.scala }}
     runs-on: windows-latest
