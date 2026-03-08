@@ -189,7 +189,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
     assert(!appends.contains("--help"))
   }
 
-  checkCompletion("--rules file:bar/../", SkipWindows) { (appends, displays) =>
+  checkCompletion("--rules file:bar/../") { (appends, displays) =>
     // resolve parent directories
     // allowedTargetFilesPrefixes does not affect `file:` completion as buzz is not part of them
     assert(appends.contains("buzz"))
