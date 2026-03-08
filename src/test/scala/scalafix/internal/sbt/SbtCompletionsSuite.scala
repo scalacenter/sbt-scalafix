@@ -100,7 +100,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
   def isSha1(in: String): Boolean =
     AbbreviatedObjectId.isId(in)
 
-  checkCompletion("all", SkipWindows) { (_, displays) =>
+  checkCompletion("all") { (_, displays) =>
     val obtained = displays.mkString("\n").trim
     val expected =
       """|
@@ -169,7 +169,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
     assert(!appends.contains("--help"))
   }
 
-  checkCompletion("--diff-base=", SkipWindows) { (appends, displays) =>
+  checkCompletion("--diff-base=") { (appends, displays) =>
     // branches
     assert(displays.contains("master"))
 
@@ -216,14 +216,14 @@ class SbtCompletionsSuite extends AnyFunSuite {
     )
   }
 
-  checkArgs("--test --rules=Foo --files=NotHere", SkipWindows) { args =>
+  checkArgs("--test --rules=Foo --files=NotHere") { args =>
     assert(args == Left("""--files=NotHere
       |--files value(s) must reference existing files or directories in unmanagedSourceDirectories; are you running scalafix on the right project / Configuration?
       | --test --rules=Foo --files=NotHere
       |                                   ^""".stripMargin))
   }
 
-  checkArgs("--test  -f= --rules=Foo", SkipWindows) { args =>
+  checkArgs("--test  -f= --rules=Foo") { args =>
     val sbt1 =
       """Expected non-whitespace character
         |""".stripMargin
@@ -238,7 +238,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
     assert(args == Left(sbt1 + tail) || args == Left(sbt2 + tail))
   }
 
-  checkArgs("--test  -f --rules=Foo", SkipWindows) { args =>
+  checkArgs("--test  -f --rules=Foo") { args =>
     assert(
       args == Left(
         """--files value(s) must reference existing files or directories in unmanagedSourceDirectories; are you running scalafix on the right project / Configuration?
@@ -248,7 +248,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
     )
   }
 
-  checkArgs("--test --rules=Foo -f", SkipWindows) { args =>
+  checkArgs("--test --rules=Foo -f") { args =>
     assert(args == Left("""-f
       |Expected '='
       |Expected ' '
@@ -256,7 +256,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
       |                      ^""".stripMargin))
   }
 
-  checkArgs("--test -f foo/f.scala", SkipWindows) { args =>
+  checkArgs("--test -f foo/f.scala") { args =>
     assert(
       args == Right(
         ShellArgs(
@@ -269,7 +269,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
     )
   }
 
-  checkArgs("--test -f bar/b.scala", SkipWindows) { args =>
+  checkArgs("--test -f bar/b.scala") { args =>
     assert(
       args == Left(
         """--files value(s) must reference existing files or directories in unmanagedSourceDirectories; are you running scalafix on the right project / Configuration?
@@ -287,7 +287,7 @@ class SbtCompletionsSuite extends AnyFunSuite {
       allowedTargetFilesPrefixes = Nil,
       jgitCompletion = new JGitCompletion(fs.workingDirectory.toAbsolutePath)
     ).parser
-  )("--test --files=foo", SkipWindows) { args =>
+  )("--test --files=foo") { args =>
     assert(args == Left("""--files=foo
       |--files can only be used on project-level invocations (i.e. myproject / scalafix --files=f.scala)
       | --test --files=foo
