@@ -39,7 +39,7 @@ libraryDependencies ++= List(
 )
 
 lazy val scala212 = "2.12.21"
-lazy val scala3 = "3.7.4"
+lazy val scala3 = "3.8.2"
 
 lazy val latestScalafixInterfacesSnapshotVersion = {
   val metadataUrl =
@@ -64,7 +64,7 @@ pluginCrossBuild / sbtVersion := {
     case "2.12" =>
       "1.4.0"
     case _ =>
-      "2.0.0-RC8"
+      "2.0.0-RC10"
   }
 }
 
@@ -84,6 +84,7 @@ scalacOptions ++= {
   scalaBinaryVersion.value match {
     case "2.12" =>
       List(
+        "-release:8",
         "-Ywarn-unused",
         "-Xlint",
         "-Xfatal-warnings"
