@@ -11,7 +11,7 @@ inThisBuild(
     // https://github.com/scalacenter/scalafix/issues/2363
     resolvers += Resolver.url(
       "ivy-https",
-      new java.net.URL("https://example.com/repo/")
+      new java.net.URI("https://example.com/repo/").toURL
     )(Resolver.ivyStylePatterns)
   )
 )
