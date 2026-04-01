@@ -24,9 +24,11 @@ object ScalafixTestkitPlugin extends AutoPlugin {
       settingKey[String](
         "Scala compiler version that was used to compile the input project"
       )
-    val scalafixTestkitInputSourceDirectories: TaskKey[Seq[File]] =
+    // These could be cached in sbt 2.x by using a different type, but let's opt-out from caching
+    // and keep the same type as sbt 1.x for backward compatibility for now
+    @transient val scalafixTestkitInputSourceDirectories: TaskKey[Seq[File]] =
       taskKey[Seq[File]]("Source directories of input project")
-    val scalafixTestkitOutputSourceDirectories: TaskKey[Seq[File]] =
+    @transient val scalafixTestkitOutputSourceDirectories: TaskKey[Seq[File]] =
       taskKey[Seq[File]]("Source directories of output project")
   }
   import autoImport._

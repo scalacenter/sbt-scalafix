@@ -1,5 +1,5 @@
-# warm up so that tasks themselves (not their dependencies) run in parallel
-> Compile / scalafix / compile
+# No-op call just to fetch dependencies and compile custom rule upfront, so that custom tasks really run in parallel later
+> scalafix DisableSyntax
 
 > all addHeader scalafixAddFooter
 > check
