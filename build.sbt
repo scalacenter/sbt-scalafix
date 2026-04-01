@@ -35,7 +35,7 @@ resolvers += Resolver.sonatypeCentralSnapshots
 libraryDependencies ++= Dependencies.all
 libraryDependencies ++= List(
   "com.lihaoyi" %% "fansi" % "0.5.1" % Test,
-  "org.scalatest" %% "scalatest" % "3.2.19" % Test
+  "org.scalatest" %% "scalatest" % "3.2.20" % Test
 )
 
 lazy val scala212 = "2.12.21"
