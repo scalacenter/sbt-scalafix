@@ -142,6 +142,10 @@ object ScalafixPlugin extends AutoPlugin {
 
   import autoImport._
 
+  @nowarn
+  private val scalafixScalaBinaryVersion0: SettingKey[String] =
+    scalafixScalaBinaryVersion
+
   private val scalafixJGitCompletion: SettingKey[JGitCompletion] =
     SettingKey(
       "scalafixJGitCompletion",
@@ -167,7 +171,7 @@ object ScalafixPlugin extends AutoPlugin {
         loadedRules = { () =>
           val scalafixInterface = ScalafixInterface(
             scalafixInterfaceCache.value,
-            scalafixScalaBinaryVersion.value: @nowarn,
+            scalafixScalaBinaryVersion0.value,
             toolClasspath = Arg.ToolClasspath(
               // Local rules classpath must be looked up via tasks so they can't appear in completions
               Nil,
@@ -467,7 +471,7 @@ object ScalafixPlugin extends AutoPlugin {
         shellArgs,
         projectDepsExternal,
         projectDepsInternal,
-        scalafixScalaBinaryVersion.value: @nowarn,
+        scalafixScalaBinaryVersion0.value,
         scalafixDependencies.value,
         allResolvers,
         (ThisBuild / scalafixCallback).value,
