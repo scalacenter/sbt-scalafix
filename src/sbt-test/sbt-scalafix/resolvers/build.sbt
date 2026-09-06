@@ -6,6 +6,11 @@ inThisBuild(
   List(
     scalaVersion := Versions.scala213,
     scalafixDependencies += "test.scalafix" %% "test-rule" % ruleVersion,
+    // for retrieving SNAPSHOTS of `scalafix-interfaces`
+    resolvers += MavenRepository(
+      "sonatype-central-maven-snapshots",
+      "https://central.sonatype.com/repository/maven-snapshots/"
+    ),
     // Exercise pathToUriString with a URL-based Ivy resolver, which would
     // fail on Windows without the fix for
     // https://github.com/scalacenter/scalafix/issues/2363
