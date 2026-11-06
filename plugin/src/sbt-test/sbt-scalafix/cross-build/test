@@ -1,0 +1,34 @@
+# compile should not affect scalafix
+> compile
+
+-> scalafixAll --test ProcedureSyntax
+-> scala212 / scalafix --test ProcedureSyntax
+-> scala212 / Compile / scalafix --test ProcedureSyntax
+-> scala212 / Test / scalafix --test ProcedureSyntax
+-> scala212 / Custom / scalafix --test ProcedureSyntax
+
+> scala212 / scalafix ProcedureSyntax
+> scala212 / scalafix --test ProcedureSyntax
+> scala212 / Compile / scalafix ProcedureSyntax
+> scala212 / Compile / scalafix --test ProcedureSyntax
+-> scala212 / Test / scalafix --test ProcedureSyntax
+-> scala212 / Custom / scalafix --test ProcedureSyntax
+
+> scala212 / Test / scalafix ProcedureSyntax
+> scala212 / Test / scalafix --test ProcedureSyntax
+-> scala212 / Custom / scalafix --test ProcedureSyntax
+
+> scalafixAll ProcedureSyntax
+> scala212 / Custom / scalafix --test ProcedureSyntax
+
+> javaProject / Compile /scalafix ProcedureSyntax
+
+# Custom exists only for scala212
+> Custom / scalafix
+
+> scala212 / Compile / scalafix
+> scala212 / Test / scalafix
+> scala212 / Custom / scalafix
+> scala212 / Compile / scalafix --test
+> scala212 / Test / scalafix --test
+> scala212 / Custom / scalafix --test
