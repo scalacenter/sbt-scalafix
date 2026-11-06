@@ -87,7 +87,8 @@ object CoursierRepoResolvers {
   def repository(
       resolver: Resolver,
       log: Logger,
-      credentialsByHost: Map[String, Credentials]
+      credentialsByHost: Map[String, Credentials],
+      allowIvyRawRepositories: Boolean
   ): Option[Repository] =
     resolver match {
       case r: sbt.librarymanagement.MavenRepository =>
@@ -122,51 +123,46 @@ object CoursierRepoResolvers {
         None
 
       // Pattern Match resolver-type-specific RawRepositories
-      case IBiblioRepository(p) =>
-        parseMavenCompatResolver(
-          log,
-          p,
-          credentialsByHost
-        )
+      case raw: RawRepository if allowIvyRawRepositories =>
+        ibiblioPatterns(raw).filter(patternMatchGuard) match {
+          case Some(patterns) =>
+            parseMavenCompatResolver(log, patterns, credentialsByHost)
+          case None =>
+            log.warn(s"Unrecognized repository ${raw.name}, ignoring it")
+            None
+        }
 
       case other =>
         log.warn(s"Unrecognized repository ${other.name}, ignoring it")
         None
     }
 
-  private object IBiblioRepository {
-
-    private def stringVector(v: java.util.List[?]): Vector[String] =
-      Option(v).map(_.asScala.toVector).getOrElse(Vector.empty).collect {
-        case s: String => s
-      }
-
-    private def patterns(resolver: IBiblioResolver): Patterns = Patterns(
-      ivyPatterns = stringVector(resolver.getIvyPatterns),
-      artifactPatterns = stringVector(resolver.getArtifactPatterns),
-      isMavenCompatible = resolver.isM2compatible,
-      descriptorOptional = !resolver.isUseMavenMetadata,
-      skipConsistencyCheck = !resolver.isCheckconsistency
-    )
-
-    def unapply(r: Resolver): Option[Patterns] =
-      r match {
-        case raw: RawRepository =>
-          raw.resolver match {
-            case b: IBiblioResolver =>
-              Some(patterns(b))
-                .filter(patternMatchGuard)
-            case _ =>
-              None
-          }
-        case _ =>
-          None
-      }
-  }
-
   private def patternMatchGuard(patterns: Patterns): Boolean =
     patterns.ivyPatterns.lengthCompare(1) == 0 &&
       patterns.artifactPatterns.lengthCompare(1) == 0
+
+  private def ibiblioPatterns(raw: RawRepository): Option[Patterns] =
+    raw.resolver match {
+      case resolver: IBiblioResolver =>
+        def strings(values: java.util.List[?]): Vector[String] =
+          Option(values)
+            .map(_.asScala.toVector)
+            .getOrElse(Vector.empty)
+            .collect { case value: String =>
+              value
+            }
+
+        Some(
+          Patterns(
+            ivyPatterns = strings(resolver.getIvyPatterns),
+            artifactPatterns = strings(resolver.getArtifactPatterns),
+            isMavenCompatible = resolver.isM2compatible,
+            descriptorOptional = !resolver.isUseMavenMetadata,
+            skipConsistencyCheck = !resolver.isCheckconsistency
+          )
+        )
+      case _ => None
+    }
 
   private def parseMavenCompatResolver(
       log: Logger,
