@@ -4,8 +4,11 @@ import java.io.File
 import java.nio.file.Path
 
 import sbt.Attributed
+import sbt.ConfigKey
+import sbt.Def
 import sbt.Keys
 import sbt.ModuleID
+import sbt.Task
 
 import xsbti.FileConverter
 
@@ -35,4 +38,9 @@ object Compat {
   implicit class DefOps(private val self: sbt.Def.type) extends AnyVal {
     def uncached[A](a: A): A = a
   }
+
+  def resolvedScalacOptionsTask(config: ConfigKey): Def.Initialize[Task[Seq[String]]] =
+    Def.task {
+      (config / Keys.compile / Keys.scalacOptions).value
+    }
 }
