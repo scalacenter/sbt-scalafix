@@ -306,6 +306,10 @@ object ScalafixPlugin extends AutoPlugin {
     Seq(
       scalafixSbtResolversAsCoursierRepositories := Def.uncached {
         val logger = streams.value.log
+        val allowIvyRawRepositories =
+          CrossVersion.partialVersion(sbtVersion.value).exists {
+            case (major, minor) => major < 2 || (major == 2 && minor < 1)
+          }
 
         // mimics https://github.com/sbt/librarymanagement/blob/v1.10.0/ivy/src/main/scala/sbt/librarymanagement/ivy/Credentials.scala#L23-L28
         val asDirectCredentials = credentials.value.flatMap {
@@ -336,7 +340,8 @@ object ScalafixPlugin extends AutoPlugin {
           CoursierRepoResolvers.repository(
             resolver,
             logger,
-            credentialsByHost
+            credentialsByHost,
+            allowIvyRawRepositories
           )
         }
       },
