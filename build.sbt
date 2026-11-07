@@ -73,9 +73,9 @@ lazy val plugin = (projectMatrix in file("plugin"))
     )
   )
 
-lazy val sbt1 = ScriptedAxis("1.13.1", "1")
-lazy val sbt20 = ScriptedAxis("2.0.12", "20")
-lazy val sbt21 = ScriptedAxis("2.1.0-RC3", "21")
+lazy val sbt1 = "1.13.1"
+lazy val sbt20 = "2.0.12"
+lazy val sbt21 = "2.1.0-RC3"
 
 import ScriptedAxis._
 lazy val scripted = (projectMatrix in file("scripted"))
@@ -85,6 +85,7 @@ lazy val scripted = (projectMatrix in file("scripted"))
     publish / skip := true,
     publishLocal / skip := true,
     scriptedBufferLog := false,
+    scriptedBatchExecution := true,
     scriptedParallelInstances := 2,
     scriptedLaunchOpts ++= List(
       "-Xmx2048M",
@@ -105,11 +106,7 @@ lazy val scripted = (projectMatrix in file("scripted"))
   )
   .jvmPlatformScripted(
     scalaVersion = scala3,
-    scriptedSbtVersion = List(sbt20, sbt21),
-    settings = List(
-      // https://github.com/scalacenter/sbt-scalafix/pull/440#discussion_r2008037490
-      scriptedBatchExecution := false
-    )
+    scriptedSbtVersion = List(sbt20, sbt21)
   )
 
 // dogfooding
