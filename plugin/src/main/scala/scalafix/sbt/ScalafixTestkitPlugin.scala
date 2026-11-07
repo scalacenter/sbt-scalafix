@@ -16,7 +16,8 @@ object ScalafixTestkitPlugin extends AutoPlugin {
   object autoImport {
     val scalafixTestkitInputClasspath: TaskKey[Classpath] =
       taskKey[Classpath]("Classpath of input project")
-    val scalafixTestkitInputScalacOptions: TaskKey[Seq[String]] =
+    // Resolved options contain machine-specific paths, so opt out of sbt 2 caching
+    @transient val scalafixTestkitInputScalacOptions: TaskKey[Seq[String]] =
       taskKey[Seq[String]](
         "Scalac compiler flags that were used to compile the input project"
       )
@@ -47,7 +48,10 @@ object ScalafixTestkitPlugin extends AutoPlugin {
       libraryDependencies +=
         ("ch.epfl.scala" % "scalafix-testkit" % BuildInfo.scalafixVersion % Test)
           .cross(CrossVersion.full),
-      scalafixTestkitInputScalacOptions := scalacOptions.value,
+      scalafixTestkitInputScalacOptions :=
+        Compat
+          .resolvedScalacOptionsTask(Compile / compile)
+          .value,
       scalafixTestkitInputScalaVersion := scalaVersion.value,
       Test / resourceGenerators += Def.task {
         implicit val conv: FileConverter = fileConverter.value

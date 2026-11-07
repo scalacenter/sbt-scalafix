@@ -3,9 +3,8 @@ package scalafix.internal.sbt
 import java.io.File
 import java.nio.file.Path
 
-import sbt.Attributed
-import sbt.Keys
-import sbt.ModuleID
+import sbt.*
+import sbt.Keys.*
 
 import xsbti.FileConverter
 
@@ -35,4 +34,9 @@ object Compat {
   implicit class DefOps(private val self: sbt.Def.type) extends AnyVal {
     def uncached[A](a: A): A = a
   }
+
+  def resolvedScalacOptionsTask(
+      task: TaskKey[?]
+  ): Def.Initialize[Task[Seq[String]]] =
+    task / scalacOptions
 }

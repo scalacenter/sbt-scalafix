@@ -16,6 +16,26 @@ inThisBuild(
   )
 )
 
+// Force resolver conversion to visit the RawRepository compatibility branch.
+// Use a real resolver on sbt versions that ship Ivy so their own resolver engine
+// can also handle it; sbt 2.1 falls back to an opaque object and exposes a missing
+// Ivy class link in the plugin.
+val rawResolver: AnyRef = try {
+  val resolverClass = Class.forName(
+    "org.apache.ivy.plugins.resolver.IBiblioResolver"
+  )
+  val resolver =
+    resolverClass.getConstructor().newInstance().asInstanceOf[AnyRef]
+  resolverClass
+    .getMethod("setName", classOf[String])
+    .invoke(resolver, "link-check")
+  resolver
+} catch {
+  case _: ClassNotFoundException => new Object
+}
+ThisBuild / resolvers +=
+  new sbt.librarymanagement.RawRepository(rawResolver, "link-check")
+
 lazy val rules = project
   .disablePlugins(ScalafixPlugin)
   .settings(

@@ -55,7 +55,7 @@ lazy val tests = projectMatrix
     scalafixTestkitInputClasspath :=
       TargetAxis.resolve(input, Compile / fullClasspath).value,
     scalafixTestkitInputScalacOptions :=
-      TargetAxis.resolve(input, Compile / scalacOptions).value,
+      TargetAxis.resolve(input, Compile / resolvedScalacOptions).value,
     scalafixTestkitInputScalaVersion :=
       TargetAxis.resolve(input, Compile / scalaVersion).value
   )
