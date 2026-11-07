@@ -3,12 +3,8 @@ package scalafix.internal.sbt
 import java.io.File
 import java.nio.file.Path
 
-import sbt.Attributed
-import sbt.ConfigKey
-import sbt.Def
-import sbt.Keys
-import sbt.ModuleID
-import sbt.Task
+import sbt.*
+import sbt.Keys.*
 
 import xsbti.FileConverter
 
@@ -40,9 +36,7 @@ object Compat {
   }
 
   def resolvedScalacOptionsTask(
-      config: ConfigKey
+      task: TaskKey[?]
   ): Def.Initialize[Task[Seq[String]]] =
-    Def.task {
-      (config / Keys.compile / Keys.scalacOptions).value
-    }
+    task / scalacOptions
 }

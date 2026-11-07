@@ -497,7 +497,9 @@ object ScalafixPlugin extends AutoPlugin {
             Arg.Config(scalafixConf),
             Arg.Rules(shell.rules),
             Arg.ScalaVersion(scalaVersion.value),
-            Arg.ScalacOptions(resolvedScalacOptionsTask(config).value),
+            Arg.ScalacOptions(
+              resolvedScalacOptionsTask(config / compile).value
+            ),
             Arg.ParsedArgs(shell.extra)
           )
         val rulesThatWillRun = mainInterface.rulesThatWillRun()
