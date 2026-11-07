@@ -73,9 +73,9 @@ lazy val plugin = (projectMatrix in file("plugin"))
     )
   )
 
-lazy val sbt1 = ScriptedAxis("1.13.1", "1")
-lazy val sbt20 = ScriptedAxis("2.0.12", "20")
-lazy val sbt21 = ScriptedAxis("2.1.0-RC3", "21")
+lazy val sbt1 = "1.13.1"
+lazy val sbt20 = "2.0.12"
+lazy val sbt21 = "2.1.0-RC3"
 
 import ScriptedAxis._
 lazy val scripted = (projectMatrix in file("scripted"))
