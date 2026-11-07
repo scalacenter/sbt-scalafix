@@ -236,6 +236,8 @@ object ScalafixPlugin extends AutoPlugin {
     Seq(ScalafixConfig)
 
   override lazy val projectSettings: Seq[Def.Setting[?]] = Def.settings(
+    Compat.scalafixResolvedScalacOptions :=
+      Compat.resolvedScalacOptionsTask(Compile).value,
     Seq(Compile, Test).flatMap(c => inConfig(c)(scalafixConfigSettings(c))),
     inConfig(ScalafixConfig)(
       Def.settings(
