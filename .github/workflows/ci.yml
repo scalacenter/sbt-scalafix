@@ -25,9 +25,9 @@ jobs:
           apps: sbt
           jvm: temurin:${{ matrix.jvm }}
       - if: matrix.jvm == '17'
-        run: rm -r plugin/src/sbt-test/skip-sbt1.4
+        run: rm -r scripted/src/sbt-test/skip-sbt1.4
       - if: matrix.os == 'windows'
-        run: rm -r plugin/src/sbt-test/skip-windows
+        run: rm -r scripted/src/sbt-test/skip-windows
       - run: sbt "...@scalaBinaryVersion=${{ matrix.scala }}/test"
       - run: sbt "...@scalaBinaryVersion=${{ matrix.scala }}/scripted"
   formatting:

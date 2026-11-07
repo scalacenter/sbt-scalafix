@@ -236,6 +236,8 @@ object ScalafixPlugin extends AutoPlugin {
     Seq(ScalafixConfig)
 
   override lazy val projectSettings: Seq[Def.Setting[?]] = Def.settings(
+    Compat.scalafixResolvedScalacOptions :=
+      Compat.resolvedScalacOptionsTask(Compile).value,
     Seq(Compile, Test).flatMap(c => inConfig(c)(scalafixConfigSettings(c))),
     inConfig(ScalafixConfig)(
       Def.settings(
@@ -304,6 +306,10 @@ object ScalafixPlugin extends AutoPlugin {
     Seq(
       scalafixSbtResolversAsCoursierRepositories := Def.uncached {
         val logger = streams.value.log
+        val allowIvyRawRepositories =
+          CrossVersion.partialVersion(sbtVersion.value).exists {
+            case (major, minor) => major < 2 || (major == 2 && minor < 1)
+          }
 
         // mimics https://github.com/sbt/librarymanagement/blob/v1.10.0/ivy/src/main/scala/sbt/librarymanagement/ivy/Credentials.scala#L23-L28
         val asDirectCredentials = credentials.value.flatMap {
@@ -334,7 +340,8 @@ object ScalafixPlugin extends AutoPlugin {
           CoursierRepoResolvers.repository(
             resolver,
             logger,
-            credentialsByHost
+            credentialsByHost,
+            allowIvyRawRepositories
           )
         }
       },
@@ -497,7 +504,7 @@ object ScalafixPlugin extends AutoPlugin {
             Arg.Config(scalafixConf),
             Arg.Rules(shell.rules),
             Arg.ScalaVersion(scalaVersion.value),
-            Arg.ScalacOptions((config / compile / scalacOptions).value),
+            Arg.ScalacOptions(resolvedScalacOptionsTask(config).value),
             Arg.ParsedArgs(shell.extra)
           )
         val rulesThatWillRun = mainInterface.rulesThatWillRun()

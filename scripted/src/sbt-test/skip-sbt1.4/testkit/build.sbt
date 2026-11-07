@@ -1,3 +1,4 @@
+lazy val Compat = _root_.scalafix.internal.sbt.Compat
 lazy val V = _root_.scalafix.sbt.BuildInfo
 
 lazy val rulesCrossVersions = Seq(V.scala213, V.scala212)
@@ -55,7 +56,12 @@ lazy val tests = projectMatrix
     scalafixTestkitInputClasspath :=
       TargetAxis.resolve(input, Compile / fullClasspath).value,
     scalafixTestkitInputScalacOptions :=
-      TargetAxis.resolve(input, Compile / scalacOptions).value,
+      TargetAxis
+        .resolve(
+          input,
+          Compat.scalafixResolvedScalacOptions
+        )
+        .value,
     scalafixTestkitInputScalaVersion :=
       TargetAxis.resolve(input, Compile / scalaVersion).value
   )

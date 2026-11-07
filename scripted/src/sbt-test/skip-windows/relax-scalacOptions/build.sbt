@@ -32,10 +32,14 @@ TaskKey[Unit]("checkLastCompilationCached") := Def.uncached {
   // to silence false positives via `lines.length > 0` in the next invocation
   IO.delete((Compile / compileIncremental / streams).value.cacheDirectory)
 
-  val cachedCompilationLogEntry = "No changes"
+  val cachedCompilationLogEntry = "no changes"
   if (
     lines.length > 0 &&
-    lines.forall(line => !line.contains(cachedCompilationLogEntry))
+    lines.forall(line =>
+      !line
+        .toLowerCase(java.util.Locale.ROOT)
+        .contains(cachedCompilationLogEntry)
+    )
   ) {
     lines.foreach(line => str.log.error(line))
     throw new RuntimeException("last compilation was not fully cached")
