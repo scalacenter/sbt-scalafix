@@ -1,0 +1,2 @@
+# compilers instantiated by rules (e.g. ExplicitResultTypes) cannot load plugins referenced via placeholders
+> scalafix ResolvedScalacOptions
