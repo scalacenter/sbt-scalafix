@@ -106,11 +106,7 @@ lazy val scripted = (projectMatrix in file("scripted"))
   )
   .jvmPlatformScripted(
     scalaVersion = scala3,
-    scriptedSbtVersion = List(sbt20, sbt21),
-    settings = List(
-      // https://github.com/scalacenter/sbt-scalafix/pull/440#discussion_r2008037490
-      scriptedBatchExecution := false
-    )
+    scriptedSbtVersion = List(sbt20, sbt21)
   )
 
 // dogfooding
