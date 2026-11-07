@@ -47,7 +47,8 @@ object ScalafixTestkitPlugin extends AutoPlugin {
       libraryDependencies +=
         ("ch.epfl.scala" % "scalafix-testkit" % BuildInfo.scalafixVersion % Test)
           .cross(CrossVersion.full),
-      scalafixTestkitInputScalacOptions := scalacOptions.value,
+      scalafixTestkitInputScalacOptions :=
+        Compat.resolvedScalacOptionsTask(Compile).value,
       scalafixTestkitInputScalaVersion := scalaVersion.value,
       Test / resourceGenerators += Def.task {
         implicit val conv: FileConverter = fileConverter.value
