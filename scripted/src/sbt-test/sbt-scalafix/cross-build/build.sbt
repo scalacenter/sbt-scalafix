@@ -1,7 +1,6 @@
 import _root_.scalafix.sbt.{BuildInfo => Versions}
 inThisBuild(
   List(
-    updateOptions := updateOptions.value.withLatestSnapshots(false),
     scalacOptions += "-Ywarn-adapted-args", // For NoAutoTupling
     resolvers += MavenRepository(
       "sonatype-central-maven-snapshots",
