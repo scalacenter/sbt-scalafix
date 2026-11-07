@@ -1,4 +1,0 @@
-# Set Coursier's supported Java property and reload to verify the default resolver list is refreshed.
-> setCoursierRepositories
-> reload
-> check
