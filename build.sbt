@@ -85,6 +85,7 @@ lazy val scripted = (projectMatrix in file("scripted"))
     publish / skip := true,
     publishLocal / skip := true,
     scriptedBufferLog := false,
+    scriptedBatchExecution := true,
     scriptedParallelInstances := 2,
     scriptedLaunchOpts ++= List(
       "-Xmx2048M",
