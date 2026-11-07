@@ -65,24 +65,28 @@ $ copy-file files/UnusedImports.scala src/main/scala/InitiallyValid.scala
 -> scalafix --check RemoveUnused
 $ delete src/main/scala
 
-# updating a source file should trigger a re-run on that file only
+# updating a source file invalidates the invocation cache
 > set scalafixConfig := None
 $ mkdir src/main/scala
 $ copy-file files/Valid.scala src/main/scala/StaticValid.scala
 $ copy-file files/Null.scala src/main/scala/DynamicValid.scala
 > scalafix --check ProcedureSyntax
 $ copy-file files/UnusedImports.scala src/main/scala/DynamicValid.scala
+> scalafix --check ProcedureSyntax
 $ exec chmod 000 src/main/scala/StaticValid.scala
+$ exec chmod 000 src/main/scala/DynamicValid.scala
 > scalafix --check ProcedureSyntax
 $ delete src/main/scala
 
-# adding a source file should trigger a run on that file only
+# adding a source file invalidates the invocation cache
 > set scalafixConfig := None
 $ mkdir src/main/scala
 $ copy-file files/Null.scala src/main/scala/Valid.scala
 > scalafix --check ProcedureSyntax
 $ copy-file files/Null.scala src/main/scala/NewValidFile.scala
+> scalafix --check ProcedureSyntax
 $ exec chmod 000 src/main/scala/Valid.scala
+$ exec chmod 000 src/main/scala/NewValidFile.scala
 > scalafix --check ProcedureSyntax
 $ delete src/main/scala
 
@@ -146,10 +150,11 @@ $ mkdir src/test/scala
 $ copy-file files/Valid.scala src/test/scala/Valid.scala
 > Test / scalafix ProcedureSyntax
 > Test / scalafix --check
-$ exec chmod 000 src/test/scala/Valid.scala
 > Test / scalafix --check ProcedureSyntax DisableSyntax
 > Test / scalafix --syntactic ProcedureSyntax
 > Test / scalafix DisableSyntax ProcedureSyntax
+> Test / scalafix
+$ exec chmod 000 src/test/scala/Valid.scala
 > Test / scalafix
 $ delete src/test/scala
 
