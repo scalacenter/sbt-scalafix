@@ -35,6 +35,14 @@ sbt "scripted sbt-scalafix/$NAME"
 sbt "scalafixAll --check"
 ```
 
+sbt 2 runs through the sbtn native client attached to a long-lived background
+server daemon (`sbt --server` runs in the foreground; `sbt shutdownall`
+stops the daemons). Test execution is incremental and cached on disk: `sbt
+test` re-runs only tests that failed or whose inputs changed, so a clean
+re-run of an unchanged build reports `No tests to run` (`Total 0`) instead
+of a failure. Use `sbt testFull` for an unconditional full run, or `sbt
+"testOnly ..."` for a focused one.
+
 To format code, run `./bin/scalafmt`; `./bin/scalafmt --diff` limits formatting to files changed from the main branch.
 
 ## CI
