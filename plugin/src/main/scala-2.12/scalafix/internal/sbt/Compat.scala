@@ -39,4 +39,29 @@ object Compat {
       task: TaskKey[?]
   ): Def.Initialize[Task[Seq[String]]] =
     task / scalacOptions
+
+  def sbt2ScalafixTask(
+      interface: ScalafixInterface,
+      files: Seq[Path],
+      sourceStamps: Seq[(Path, sbt.nio.FileStamp)],
+      streams: TaskStreams,
+      fileConverter: FileConverter,
+      baseDirectory: Path,
+      check: Boolean,
+      run: () => Set[File],
+      sbtVersion: String
+  ): Def.Initialize[Task[Unit]] = {
+    val _ = (
+      interface,
+      files,
+      sourceStamps,
+      streams,
+      fileConverter,
+      baseDirectory,
+      check,
+      run,
+      sbtVersion
+    )
+    Def.task { () }
+  }
 }

@@ -1,0 +1,20 @@
+# Warm an output action for the original source contents.
+$ mkdir src/main/scala
+$ copy-file files/ProcedureSyntax.scala src/main/scala/Procedure.scala
+$ copy-file files/Untouched.scala src/main/scala/Untouched.scala
+$ exec touch -t 202001010000 src/main/scala/Procedure.scala
+$ exec touch -t 202001010000 src/main/scala/Untouched.scala
+> scalafix ProcedureSyntax
+
+# Restore the rewritten source, then clean sbt's task outputs. The input stamp is
+# intentionally LastModified here so chmod does not itself invalidate the test.
+$ copy-file files/ProcedureSyntax.scala src/main/scala/Procedure.scala
+$ exec touch -t 202001010000 src/main/scala/Procedure.scala
+$ exec chmod 000 src/main/scala/Untouched.scala
+> clean
+> scalafix ProcedureSyntax
+
+# The unreadable no-op input proves Scalafix was not evaluated; the readable
+# source confirms the cached rewrite output itself was replayed.
+$ exec grep -F 'def unit: Unit = {}' src/main/scala/Procedure.scala
+$ exec chmod 644 src/main/scala/Untouched.scala

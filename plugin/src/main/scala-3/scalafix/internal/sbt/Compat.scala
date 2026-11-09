@@ -60,6 +60,29 @@ object Compat {
         )
     }
 
+  def sbt2ScalafixTask(
+      interface: ScalafixInterface,
+      files: Seq[Path],
+      sourceStamps: Seq[(Path, sbt.nio.FileStamp)],
+      streams: TaskStreams,
+      fileConverter: FileConverter,
+      baseDirectory: Path,
+      check: Boolean,
+      run: () => Set[File],
+      sbtVersion: String
+  ): Def.Initialize[Task[Unit]] =
+    Sbt2ScalafixCache.task(
+      interface,
+      files,
+      sourceStamps,
+      streams,
+      fileConverter,
+      baseDirectory,
+      check,
+      run,
+      sbtVersion
+    )
+
   // Copy of sbt.internal.Compiler.resolveVirtualizedScalacOptions (private[sbt], unchanged since 2.0.0)
   private def resolveVirtualizedScalacOptions(
       options: Seq[String],
