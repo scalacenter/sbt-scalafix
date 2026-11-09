@@ -20,6 +20,12 @@ jobs:
     runs-on: ${{ matrix.os }}-latest
     steps:
       - uses: actions/checkout@v7
+      - uses: coursier/cache-action@v9
+        with:
+          matrix: "${{ matrix.os }}-${{ matrix.scala }}"
+          # most-coverage cells write it, others only read: JDK 25 (runs every
+          # fixture, unlike JDK 17) and the Windows cell (the only one for that OS)
+          cacheMode: ${{ (matrix.jvm == '25' || matrix.os == 'windows') && 'write' || 'read' }}
       - uses: coursier/setup-action@v3
         with:
           apps: sbt
@@ -35,6 +41,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - uses: coursier/cache-action@v9
       - uses: coursier/setup-action@v3
         with:
           apps: sbt
