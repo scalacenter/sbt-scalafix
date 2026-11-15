@@ -51,7 +51,7 @@ lazy val plugin = (projectMatrix in file("plugin"))
   .jvmPlatform(
     scalaVersions = List(scala212),
     settings = List(
-      pluginCrossBuild / sbtVersion := "1.4.0", // keep low for max compatibility
+      pluginCrossBuild / sbtVersion := "1.4.9", // keep low for max compatibility
       scalacOptions ++= List(
         "-release:8",
         "-Xsource:3",
