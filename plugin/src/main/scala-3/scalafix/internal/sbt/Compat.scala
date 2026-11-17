@@ -30,7 +30,12 @@ object Compat {
 
   type DirectCredentials = sbt.librarymanagement.Credentials.DirectCredentials
   type FileCredentials = sbt.librarymanagement.Credentials.FileCredentials
-  val Credentials = sbt.internal.librarymanagement.ivy.IvyCredentials
+  val Credentials = sbt.librarymanagement.CredentialUtils
+
+  // Raw Ivy resolvers are only supported on the sbt 1 lane.
+  def ibiblioPatterns(
+      raw: sbt.librarymanagement.RawRepository
+  ): Option[sbt.librarymanagement.Patterns] = None
 
   @transient
   private val resolvedScalacOptions: TaskKey[Seq[String]] =

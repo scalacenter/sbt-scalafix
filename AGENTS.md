@@ -10,8 +10,8 @@
 
 ## Build matrix
 
-- The plugin is built for Scala 2.12.x and Scala 3.8.x. Scala 2.12 targets Java 8 bytecode; Scala 3 targets Java 17 bytecode. Both configurations use strict compiler warnings as errors.
-- `pluginCrossBuild / sbtVersion` sets the minimum sbt version for each plugin line. The scripted runner matrix is separate: it currently tests sbt 1.x with Scala 2.12, and sbt 2.0.x plus 2.1.x with Scala 3. Keep these compatibility floors and test versions distinct when changing the build.
+- The plugin is built for Scala 2.12.x and Scala 3.9 LTS. Scala 2.12 targets Java 8 bytecode; Scala 3 targets Java 17 bytecode. Both configurations use strict compiler warnings as errors.
+- `pluginCrossBuild / sbtVersion` sets the minimum sbt version for each plugin line. The Scala 3.9-built plugin requires sbt 2.1 or newer. The scripted runner matrix is separate: it tests sbt 1.x with Scala 2.12 and sbt 2.1.x with Scala 3. Keep these compatibility floors and test versions distinct when changing the build.
 - `ScriptedAxis` derives a matrix axis from the launched sbt version (sbt 1.x uses suffix `1`; sbt 2.x uses its first two version components). Preserve this mapping when adjusting scripted axes.
 - The build enables SemanticDB and runs the example Scalafix rule against the repository. Shared library dependency versions are maintained in `project/Dependencies.scala`.
 - Scripted setup reads Scalafix interface snapshot metadata from Sonatype. Scripted tests therefore may need network access and should not assume a fixed snapshot version.

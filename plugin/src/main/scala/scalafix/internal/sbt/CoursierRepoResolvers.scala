@@ -3,8 +3,6 @@ package scalafix.internal.sbt
 import java.net.MalformedURLException
 import java.nio.file.Paths
 
-import scala.jdk.CollectionConverters.*
-
 import sbt.librarymanagement.{MavenRepository as _, *}
 import sbt.util.Logger
 
@@ -12,7 +10,6 @@ import coursierapi.Credentials
 import coursierapi.IvyRepository
 import coursierapi.MavenRepository
 import coursierapi.Repository
-import org.apache.ivy.plugins.resolver.IBiblioResolver
 
 // vendor from sbt-coursier/lmcoursier.internal.Resolvers
 object CoursierRepoResolvers {
@@ -124,7 +121,7 @@ object CoursierRepoResolvers {
 
       // Pattern Match resolver-type-specific RawRepositories
       case raw: RawRepository if allowIvyRawRepositories =>
-        ibiblioPatterns(raw).filter(patternMatchGuard) match {
+        Compat.ibiblioPatterns(raw).filter(patternMatchGuard) match {
           case Some(patterns) =>
             parseMavenCompatResolver(log, patterns, credentialsByHost)
           case None =>
@@ -140,29 +137,6 @@ object CoursierRepoResolvers {
   private def patternMatchGuard(patterns: Patterns): Boolean =
     patterns.ivyPatterns.lengthCompare(1) == 0 &&
       patterns.artifactPatterns.lengthCompare(1) == 0
-
-  private def ibiblioPatterns(raw: RawRepository): Option[Patterns] =
-    raw.resolver match {
-      case resolver: IBiblioResolver =>
-        def strings(values: java.util.List[?]): Vector[String] =
-          Option(values)
-            .map(_.asScala.toVector)
-            .getOrElse(Vector.empty)
-            .collect { case value: String =>
-              value
-            }
-
-        Some(
-          Patterns(
-            ivyPatterns = strings(resolver.getIvyPatterns),
-            artifactPatterns = strings(resolver.getArtifactPatterns),
-            isMavenCompatible = resolver.isM2compatible,
-            descriptorOptional = !resolver.isUseMavenMetadata,
-            skipConsistencyCheck = !resolver.isCheckconsistency
-          )
-        )
-      case _ => None
-    }
 
   private def parseMavenCompatResolver(
       log: Logger,

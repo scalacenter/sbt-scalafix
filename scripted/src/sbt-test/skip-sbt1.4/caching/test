@@ -222,12 +222,13 @@ $ exec chmod 000 src/main/scala/Null.scala
 $ delete src/main/scala
 
 # files should be re-checked if a github source rule is used
+# Pin the rule source so branch renames cannot break the cache assertion.
 > set scalafixConfig := None
 $ mkdir src/main/scala
 $ copy-file files/Null.scala src/main/scala/Null.scala
-> scalafix --rules=github:olafurpg/named-literal-arguments
+> scalafix --rules=github:scalacenter/scalafix-named-literal-arguments/NamedLiteralArguments?sha=ba6604ad44a458f8840eabeea211a0642afa65f3
 $ exec chmod 000 src/main/scala/Null.scala
--> scalafix --rules=github:olafurpg/named-literal-arguments
+-> scalafix --rules=github:scalacenter/scalafix-named-literal-arguments/NamedLiteralArguments?sha=ba6604ad44a458f8840eabeea211a0642afa65f3
 $ delete src/main/scala
 
 # a re-run after a run failing because of a lint error should fail

@@ -34,7 +34,7 @@ lazy val latestScalafixInterfacesSnapshotVersion = {
 }
 
 lazy val scala212 = "2.12.21"
-lazy val scala3 = "3.8.4"
+lazy val scala3 = "3.9.0"
 
 lazy val plugin = (projectMatrix in file("plugin"))
   .settings(
@@ -64,7 +64,7 @@ lazy val plugin = (projectMatrix in file("plugin"))
   .jvmPlatform(
     scalaVersions = List(scala3),
     settings = List(
-      pluginCrossBuild / sbtVersion := "2.0.0", // keep low for max compatibility
+      pluginCrossBuild / sbtVersion := "2.1.0", // keep low for max compatibility
       scalacOptions ++= List(
         "-release:17",
         "-Wunused:all",
@@ -74,8 +74,7 @@ lazy val plugin = (projectMatrix in file("plugin"))
   )
 
 lazy val sbt1 = "1.13.1"
-lazy val sbt20 = "2.0.12"
-lazy val sbt21 = "2.1.0-RC3"
+lazy val sbt21 = "2.1.0"
 
 import ScriptedAxis._
 lazy val scripted = (projectMatrix in file("scripted"))
@@ -106,7 +105,7 @@ lazy val scripted = (projectMatrix in file("scripted"))
   )
   .jvmPlatformScripted(
     scalaVersion = scala3,
-    scriptedSbtVersion = List(sbt20, sbt21)
+    scriptedSbtVersion = List(sbt21)
   )
 
 // dogfooding
