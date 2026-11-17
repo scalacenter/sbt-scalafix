@@ -14,6 +14,7 @@ import sbt.Keys.*
 import sbt.internal.sbtscalafix.JLineAccess
 import sbt.internal.util.complete.Parser
 import sbt.librarymanagement.ResolveException
+import sbt.nio.Keys.inputFileStamps
 import sbt.plugins.JvmPlugin
 
 import coursierapi.Repository
@@ -532,13 +533,70 @@ object ScalafixPlugin extends AutoPlugin {
       shellArgs: ShellArgs,
       config: ConfigKey
   ): Def.Initialize[Task[Unit]] =
-    Def.task {
+    Def.taskDyn {
       val files = filesToFix(shellArgs, config).value
-      runArgs(
+      scalafixRunTask(
         mainInterface.withArgs(Arg.Paths(files)),
-        (config / scalafix / streams).value
+        files,
+        shellArgs,
+        config
       )
     }
+
+  private def scalafixRunTask(
+      interface: ScalafixInterface,
+      files: Seq[Path],
+      shellArgs: ShellArgs,
+      config: ConfigKey
+  ): Def.Initialize[Task[Unit]] =
+    Def.taskDyn {
+      val taskStreams = (config / scalafix / streams).value
+      val sourceStamps =
+        (config / scalafix / unmanagedSources / inputFileStamps).value
+      val currentSbtVersion = sbtVersion.value
+      val useSbt2Cache =
+        currentSbtVersion.startsWith("2.") &&
+          scalafixCaching.value &&
+          !shellArgs.noCache &&
+          supportsSbt2Caching(interface)
+      if (useSbt2Cache)
+        Compat.sbt2ScalafixTask(
+          interface,
+          files,
+          sourceStamps,
+          taskStreams,
+          fileConverter.value,
+          baseDirectory.value.toPath,
+          shellArgs.extra.contains("--check"),
+          () => runArgs(interface, taskStreams, collectRewrites = true),
+          currentSbtVersion
+        )
+      else
+        Def.task {
+          val _ = runArgs(interface, taskStreams)
+        }
+    }
+
+  private def supportsSbt2Caching(interface: ScalafixInterface): Boolean = {
+    def externalRule(rule: String): Boolean =
+      Seq("file:", "github:", "http:", "https:").exists(rule.startsWith)
+
+    val unsupportedArgs = interface.args.exists {
+      case Arg.NoCache => true
+      case Arg.ParsedArgs(args) =>
+        args.exists(arg =>
+          arg == "--stdout" || arg.startsWith("--tool-classpath")
+        )
+      case Arg.Rules(rules) => rules.exists(externalRule)
+      case Arg.Config(config) =>
+        val configFile = config.map(_.toFile).getOrElse(file(".scalafix.conf"))
+        configFile.isFile && Try(IO.read(configFile)).toOption.exists(content =>
+          Seq("file:", "github:", "http:", "https:").exists(content.contains)
+        )
+      case _ => false
+    }
+    !unsupportedArgs
+  }
 
   private def scalafixSemantic(
       semanticRuleNames: Seq[String],
@@ -556,7 +614,7 @@ object ScalafixPlugin extends AutoPlugin {
         new SemanticdbNotFound(semanticRuleNames, scalaVersion.value)
       ).findErrors(files, dependencies, scalacOpts, mainArgs)
       if (errors.isEmpty) {
-        val task = Def.task {
+        val task = Def.taskDyn {
           // don't use fullClasspath as it results in a cyclic dependency via compile when scalafixOnCompile := true
           val classpath =
             (config / dependencyClasspath).value.map(Compat.toPath) :+
@@ -565,10 +623,7 @@ object ScalafixPlugin extends AutoPlugin {
             Arg.Paths(files),
             Arg.Classpath(classpath)
           )
-          runArgs(
-            semanticInterface,
-            (config / scalafix / streams).value
-          )
+          scalafixRunTask(semanticInterface, files, shellArgs, config)
         }
         // we should not and cannot (circular dependency) trigger compilation
         // if this is an non-explicit invocation - we use the presence of a
@@ -602,8 +657,9 @@ object ScalafixPlugin extends AutoPlugin {
 
   private def runArgs(
       interface: ScalafixInterface,
-      streams: TaskStreams
-  ): Unit = {
+      streams: TaskStreams,
+      collectRewrites: Boolean = false
+  ): Set[File] = {
     val paths = interface.args.collect { case Arg.Paths(paths) =>
       paths
     }.flatten
@@ -752,11 +808,31 @@ object ScalafixPlugin extends AutoPlugin {
         tracker(cacheKeyArgs)
       }
 
+      def runAndCollectRewrites(
+          targets: Set[File],
+          run: => Seq[ScalafixError]
+      ): (Seq[ScalafixError], Set[File]) = {
+        val originalStamps =
+          if (collectRewrites)
+            targets.iterator
+              .map(target => target -> Hash.toHex(Hash(target)))
+              .toMap
+          else Map.empty[File, String]
+        val errors = run
+        val processedTargets =
+          if (collectRewrites)
+            targets.filter(target =>
+              originalStamps(target) != Hash.toHex(Hash(target))
+            )
+          else targets
+        (errors, processedTargets)
+      }
+
       diffWithPreviousRuns { (cacheKeyArgsChanged, staleTargets) =>
-        val errors = if (cacheKeyArgsChanged) {
+        val (errors, processedTargets) = if (cacheKeyArgsChanged) {
           streams.log.info(s"Running scalafix on ${paths.size} Scala sources")
           streams.log.debug(s"running ${interface.args}")
-          interface.run()
+          runAndCollectRewrites(paths.map(_.toFile).toSet, interface.run())
         } else {
           if (staleTargets.nonEmpty) {
             streams.log.info(
@@ -765,18 +841,18 @@ object ScalafixPlugin extends AutoPlugin {
             val interfaceIncremental = interface
               .withArgs(Arg.Paths(staleTargets.map(_.toPath).toSeq))
             streams.log.debug(s"running ${interfaceIncremental.args}")
-            interfaceIncremental.run()
+            runAndCollectRewrites(staleTargets, interfaceIncremental.run())
           } else {
             streams.log.debug(s"already ran on ${paths.length} files")
-            Nil
+            (Nil, Set.empty[File])
           }
         }
         if (errors.nonEmpty) throw new ScalafixFailed(errors.toList)
-        ()
+        processedTargets
       }
 
     } else {
-      () // do nothing
+      Set.empty[File] // do nothing
     }
   }
 

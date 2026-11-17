@@ -1,0 +1,3 @@
+object ProcedureSyntax {
+  def unit {}
+}
