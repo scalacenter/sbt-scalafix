@@ -1,5 +1,6 @@
 package scalafix.internal.sbt
 
+import java.io.File
 import java.net.MalformedURLException
 import java.nio.file.Paths
 
@@ -63,6 +64,16 @@ object CoursierRepoResolvers {
         None
     }
 
+  // Path.toUri only appends a trailing slash for existing directories, so
+  // preserve the separator explicitly: the directory may not exist yet (e.g. a
+  // fresh custom ivy home), and dropping it would glue the placeholder to the
+  // path segment ("local[organisation]/...").
+  private def toUriString(path: String): String = {
+    val uri = Paths.get(path).toUri.toASCIIString
+    if (path.endsWith("/") && !uri.endsWith("/")) uri + "/"
+    else uri
+  }
+
   // Convert a local path (potentially with Ivy pattern placeholders) to a
   // file URI string, encoding characters like whitespace along the way via
   // Paths.get(...).toUri. Remote URIs (containing "://") are returned as-is.
@@ -77,11 +88,67 @@ object CoursierRepoResolvers {
       // Encode only the path prefix (before placeholders) as a file URI,
       // then re-append the placeholder suffix as-is
       val (pathPart, patternPart) = path.splitAt(stopAtIdx)
-      Paths.get(pathPart).toUri.toASCIIString + patternPart
+      toUriString(pathPart) + patternPart
     } else if (stopAtIdx == 0)
       "file://" + path
     else
-      Paths.get(path).toUri.toASCIIString
+      toUriString(path)
+  }
+
+  // sbt expands ${ivy.home} in its Ivy patterns, but coursier's interface
+  // cannot carry Ivy properties, so such patterns must be expanded before
+  // being handed over. Repositories still containing other unresolved
+  // properties are rejected by coursier ("Property(ies) not found") and are
+  // therefore skipped.
+  private val propertyRef = "\\$\\{([^}]+)}".r
+
+  // Avoids triggering -Xlint:missing-interpolator on the literal.
+  private val ivyHomeProperty = "$" + "{ivy.home}"
+
+  // Same precedence as sbt's own resolution (see
+  // sbt.internal.librarymanagement.LMSysProp.defaultIvyHome): sbt.ivy.home,
+  // then ivy.home, then ~/.ivy2.
+  private def sbtIvyHome: String =
+    sys.props
+      .get("sbt.ivy.home")
+      .orElse(sys.props.get("ivy.home"))
+      .map(new File(_))
+      .getOrElse(new File(sys.props("user.home"), ".ivy2"))
+      .getAbsolutePath
+
+  private[sbt] def expandIvyHome(pattern: String): String =
+    pattern.replace(ivyHomeProperty, sbtIvyHome)
+
+  private def ivyRepositoryOpt(
+      artifactPattern: String,
+      ivyPattern: String,
+      log: Logger
+  ): Option[Repository] = {
+    val expandedArtifactPattern = expandIvyHome(artifactPattern)
+    val expandedIvyPattern = expandIvyHome(ivyPattern)
+    val props =
+      propertyRef
+        .findAllMatchIn(expandedArtifactPattern)
+        .map(m => m.group(1))
+        .toList ++
+        propertyRef
+          .findAllMatchIn(expandedIvyPattern)
+          .map(m => m.group(1))
+          .toList
+    if (props.isEmpty)
+      Some(
+        IvyRepository
+          .of(pathToUriString(expandedArtifactPattern))
+          .withMetadataPattern(pathToUriString(expandedIvyPattern))
+          .withDropInfoAttributes(true)
+      )
+    else {
+      log.warn(
+        s"Repository pattern $artifactPattern contains Ivy property reference(s) ${props.distinct
+            .mkString(", ")} that coursier cannot resolve, ignoring it"
+      )
+      None
+    }
   }
 
   def repository(
@@ -101,12 +168,11 @@ object CoursierRepoResolvers {
 
         mavenCompatibleBaseOpt0 match {
           case None =>
-            val repo = IvyRepository
-              .of(pathToUriString(r.patterns.artifactPatterns.head))
-              .withMetadataPattern(pathToUriString(r.patterns.ivyPatterns.head))
-              .withDropInfoAttributes(true)
-
-            Some(repo)
+            ivyRepositoryOpt(
+              r.patterns.artifactPatterns.head,
+              r.patterns.ivyPatterns.head,
+              log
+            )
 
           case Some(mavenCompatibleBase) =>
             mavenRepositoryOpt(
@@ -173,12 +239,11 @@ object CoursierRepoResolvers {
 
     mavenCompatibleBaseOpt0 match {
       case None =>
-        val repo = IvyRepository
-          .of(pathToUriString(patterns.artifactPatterns.head))
-          .withMetadataPattern(pathToUriString(patterns.ivyPatterns.head))
-          .withDropInfoAttributes(true)
-
-        Some(repo)
+        ivyRepositoryOpt(
+          patterns.artifactPatterns.head,
+          patterns.ivyPatterns.head,
+          log
+        )
 
       case Some(mavenCompatibleBase) =>
         mavenRepositoryOpt(mavenCompatibleBase, log, credentialsByHost)
