@@ -1,0 +1,15 @@
+# both projects publish test.scalafix:test-rule:0.0.1, one that rewrites and one
+# that only reports a lint error, into distinct repositories
+> rewrite / publish
+> lint / publish
+
+# the rule has not been applied yet, so the check fails
+-> example / scalafix --check class:test.CustomRule
+
+# the rule is applied from the rewriting copy, resolved via the repositories sbt
+# injects into fullResolvers, which take precedence over the lint repository
+# configured in scalafixResolvers
+> example / scalafix class:test.CustomRule
+
+# the file now matches the rewriting rule's output, so the check passes
+> example / scalafix --check class:test.CustomRule
