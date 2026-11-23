@@ -334,7 +334,9 @@ object ScalafixPlugin extends AutoPlugin {
             )
           }.toMap
 
-        resolvers.value.flatMap { resolver =>
+        // fullResolvers is what sbt resolves against; unlike resolvers, it
+        // honors the launcher config i.e. sbt.override.build.repos
+        (LocalRootProject / fullResolvers).value.flatMap { resolver =>
           CoursierRepoResolvers.repository(
             resolver,
             logger,
@@ -471,7 +473,9 @@ object ScalafixPlugin extends AutoPlugin {
           .flatMap(Compat.extractModuleID)
 
       val allResolvers =
-        ((ThisBuild / scalafixResolvers).value ++ (ThisBuild / scalafixSbtResolversAsCoursierRepositories).value).distinct
+        // sbt repositories first: coursier tries repositories in order, so an
+        // unreachable default (e.g. Maven Central behind a proxy) must not come first
+        ((ThisBuild / scalafixSbtResolversAsCoursierRepositories).value ++ (ThisBuild / scalafixResolvers).value).distinct
       val (shell, baseInterface) = scalafixArgsFromShell(
         shellArgs,
         projectDepsExternal,
